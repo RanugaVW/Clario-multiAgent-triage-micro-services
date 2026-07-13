@@ -2,3 +2,4 @@
 pandas>=2.0
 matplotlib>=3.7
 langdetect>=1.0.9
+spacy>=3.7
