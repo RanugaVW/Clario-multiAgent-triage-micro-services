@@ -1,0 +1,14 @@
+node_modules/
+**/__pycache__/
+.venv/
+*.pyc
+.env
+data/raw/**
+*.ipynb_checkpoints/
+dist/
+build/
+.DS_Store
+*.log
+vector_store/kb_documents/**local**
+.claude
+customer_support_tickets_200k.csv
