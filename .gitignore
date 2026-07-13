@@ -12,3 +12,7 @@ build/
 vector_store/kb_documents/**local**
 .claude
 customer_support_tickets_200k.csv
+Plan
+.venv
+*.csv
+Plan.md
