@@ -10,7 +10,7 @@ clario/
 ├── docker-compose.yml
 ├── .env.example
 ├── .gitignore
-├── frontend/                         # Member 3
+├── frontend/                         
 │   ├── src/
 │   │   ├── features/
 │   │   │   ├── ticket-submission/
@@ -30,7 +30,7 @@ clario/
 │   ├── Dockerfile
 │   ├── package.json
 │   └── README.md
-├── api_gateway/                      # Member 3
+├── api_gateway/                      
 │   ├── app/
 │   │   ├── auth/
 │   │   ├── core/
@@ -41,7 +41,7 @@ clario/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── README.md
-├── agent_orchestration/              # Member 2
+├── agent_orchestration/              
 │   ├── app/
 │   │   ├── agents/
 │   │   │   ├── billing_agent/
@@ -61,9 +61,9 @@ clario/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── README.md
-├── ml_finetuning/                    # Member 1
+├── ml_finetuning/                   
 │   ├── data/
-│   │   ├── raw/                      # Local ticket data; ignored by Git
+│   │   ├── raw/                      
 │   │   ├── distilled/
 │   │   └── splits/
 │   ├── notebooks/
@@ -75,11 +75,11 @@ clario/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── README.md
-├── vector_store/                     # Member 2
+├── vector_store/                     
 │   ├── kb_documents/                 # Local knowledge-base documents; ignored by Git
 │   ├── build_index.py
 │   └── README.md
-├── infra/                            # Member 3
+├── infra/                            
 │   ├── nginx/
 │   └── postgres/
 │       └── init.sql
