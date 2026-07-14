@@ -1,1 +1,16 @@
-{"_comment":"Placeholder: frontend package metadata and scripts will go here."}
+{
+  "name": "clario-frontend",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "jsdom": "^25.0.1",
+    "msw": "^2.7.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
