@@ -16,3 +16,59 @@ Plan
 .venv
 *.csv
 *Plan.md
+
+# Test, coverage, and static-analysis artifacts
+.pytest_cache/
+pytest-cache-files-*/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+
+# Frontend build and test-tool caches
+frontend/coverage/
+frontend/.vite/
+frontend/.vitest/
+*.tsbuildinfo
+
+# Local configuration and credentials (keep the safe template versioned)
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local service data and generated retrieval indexes
+postgres-data/
+infra/postgres/data/
+vector_store/kb_documents/
+vector_store/index/
+vector_store/indices/
+*.faiss
+*.sqlite
+*.sqlite3
+
+# Customer datasets and derived ML data
+ml_finetuning/data/raw/
+ml_finetuning/data/distilled/
+ml_finetuning/data/splits/
+
+# Large, generated ML artifacts; retain the versioned approval registry
+ml_finetuning/models/*
+!ml_finetuning/models/registry.json
+ml_finetuning/checkpoints/
+ml_finetuning/runs/
+ml_finetuning/outputs/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+
+# Local evaluation and experiment artifacts
+langsmith-data/
+langsmith-exports/
+wandb/
+mlruns/
