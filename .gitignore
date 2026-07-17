@@ -55,6 +55,10 @@ vector_store/indices/
 ml_finetuning/data/raw/
 ml_finetuning/data/distilled/
 ml_finetuning/data/splits/
+ml_finetuning/data/curation_reports/
+ml_finetuning/data/curated_synthetic/
+ml_finetuning/data/curated_synthetic_lms/
+ml_finetuning/data/gemini_verified_balanced/
 
 # Large, generated ML artifacts; retain the versioned approval registry
 ml_finetuning/models/*
