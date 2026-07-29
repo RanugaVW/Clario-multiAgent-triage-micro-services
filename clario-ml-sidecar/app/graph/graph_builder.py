@@ -14,7 +14,9 @@ from app.graph.cache_check_node import cache_check_node
 from app.graph.classification_node import classification_node
 from app.graph.escalation_node import escalation_node
 from app.graph.handoff_node import handoff_node
-from app.graph.redaction_node import redaction_node
+from app.graph.surrogate_node import surrogate_node
+from app.graph.analyzer_node import analyzer_node
+from app.graph.resolve_node import resolve_node
 from app.graph.reflection_node import reflection_node
 from app.graph.routing_node import routing_node
 from app.graph.state import TicketState
@@ -32,7 +34,7 @@ async def both_specialists_node(state: TicketState) -> TicketState:
 
 
 def _after_cache(state: TicketState) -> str:
-    return "validation" if state.get("cache_hit") else "redaction"
+    return "validation" if state.get("cache_hit") else "surrogate"
 
 
 def _specialist_target(state: TicketState) -> str:
@@ -55,7 +57,8 @@ def build_graph():
     """Compile the ticket graph; reroute and reflection are each structurally bounded."""
     graph = StateGraph(TicketState)
     graph.add_node("cache_check", cache_check_node)
-    graph.add_node("redaction", redaction_node)
+    graph.add_node("surrogate", surrogate_node)
+    graph.add_node("analyzer", analyzer_node)
     graph.add_node("classification", classification_node)
     graph.add_node("routing", routing_node)
     graph.add_node("technical_agent", technical_agent_node)
@@ -65,16 +68,18 @@ def build_graph():
     graph.add_node("reflection", reflection_node)
     graph.add_node("escalation", escalation_node)
     graph.add_node("handoff", handoff_node)
+    graph.add_node("resolve", resolve_node)
     graph.add_edge(START, "cache_check")
     graph.add_conditional_edges("cache_check", _after_cache)
-    graph.add_edge("redaction", "classification")
-    graph.add_edge("classification", "routing")
+    graph.add_edge("surrogate", "analyzer")
+    graph.add_edge("analyzer", "classification")
     graph.add_conditional_edges("routing", _specialist_target)
     graph.add_edge("technical_agent", "validation")
     graph.add_edge("billing_agent", "validation")
     graph.add_edge("both_specialists", "validation")
     graph.add_conditional_edges("validation", _after_validation)
     graph.add_conditional_edges("reflection", _specialist_target)
-    graph.add_edge("escalation", "handoff")
+    graph.add_edge("escalation", "resolve")
+    graph.add_edge("resolve", "handoff")
     graph.add_edge("handoff", END)
     return graph.compile()
