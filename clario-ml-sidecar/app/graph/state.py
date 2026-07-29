@@ -12,11 +12,11 @@ class TicketState(TypedDict):
 
     # Input/API writes; every node reads to identify the ticket.
     ticket_id: str
-    # Input/API writes; redaction_node alone reads raw customer content.
+    # Input/API writes; surrogate_node alone reads raw customer content.
     raw_text: str
-    # redaction_node writes; all downstream text-processing nodes read this only.
+    # surrogate_node writes; all downstream text-processing nodes read this only.
     redacted_text: str
-    # redaction_node writes; validation_node reads for outgoing PII checks.
+    # surrogate_node writes; validation_node reads for outgoing PII checks.
     pii_found: list[dict]
     # classification_node writes; routing_node, escalation_node, and handoff_node read.
     category: str | None

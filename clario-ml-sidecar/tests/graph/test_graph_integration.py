@@ -36,7 +36,9 @@ def _install_stubs(monkeypatch, calls: dict[str, int]) -> None:
             return {**state, "failure_type": "quality", "needs_reroute": False,
                     "validation_result": {"technical": {"passed": False, "failed_rules": ["tone"], "reasoning": "revise"}}}
         return {**state, "failure_type": "none", "needs_reroute": False, "validation_result": {}}
-    monkeypatch.setattr(graph_builder, "cache_check_node", cache); monkeypatch.setattr(graph_builder, "redaction_node", redact)
+    def no_op(state): return {**state}
+    monkeypatch.setattr(graph_builder, "cache_check_node", cache); monkeypatch.setattr(graph_builder, "surrogate_node", redact)
+    monkeypatch.setattr(graph_builder, "analyzer_node", no_op); monkeypatch.setattr(graph_builder, "resolve_node", no_op)
     monkeypatch.setattr(graph_builder, "classification_node", classify); monkeypatch.setattr(graph_builder, "routing_node", route)
     monkeypatch.setattr(graph_builder, "technical_agent_node", technical); monkeypatch.setattr(graph_builder, "billing_agent_node", billing)
     monkeypatch.setattr(graph_builder, "validation_node", validation); monkeypatch.setattr(graph_builder, "reflection_node", reflection_node)
