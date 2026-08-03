@@ -144,6 +144,9 @@ During our planning phase, we evaluated several stack combinations:
 ### Alternative C: Spring Boot + Spring AI Monolith (No Python)
 *   **Why Rejected:** Although Spring AI provides wrappers for external API calls, our project requires a **custom model training and distillation pipeline** (PII masking with spaCy, teacher-student distillation with Gemini, and custom QLoRA adapter training). The machine learning ecosystem (bitsandbytes, PEFT, PyTorch) is Python-centric. Restricting our system to Java would prevent us from serving our custom fine-tuned model offline.
 
+### Alternative D: Distributed Microservices Architecture
+*   **Why Rejected:** While microservices offer excellent scalability and independent deployment, they introduce massive operational complexity that is unjustified for our initial scope. A microservices mesh requires complex orchestration (e.g., Kubernetes), distributed tracing, managing network serialization overhead between services, and handling eventual consistency across multiple isolated databases. For Clario, adopting microservices would violate our zero-capital compute budget and dramatically slow down development velocity for a 3-person team. Our Hybrid Monolith provides the necessary logical separation between transactional data (Spring Boot) and AI compute (Python) without the DevOps burden of managing a distributed network mesh.
+
 ---
 
 ## 7. Why We Selected Next.js + Spring Boot + Python Hybrid Monolith

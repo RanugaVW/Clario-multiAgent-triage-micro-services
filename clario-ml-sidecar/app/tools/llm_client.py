@@ -1,43 +1,34 @@
-"""Gemini draft-generation client with bounded retries and no fabricated fallback."""
+"""Draft-generation client — uses local HuggingFace models (no external API needed).
+
+The heavy model is loaded once on first use and cached in-process.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import os
-
-from google import genai
-from dotenv import load_dotenv
 
 from app.tools.circuit_breaker import CircuitBreakerOpenError, get_breaker
+from app.tools.local_llm import generate_draft
 
 logger = logging.getLogger(__name__)
-load_dotenv()
 
 
 async def generate(prompt: str) -> str:
-    """Generate a specialist draft or raise after the initial call and two retries."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not configured")
-    breaker = get_breaker("gemini_draft")
+    """Generate a specialist draft using a local HuggingFace model.
+
+    Runs the CPU-bound inference in a thread-pool so the FastAPI event loop
+    is not blocked.  Raises RuntimeError / CircuitBreakerOpenError on failure.
+    """
+    breaker = get_breaker("local_draft")
     if not breaker.allow_request():
-        raise CircuitBreakerOpenError("gemini_draft circuit breaker is open")
-    client = genai.Client(api_key=api_key)
-    model = os.getenv("GEMINI_DRAFT_MODEL", "gemini-2.5-flash")
-    for attempt in range(3):
-        try:
-            response = await asyncio.wait_for(
-                client.aio.models.generate_content(model=model, contents=prompt), timeout=20
-            )
-            if not response.text or not response.text.strip():
-                raise ValueError("Gemini returned an empty draft")
-            breaker.record_success()
-            return response.text.strip()
-        except Exception as error:
-            if attempt == 2:
-                logger.warning("Gemini draft generation failed after retries: %s", error)
-                breaker.record_failure()
-                raise RuntimeError("draft generation failed") from error
-            await asyncio.sleep(2**attempt)
-    raise RuntimeError("draft generation failed")
+        raise CircuitBreakerOpenError("local_draft circuit breaker is open")
+    try:
+        # offload blocking inference to a thread so async loop stays free
+        text = await asyncio.get_event_loop().run_in_executor(None, generate_draft, prompt)
+        breaker.record_success()
+        return text
+    except Exception as error:
+        logger.warning("Local draft generation failed: %s", error)
+        breaker.record_failure()
+        raise RuntimeError("draft generation failed") from error

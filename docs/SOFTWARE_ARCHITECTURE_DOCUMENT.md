@@ -1,154 +1,162 @@
 # Software Architecture Document (SAD)
 ## Clario — Multi-Agent Customer Support Triage and Response System
 ### CS3501 Data Science and Engineering Project — Group 23, P04
-### Version 1.0 | July 2026
+### Version 2.0 (Aligned with Supervisor Template) | July 2026
 
 ---
 
 ## Table of Contents
-
-1. [Document Overview](#1-document-overview)
-2. [System Overview & Goals](#2-system-overview--goals)
-3. [Stakeholders & Concerns](#3-stakeholders--concerns)
-4. [Architectural Drivers](#4-architectural-drivers)
-5. [Technology Stack](#5-technology-stack)
-6. [System Context (C1)](#6-system-context-c1)
-7. [Container Architecture (C2)](#7-container-architecture-c2)
-8. [Component Architecture (C3)](#8-component-architecture-c3)
-   - 8.1 [ML Fine-Tuning Service](#81-ml-fine-tuning-service)
-   - 8.2 [ML Sidecar Service](#82-agent-orchestration-service)
-   - 8.3 [API Gateway Service](#83-api-gateway-service)
-   - 8.4 [Frontend Application](#84-frontend-application)
-   - 8.5 [Vector Store Service](#85-vector-store-service)
-   - 8.6 [Relational Database](#86-relational-database)
-9. [LangGraph State Machine](#9-langgraph-state-machine)
-10. [Data Flow — Full Ticket Lifecycle](#10-data-flow--full-ticket-lifecycle)
-11. [Knowledge Distillation Pipeline](#11-knowledge-distillation-pipeline)
-12. [RAG Pipeline](#12-rag-pipeline)
-13. [Validation & Escalation Logic](#13-validation--escalation-logic)
-14. [Sequence Diagrams](#14-sequence-diagrams)
-    - 14.1 [Happy Path (Auto-Send)](#141-happy-path-auto-send)
-    - 14.2 [Escalation to Human Review](#142-escalation-to-human-review)
-    - 14.3 [Optimistic Locking — 409 Conflict](#143-optimistic-locking--409-conflict)
-    - 14.4 [Reroute Flow (v3 Fix)](#144-reroute-flow-v3-fix)
-    - 14.5 [Cache Hit Shortcut](#145-cache-hit-shortcut)
-15. [Team Roles & Ownership](#15-team-roles--ownership)
-16. [Package / Module Diagrams](#16-package--module-diagrams)
-    - 16.1 [ML Sidecar Packages](#161-agent-orchestration-packages)
-    - 16.2 [API Gateway Packages](#162-api-gateway-packages)
-    - 16.3 [ML Fine-Tuning Packages](#163-ml-fine-tuning-packages)
-    - 16.4 [Frontend Feature Packages](#164-frontend-feature-packages)
-17. [Database Schema (ERD)](#17-database-schema-erd)
-18. [Deployment Architecture](#18-deployment-architecture)
-19. [Cross-Cutting Concerns](#19-cross-cutting-concerns)
-    - 19.1 [Security & PII](#191-security--pii)
-    - 19.2 [Observability & Logging](#192-observability--logging)
-    - 19.3 [Resilience Patterns](#193-resilience-patterns)
-20. [Testing Strategy](#20-testing-strategy)
-21. [Timeline & Phased Delivery](#21-timeline--phased-delivery)
-22. [Evaluation Metrics](#22-evaluation-metrics)
-23. [Stretch Goal — Rysera STEM LMS Integration](#23-stretch-goal--rysera-stem-lms-integration)
-24. [Architectural Decision Records (ADRs)](#24-architectural-decision-records-adrs)
-25. [Pre-Symposium Checklist](#25-pre-symposium-checklist)
+1. [Introduction](#1-introduction)
+   - 1.1 [Purpose](#11-purpose)
+   - 1.2 [Scope](#12-scope)
+   - 1.3 [Definitions, Acronyms, and Abbreviations](#13-definitions-acronyms-and-abbreviations)
+   - 1.4 [References](#14-references)
+   - 1.5 [Overview](#15-overview)
+2. [Architectural Representation](#2-architectural-representation)
+3. [Architectural Goals and Constraints](#3-architectural-goals-and-constraints)
+4. [Use-Case View](#4-use-case-view)
+   - 4.1 [Use-Case Realizations](#41-use-case-realizations)
+5. [Logical View](#5-logical-view)
+   - 5.1 [Overview](#51-overview)
+   - 5.2 [Architecturally Significant Design Packages](#52-architecturally-significant-design-packages)
+6. [Process View](#6-process-view)
+7. [Deployment View](#7-deployment-view)
+8. [Implementation View](#8-implementation-view)
+   - 8.1 [Overview](#81-overview)
+   - 8.2 [Layers](#82-layers)
+9. [Data View](#9-data-view)
+10. [Size and Performance](#10-size-and-performance)
+11. [Quality](#11-quality)
+12. [References](#12-references)
+[Appendices](#appendices)
 
 ---
 
-## 1. Document Overview
+## 1. Introduction
 
-This Software Architecture Document describes the complete technical architecture of **Clario**, a multi-agent customer support triage and response system. Clario accepts inbound support tickets, redacts PII, classifies them using a fine-tuned open-weight language model (distilled from Gemini), routes them to specialist AI agents that use Retrieval-Augmented Generation (RAG), validates their outputs, and either auto-sends a response or escalates to a human agent for review.
+### 1.1 Purpose
+This document provides a comprehensive architectural overview of the system, using a number of different architectural views to depict different aspects of the system. It is intended to capture and convey the significant architectural decisions which have been made on the system. This document is the single source of truth for all architectural decisions. All cross-team contracts (state shapes, API schemas, JSON payloads) are defined here and must be communicated as a team before implementation.
 
-This document is the single source of truth for all architectural decisions. All cross-team contracts (state shapes, API schemas, JSON payloads) are defined here and must be communicated as a team before implementation.
+### 1.2 Scope
+This Software Architecture Document applies to the Clario platform, an end-to-end automated support pipeline built on a **multi-agent collaboration** pattern, deployed as a **Hybrid Monolith** (Spring Boot + Python Sidecar). It covers the inbound ticket processing, PII redaction (SurrogateShield), semantic distillation, LLM classification, LangGraph agent routing, RAG execution, validation (EGC), and escalation handoffs.
 
-> **Note on Mermaid diagrams:** All diagram code blocks in this document use syntax compatible with [mermaid.live](https://mermaid.live). Copy any code block into that editor to render the diagram.
+### 1.3 Definitions, Acronyms, and Abbreviations
+- **EGC**: Evidence Graph Consistency.
+- **LLM**: Large Language Model.
+- **PII**: Personally Identifiable Information.
+- **QLoRA**: Quantized Low-Rank Adaptation (fine-tuning method).
+- **RAG**: Retrieval-Augmented Generation.
+- **SurrogateShield**: A custom PII anonymization module.
+- **Hybrid Monolith**: An architecture combining a Spring Boot gateway and a Python ML Sidecar running locally.
+- **LangGraph**: Framework for building stateful, multi-actor applications with LLMs.
 
----
+### 1.4 References
+- Tools used for drawing diagrams: Mermaid.js ([mermaid.live](https://mermaid.live)) for all Use-Case, Component, Class, Sequence, and Deployment diagrams.
 
-## 2. System Overview & Goals
-
-### 2.1 What Clario Does
-
-Clario is an end-to-end automated support pipeline built on a **multi-agent collaboration** pattern, deployed as a **Hybrid Monolith** (Spring Boot + Python Sidecar). When a customer submits a support ticket:
-
-1. **SurrogateShield** replaces PII with type-consistent fake values (surrogates) before any LLM sees the text.
-2. A **Semantic Distillation** analyzer extracts structured key phrases (Location, Symptom, Capability) to eliminate lexical noise.
-3. A **fine-tuned student LLM** (Mistral-7B/Llama-3-8B) classifies the ticket into category, priority, and sentiment based on the distilled semantics.
-4. A **LangGraph routing agent** delegates the ticket to the correct specialist agent (Technical, Billing, or both).
-5. **Specialist agents** retrieve grounded answers from a ChromaDB knowledge base using RAG.
-6. A **validation step** (Reference-Guided CoT LLM-as-judge) uses **Evidence Graph Consistency (EGC)** to check the draft for structural detachment, hallucinations, and policy compliance.
-7. A **ResolvePass** restores the original user's PII from the secure ShadowMap before saving.
-6. **Bounded reflection** or **rerouting** may occur if validation fails.
-7. Urgent / low-confidence tickets are **escalated** to the human agent review screen.
-8. Resolved cases are **vectorised and stored** as precedent memory for future RAG.
-
-### 2.2 Key Objectives
-
-| Objective | How Clario Addresses It |
-|---|---|
-| Automate routine ticket responses | Multi-agent pipeline handles classification, drafting, and validation autonomously |
-| Prevent PII leakage | Regex + spaCy NER SurrogateShield at entry; re-checked on outgoing drafts |
-| Grounded, non-hallucinated responses | RAG with relevance thresholding; agents must cite sources; abstention enforced |
-| Handle multi-domain tickets | "Both" routing path runs Technical and Billing specialists concurrently |
-| Measurable quality improvement | Fine-tuned model evaluated vs non-fine-tuned baseline on held-out test set |
-| Human oversight for edge cases | Escalation + human agent review screen with full handoff package |
+### 1.5 Overview
+This document describes what the rest of the Software Architecture Document contains and explains how the Software Architecture Document is organized. It uses the standard 4+1 View Model views (Use-Case, Logical, Process, Deployment, and Implementation) mixed with C4 methodology to provide comprehensive documentation of the Clario platform.
 
 ---
 
-## 3. Stakeholders & Concerns
-
-| Stakeholder | Primary Concerns |
-|---|---|
-| Customer | Fast, accurate, non-invasive support response |
-| Human Support Agent | Clear handoff package; conflict-free concurrent editing (optimistic locking) |
-| Development Team (Members 1/2/3) | Modular services, clear cross-team contracts, testability |
-| Academic Assessors | Demonstrable multi-agent architecture, reproducible evaluation methodology |
-| Data Governance | PII never stored raw after SurrogateShield; no training data leakage |
-
----
-
-## 4. Architectural Drivers
-
-| Driver | Decision |
-|---|---|
-| Open-weight LLM fine-tuning | QLoRA on Mistral-7B/Llama-3-8B via HuggingFace PEFT |
-| Knowledge distillation | Gemini 2.x Flash as teacher; structured JSON output |
-| Multi-agent orchestration | LangGraph state graph (explicit, loop-safe, bounded) |
-| Vector search | ChromaDB with all-MiniLM-L6-v2 embeddings |
-| Architecture | Hybrid Monolith (Spring Boot gateway + Python FastAPI ML Sidecar) |
-| Frontend | React + TypeScript + Vite (statically served by Spring Boot) |
-| Containerisation | Docker + Docker Compose (3 core services: Gateway, Sidecar, DB) |
-| Validation | Reference-Guided CoT LLM-as-judge + Evidence Graph Consistency (EGC) |
-| Race condition safety | Optimistic locking (version column + HTTP 409) |
-| Resilience | Circuit breakers, timeouts, exponential backoff, graceful fallbacks |
+## 2. Architectural Representation
+The software architecture for Clario is represented using a mix of UML and C4 model diagrams:
+- **Use-Case View**: Represented by UML Use-Case diagrams to show actor interactions and realizations.
+- **Logical View**: Represented by UML Class diagrams and Component Context diagrams (C1/C2/C3) to show structural decomposition.
+- **Process View**: Represented by UML Activity and Sequence diagrams to show runtime behavior and synchronization.
+- **Deployment View**: Represented by UML Deployment diagrams showing physical nodes and containers.
+- **Implementation View**: Represented by Package and Component diagrams.
+All diagrams are rendered using Mermaid.js syntax.
 
 ---
 
-## 5. Technology Stack
+## 3. Architectural Goals and Constraints
+### Goals:
+- Automate routine ticket responses using multi-agent pipelines (LangGraph).
+- Prevent PII leakage using SurrogateShield.
+- Ensure grounded, non-hallucinated responses via RAG with relevance thresholding.
+- Handle multi-domain tickets concurrently.
+- Provide a clear handoff package for Human Support Agents for conflict-free concurrent editing.
 
-| Layer | Technology | Rationale |
-|---|---|---|
-| Frontend | React 18 + TypeScript + Vite | Fast dev server; feature-based structure |
-| Frontend Styling | Tailwind CSS | Rapid prototyping; clean ticket form + review screen |
-| API Gateway | Spring Boot (Java 17/21) | JPA ORM, Optimistic locking, Enterprise Security |
-| ML Sidecar / Orchestration | FastAPI + LangGraph (Python 3.11) | ML isolation, state graph, ChromaDB access |
-| Auth | Spring Security JWT | Robust backend authentication |
-| Classification LLM (production) | Mistral-7B-Instruct-v0.3 (LoRA adapter) | Open-weight, academic GPU accessible |
-| Classification LLM (stand-in) | Google Gemini 2.5 Flash Lite | Temporary until fine-tuned model is ready |
-| Drafting/Judge LLM | Google Gemini 2.5 Flash | Provider-agnostic wrapper; one config change to swap |
-| Knowledge distillation teacher | Google Gemini 2.x Flash (JSON mode) | Cheapest bulk labeller; structured output |
-| Fine-tuning method | QLoRA via HuggingFace PEFT + bitsandbytes | Runs on Kaggle/Colab free GPU |
-| PII Anonymization | SurrogateShield + Python Faker | AES-256 ShadowMap; substitutes fake semantic surrogates |
-| Vector store | ChromaDB (persistent, Docker volume) | Low operational overhead for small KB |
-| Embeddings | sentence-transformers/all-MiniLM-L6-v2 | Fast, small, no API cost |
-| Relational DB | PostgreSQL 16 | Tickets, logs, resolutions, user auth |
-| ORM | SQLAlchemy 2.0 + Alembic | Async ORM; versioned migrations |
-| Containerisation | Docker + Docker Compose | One-command full-stack deployment |
-| Experiment tracking | Weights & Biases (free academic tier) | Training curves in evaluation report |
-| Tracing (optional) | LangSmith free tier | Visual debug of LangGraph runs |
+### Constraints:
+- Open-weight LLM fine-tuning using QLoRA (academic GPU accessible).
+- Must utilize a Hybrid Monolith (Spring Boot gateway + Python FastAPI ML Sidecar) instead of a microservice mesh to reduce operational overhead.
+- Race condition safety enforced via Optimistic locking (version column + HTTP 409).
+- PII never stored raw after SurrogateShield; no training data leakage.
 
 ---
 
-## 6. System Context (C1)
+## 4. Use-Case View
+This section lists the significant use cases representing the central functionality of the Clario platform.
 
+> **Paste into [mermaid.live](https://mermaid.live) to render.**
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ffffff', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#64748b', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart LR
+    Customer(["Customer"])
+    HumanAgent(["Human Support Agent"])
+    DevTeam(["Dev Team"])
+
+    subgraph Clario System
+        direction TB
+        UC1(["Submit Support Ticket"])
+        UC2(["Review Escalated Ticket"])
+        UC3(["Auto-Resolve Ticket"])
+        UC4(["Train & Distill Model"])
+        UC5(["Manage Knowledge Base"])
+    end
+
+    Customer --> UC1
+    HumanAgent --> UC2
+    UC1 -.->|"Triggers"| UC3
+    DevTeam --> UC4
+    DevTeam --> UC5
+```
+
+### 4.1 Use-Case Realizations
+- **Submit Support Ticket**: When a customer submits a ticket via the Next.js frontend, the Spring Boot gateway persists it and triggers the ML Sidecar asynchronously.
+- **Review Escalated Ticket**: Human agents receive a handoff package containing the redacted text, drafts, and validation results. They resolve the ticket using an optimistic locking mechanism to prevent concurrent overwrites.
+- **Auto-Resolve Ticket**: The LangGraph state machine autonomously routes, drafts, and validates responses, vectorising resolved tickets into precedent memory upon success.
+
+---
+
+## 5. Logical View
+### 5.1 Overview
+The logical design is decomposed into three major tiers: the API Gateway (Spring Boot), the ML Sidecar (Python/FastAPI), and the Frontend Application (Next.js).
+
+### 5.2 Architecturally Significant Design Packages
+
+#### Core Domain Model (UML Class Diagram)
+> **Paste into [mermaid.live](https://mermaid.live) to render.**
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
+classDiagram
+    class Ticket {
+        +UUID id
+        +String raw_text
+        +String status
+        +Integer version
+    }
+    class TicketState {
+        <<LangGraph TypedDict>>
+        +String failure_type
+        +Boolean needs_reroute
+    }
+    class Draft {
+        +String domain
+        +String draft_text
+        +Float rag_top_score
+    }
+    class ShadowMap {
+        +String original_pii
+        +String surrogate_token
+    }
+
+    Ticket "1" *-- "1" TicketState : tracks execution
+    TicketState "1" *-- "1..*" Draft : contains
+    TicketState "1" *-- "1" ShadowMap : uses for PII
+```
+
+#### System Context (C1)
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
 ```mermaid
@@ -189,8 +197,7 @@ flowchart TB
 
 ---
 
-## 7. Container Architecture (C2)
-
+#### Container Architecture (C2)
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
 ```mermaid
@@ -240,8 +247,7 @@ flowchart TB
 
 ---
 
-## 8. Component Architecture (C3)
-
+#### Component Architecture & LangGraph State Machine
 ### 8.1 ML Fine-Tuning Service
 
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
@@ -567,8 +573,36 @@ flowchart LR
 
 ---
 
-## 10. Data Flow — Full Ticket Lifecycle
+---
 
+## 6. Process View
+This section describes the system's runtime behavior, synchronization, and data flow.
+
+#### Ticket Lifecycle Activity Diagram (LangGraph Flow)
+> **Paste into [mermaid.live](https://mermaid.live) to render.**
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
+stateDiagram-v2
+    [*] --> cache_check
+    cache_check --> validation : cache_hit == True
+    cache_check --> SurrogateShield : cache_hit == False
+    SurrogateShield --> classification
+    classification --> routing
+    routing --> technical_agent : technical
+    routing --> billing_agent : billing
+    routing --> both_specialists : both
+    technical_agent --> validation
+    billing_agent --> validation
+    both_specialists --> validation
+    validation --> reflection : failure_type == quality/policy
+    validation --> routing : failure_type == misroute
+    validation --> escalation : failure_type == dependency_failure OR escalation check
+    reflection --> routing
+    escalation --> handoff
+    handoff --> [*]
+```
+
+#### Data Flow
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
 ```mermaid
@@ -639,163 +673,6 @@ flowchart TD
 ```
 
 ---
-
-## 11. Knowledge Distillation Pipeline
-
-> **Paste into [mermaid.live](https://mermaid.live) to render.**
-
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
-flowchart LR
-    subgraph Phase1["Phase 1: Data Engineering (Member 1)"]
-        A["Kaggle Dataset\n~200K tickets raw"] --> B["01_eda.ipynb\nShape, balance, text length,\nduplicates, language"]
-        B --> C["pii_clean.py\nRegex + spaCy NER\nOne-time masking pass"]
-        C --> D["split_dataset\n70% train / 15% val / 15% test\nStratified; test.parquet LOCKED"]
-    end
-
-    subgraph Phase2["Phase 2: Distillation (Member 1)"]
-        D --> E["Stratified sample\n5K to 15K tickets"]
-        E --> F["gemini_labeler.py\nGemini 2.x Flash JSON mode\nAsync batch 5 concurrent\nExponential backoff\nPer-row disk cache"]
-        F --> G["distilled_dataset.parquet\nticket_text, category,\npriority, sentiment, reasoning"]
-    end
-
-    subgraph Phase3["Phase 3: LoRA Fine-Tuning (Member 1 - Kaggle/Colab GPU)"]
-        G --> H["dataset.py\nInstruction-tuning format\nInstruction / Ticket / Response"]
-        H --> I["train_lora.py\nMistral-7B-Instruct-v0.3\nQLoRA r=16 alpha=32\n4-bit quantised\nCheckpoint every N steps\nW&B logging"]
-        I --> J["LoRA Adapter Weights\nNOT full model — small, swappable"]
-    end
-
-    subgraph Phase4["Phase 4: Evaluation (Member 1)"]
-        J --> K["evaluate.py\nvs non-fine-tuned baseline\nAccuracy + macro-F1\ncategory / priority / sentiment\nJSON-validity rate"]
-    end
-
-    subgraph Serving["Serving (Member 1)"]
-        J --> L["serve.py FastAPI\nPOST /classify\nModel loaded once at startup\nPydantic schemas"]
-    end
-```
-
-**Label Schema (locked before distillation runs):**
-
-| Field | Values |
-|---|---|
-| `category` | Technical, Billing, Account, General, Other |
-| `priority` | Low, Medium, High, Urgent |
-| `sentiment` | Positive, Neutral, Negative, Strongly Negative |
-
----
-
-## 12. RAG Pipeline
-
-> **Paste into [mermaid.live](https://mermaid.live) to render.**
-
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
-flowchart TD
-    subgraph KBBuild["KB Build Offline — vector_store/build_index.py"]
-        KB["kb_documents/\ntechnical/*.md + billing/*.md\n20 to 40 FAQ/policy snippets"]
-        CHUNK["Chunk: ~300 tokens\n50-token overlap"]
-        EMBED["Embed: all-MiniLM-L6-v2"]
-        UPSERT["Upsert to ChromaDB kb_support_docs\nMetadata: source_file, chunk_index, domain\nDeterministic chunk ID = source_file + chunk_index\nIdempotent on re-run"]
-        KB --> CHUNK --> EMBED --> UPSERT
-    end
-
-    subgraph Runtime["Runtime Retrieval rag_tool.py"]
-        QUERY["retrieve_context query domain k=4\nFilters by domain metadata"]
-        RESULT["Top-k chunks\ntext, source_file, score"]
-        RELCHECK{"check_relevance\ntop_score >= RAG_SCORE_THRESHOLD 0.30?"}
-        LOGRELEVANCE["Log WARNING\nlow_relevance_flags domain = True"]
-        PROCEED["low_relevance_flags domain = False"]
-        QUERY --> RESULT --> RELCHECK
-        RELCHECK -- "Yes" --> PROCEED
-        RELCHECK -- "No" --> LOGRELEVANCE
-    end
-
-    subgraph Prompt["Specialist Agent Prompt"]
-        PROMPT["build_specialist_prompt\nAnswer ONLY from retrieved context\nCite source_file per claim\nFallback: I do not have enough information\nIf reflection: prepend prior critique"]
-        DRAFT["Gemini draft response\nor None on total LLM failure"]
-        PROMPT --> DRAFT
-    end
-
-    subgraph Closure["Closure and Learning Precedent Memory"]
-        RESOLVE["Resolved ticket"]
-        EMBED2["Embed resolution summary"]
-        STORE["Store in ChromaDB\nas precedent for future cache hits"]
-        RESOLVE --> EMBED2 --> STORE
-    end
-
-    UPSERT --> QUERY
-    RESULT --> PROMPT
-    LOGRELEVANCE --> PROMPT
-    PROCEED --> PROMPT
-    STORE --> UPSERT
-```
-
----
-
-## 13. Validation & Escalation Logic
-
-> **Paste into [mermaid.live](https://mermaid.live) to render.**
-
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
-stateDiagram-v2
-    direction TB
-    [*] --> CheckDraft: Enter validation_node
-    
-    state CheckDraft {
-        [*] --> IsNone: draft is None? (LLM call failed)
-        IsNone --> DependencyFailure: Yes
-        IsNone --> RunPolicyChecks: No
-    }
-    
-    state "Rule-Based Policy Checks" as PolicyChecks {
-        RunPolicyChecks --> R1: Draft contains PII?
-        RunPolicyChecks --> R2: Draft empty or > 2000 chars?
-        RunPolicyChecks --> R3: Overcommitment phrases not in context?
-        RunPolicyChecks --> R4: Context empty & no fallback?
-    }
-    
-    state "Reference-Guided CoT Judge + EGC" as JudgeGate {
-        Gate: decide_judge_call
-        Judge: llm_judge_check (CoT)
-        EGC: Evidence Graph Consistency
-        Gate --> Judge
-        Judge --> EGC
-    }
-    
-    PolicyChecks --> JudgeGate
-    
-    state "Combine & Decide" as DecideState {
-        Decision: All checks passed?
-        Decision --> FT_NONE: Yes
-        Decision --> FT_POLICY: Policy fail
-        Decision --> FT_QUALITY: EGC Isolation / Hallucination
-        Decision --> FT_MISROUTE: Wrong domain
-        Decision --> DependencyFailure: Both domains low relevance
-    }
-    
-    JudgeGate --> DecideState
-    FT_NONE --> EscTrigger
-    
-    state "Escalation Trigger Check" as EscTrigger {
-        EscCheck: decide_escalation
-        EscCheck --> AutoSend: No (escalation_triggered=False)
-        EscCheck --> Esc: Yes (escalation_triggered=True)
-    }
-    
-    DependencyFailure --> RouteNode
-    FT_POLICY --> RouteNode
-    FT_QUALITY --> RouteNode
-    FT_MISROUTE --> RouteNode
-    
-    RouteNode: Graph builder routes based on failure_type
-    AutoSend --> [*]
-    Esc --> [*]
-```
-
----
-
-## 14. Sequence Diagrams
 
 ### 14.1 Happy Path (Auto-Send)
 
@@ -1027,49 +904,58 @@ sequenceDiagram
 
 ---
 
-## 15. Team Roles & Ownership
+---
 
+## 7. Deployment View
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
-gantt
-    title Clario Delivery Timeline 8 Weeks
-    dateFormat  YYYY-MM-DD
-    section Member 1 WEERASEKARA R.V.
-    Dataset EDA                          :m1w1, 2026-01-05, 7d
-    PII Cleaning and Train Val Test Split :m1w2, after m1w1, 7d
-    Gemini Distillation Run              :m1w3, after m1w2, 7d
-    LoRA Fine-Tuning v1                  :m1w4, after m1w3, 14d
-    Held-out Evaluation                  :m1w6, after m1w4, 7d
-    Evaluation Report Writing            :m1w8, 2026-02-16, 7d
+graph TB
+    USER([Browser]) -->|port 8080| GW
 
-    section Member 2 WETTASINGHE V.N.
-    LangGraph Learning and State Design  :m2w1, 2026-01-05, 7d
-    SurrogateShield and Classification Tools   :m2w2, after m2w1, 7d
-    Routing Node and Tests               :m2w3, after m2w2, 7d
-    KB Content and Chroma Index and RAG  :m2w4, after m2w3, 7d
-    Specialist Agents                    :m2w5, after m2w4, 7d
-    Validation and Escalation and Handoff :m2w6, after m2w5, 7d
-    Integration Debug                    :m2w7, after m2w6, 7d
-    Agent Metrics Report                 :m2w8, after m2w7, 7d
+    subgraph DockerCompose["Docker Compose Network: clario_net"]
+        GW["clario-app\nSpring Boot port 8080\nServes Next.js UI"]
+        ORC["clario-ml-sidecar\nuvicorn port 8600\nFastAPI + LangGraph + LoRA"]
+        CHR["chromadb\nofficial image port 8000\nHost: 8001\nVector store"]
+        PG["postgres:16\nport 5432\nHost: 5432\nRelational DB"]
+        PGV[("postgres_data\nvolume")]
+        CHRV[("chroma_data\nvolume")]
+    end
 
-    section Member 3 WICKRAMARATNA S.I.P.
-    Repo and Docker and Spring Boot Skeleton :m3w1, 2026-01-05, 7d
-    DB Schema and Auth and POST /tickets :m3w2, after m3w1, 7d
-    Next.js UI Scaffold and Ticket Form    :m3w3, after m3w2, 7d
-    Agent Review Screen Scaffold         :m3w4, after m3w3, 7d
-    Optimistic Locking and 409 Flow      :m3w5, after m3w4, 7d
-    Docker Compose Full Integration      :m3w6, after m3w5, 7d
-    Integration Debug                    :m3w7, after m3w6, 7d
-    Deployment Polish and Demo Rehearsal :m3w8, after m3w7, 7d
+    subgraph External["External Services"]
+        GEMINI2["Google Gemini API"]
+        WANDB2["Weights and Biases"]
+        LS["LangSmith"]
+    end
+
+    GW -->|JDBC| PG
+    GW -->|HTTP Async Thread| ORC
+    ORC -->|HTTP| CHR
+    ORC -->|HTTPS| GEMINI2
+    ORC -.->|SDK optional| LS
+    ORC -.->|SDK optional| WANDB2
+
+    PG --- PGV
+    CHR --- CHRV
 ```
+
+**Critical Deployment Notes:**
+- `depends_on: condition: service_healthy` on postgres and chromadb — services wait for readiness, not just container start.
+- Chroma internal port 8000 collides with FastAPI default — mapped to host 8001 to avoid conflict.
+- `clario-ml-sidecar` is the heaviest container (7–8B model in RAM). Test on the actual demo machine at least 1 week before the symposium.
+- `data/raw/` and `.env` are gitignored — never committed. Verify with `git log -p -- .env`.
 
 ---
 
-## 16. Package / Module Diagrams
+---
 
-### 16.1 ML Sidecar Packages
+## 8. Implementation View
+### 8.1 Overview
+The software implementation is organized into distinct layer packages representing the Frontend, API Gateway, ML Sidecar, and ML Fine-Tuning pipelines.
+
+### 8.2 Layers
+#### 8.2.1 ML Sidecar Packages
 
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
@@ -1127,7 +1013,7 @@ graph TD
 
 ---
 
-### 16.2 API Gateway Packages
+#### 8.2.2 API Gateway Packages
 
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
@@ -1176,7 +1062,7 @@ graph TD
 
 ---
 
-### 16.3 ML Fine-Tuning Packages
+#### 8.2.3 ML Fine-Tuning Packages
 
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
@@ -1227,7 +1113,7 @@ graph TD
 
 ---
 
-### 16.4 Frontend Feature Packages
+#### 8.2.4 Frontend Feature Packages
 
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
@@ -1280,8 +1166,9 @@ graph TD
 
 ---
 
-## 17. Database Schema (ERD)
+---
 
+## 9. Data View
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
 ```mermaid
@@ -1394,52 +1281,20 @@ erDiagram
 
 ---
 
-## 18. Deployment Architecture
+---
 
-> **Paste into [mermaid.live](https://mermaid.live) to render.**
+## 10. Size and Performance
+- **Dimensioning**: The ChromaDB vector store is dimensioned to handle thousands of knowledge base documents and precedent memory vectors.
+- **Latency Constraints**:
+  - API Gateway responses (202 Accepted) must return within 200ms.
+  - LangGraph background execution handles LLM API delays, with a 10-second timeout per external LLM call.
+  - Inference latency for the custom QLoRA adapter is constrained to operate on consumer-grade academic GPUs.
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
-graph TB
-    USER([Browser]) -->|port 8080| GW
-
-    subgraph DockerCompose["Docker Compose Network: clario_net"]
-        GW["clario-app\nSpring Boot port 8080\nServes Next.js UI"]
-        ORC["clario-ml-sidecar\nuvicorn port 8600\nFastAPI + LangGraph + LoRA"]
-        CHR["chromadb\nofficial image port 8000\nHost: 8001\nVector store"]
-        PG["postgres:16\nport 5432\nHost: 5432\nRelational DB"]
-        PGV[("postgres_data\nvolume")]
-        CHRV[("chroma_data\nvolume")]
-    end
-
-    subgraph External["External Services"]
-        GEMINI2["Google Gemini API"]
-        WANDB2["Weights and Biases"]
-        LS["LangSmith"]
-    end
-
-    GW -->|JDBC| PG
-    GW -->|HTTP Async Thread| ORC
-    ORC -->|HTTP| CHR
-    ORC -->|HTTPS| GEMINI2
-    ORC -.->|SDK optional| LS
-    ORC -.->|SDK optional| WANDB2
-
-    PG --- PGV
-    CHR --- CHRV
-```
-
-**Critical Deployment Notes:**
-- `depends_on: condition: service_healthy` on postgres and chromadb — services wait for readiness, not just container start.
-- Chroma internal port 8000 collides with FastAPI default — mapped to host 8001 to avoid conflict.
-- `clario-ml-sidecar` is the heaviest container (7–8B model in RAM). Test on the actual demo machine at least 1 week before the symposium.
-- `data/raw/` and `.env` are gitignored — never committed. Verify with `git log -p -- .env`.
 
 ---
 
-## 19. Cross-Cutting Concerns
-
-### 19.1 Security & PII
+## 11. Quality
+### 11.1 Security & PII
 
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
@@ -1466,7 +1321,7 @@ flowchart LR
 
 ---
 
-### 19.2 Observability & Logging
+### 11.2 Observability & Logging
 
 | Component | Logging |
 |---|---|
@@ -1480,7 +1335,7 @@ flowchart LR
 
 ---
 
-### 19.3 Resilience Patterns
+### 11.3 Resilience Patterns
 
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
@@ -1516,8 +1371,195 @@ flowchart TD
 
 ---
 
-## 20. Testing Strategy
+---
 
+## 12. References
+1. Dettmers, T., et al. "QLoRA: Efficient Finetuning of Quantized LLMs." *arXiv preprint arXiv:2305.14314*, 2023.
+2. LangChain Inc. "LangGraph Documentation." [Online]. Available: https://langchain-ai.github.io/langgraph/ (Accessed: July 2026).
+3. "Mermaid: Generation of diagrams and flowcharts from text in a similar manner as markdown." [Online]. Available: https://mermaid.js.org/ (Accessed: July 2026).
+
+---
+
+# Appendices
+
+## Appendix A: Technology Stack
+| Layer | Technology | Rationale |
+|---|---|---|
+| Frontend | Next.js 14 + React 18 + TypeScript | Static export capability; feature-based structure |
+| Frontend Styling | Tailwind CSS | Rapid prototyping; clean ticket form + review screen |
+| API Gateway | Spring Boot (Java 17/21) | JPA ORM, Optimistic locking, Enterprise Security |
+| ML Sidecar / Orchestration | FastAPI + LangGraph (Python 3.11) | ML isolation, state graph, ChromaDB access |
+| Auth | Spring Security JWT | Robust backend authentication |
+| Classification LLM (production) | Mistral-7B-Instruct-v0.3 (LoRA adapter) | Open-weight, academic GPU accessible |
+| Classification LLM (stand-in) | Google Gemini 2.5 Flash Lite | Temporary until fine-tuned model is ready |
+| Drafting/Judge LLM | Google Gemini 2.5 Flash | Provider-agnostic wrapper; one config change to swap |
+| Knowledge distillation teacher | Google Gemini 2.x Flash (JSON mode) | Cheapest bulk labeller; structured output |
+| Fine-tuning method | QLoRA via HuggingFace PEFT + bitsandbytes | Runs on Kaggle/Colab free GPU |
+| PII Anonymization | SurrogateShield + Python Faker | AES-256 ShadowMap; substitutes fake semantic surrogates |
+| Vector store | ChromaDB (persistent, Docker volume) | Low operational overhead for small KB |
+| Embeddings | sentence-transformers/all-MiniLM-L6-v2 | Fast, small, no API cost |
+| Relational DB | PostgreSQL 16 | Tickets, logs, resolutions, user auth |
+| ORM | SQLAlchemy 2.0 + Alembic | Async ORM; versioned migrations |
+| Containerisation | Docker + Docker Compose | One-command full-stack deployment |
+| Experiment tracking | Weights & Biases (free academic tier) | Training curves in evaluation report |
+| Tracing (optional) | LangSmith free tier | Visual debug of LangGraph runs |
+
+---
+
+## Appendix B: Knowledge Distillation & RAG Pipeline
+> **Paste into [mermaid.live](https://mermaid.live) to render.**
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart LR
+    subgraph Phase1["Phase 1: Data Engineering (Member 1)"]
+        A["Kaggle Dataset\n~200K tickets raw"] --> B["01_eda.ipynb\nShape, balance, text length,\nduplicates, language"]
+        B --> C["pii_clean.py\nRegex + spaCy NER\nOne-time masking pass"]
+        C --> D["split_dataset\n70% train / 15% val / 15% test\nStratified; test.parquet LOCKED"]
+    end
+
+    subgraph Phase2["Phase 2: Distillation (Member 1)"]
+        D --> E["Stratified sample\n5K to 15K tickets"]
+        E --> F["gemini_labeler.py\nGemini 2.x Flash JSON mode\nAsync batch 5 concurrent\nExponential backoff\nPer-row disk cache"]
+        F --> G["distilled_dataset.parquet\nticket_text, category,\npriority, sentiment, reasoning"]
+    end
+
+    subgraph Phase3["Phase 3: LoRA Fine-Tuning (Member 1 - Kaggle/Colab GPU)"]
+        G --> H["dataset.py\nInstruction-tuning format\nInstruction / Ticket / Response"]
+        H --> I["train_lora.py\nMistral-7B-Instruct-v0.3\nQLoRA r=16 alpha=32\n4-bit quantised\nCheckpoint every N steps\nW&B logging"]
+        I --> J["LoRA Adapter Weights\nNOT full model — small, swappable"]
+    end
+
+    subgraph Phase4["Phase 4: Evaluation (Member 1)"]
+        J --> K["evaluate.py\nvs non-fine-tuned baseline\nAccuracy + macro-F1\ncategory / priority / sentiment\nJSON-validity rate"]
+    end
+
+    subgraph Serving["Serving (Member 1)"]
+        J --> L["serve.py FastAPI\nPOST /classify\nModel loaded once at startup\nPydantic schemas"]
+    end
+```
+
+**Label Schema (locked before distillation runs):**
+
+| Field | Values |
+|---|---|
+| `category` | Technical, Billing, Account, General, Other |
+| `priority` | Low, Medium, High, Urgent |
+| `sentiment` | Positive, Neutral, Negative, Strongly Negative |
+
+---
+
+## 12. RAG Pipeline
+
+> **Paste into [mermaid.live](https://mermaid.live) to render.**
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
+flowchart TD
+    subgraph KBBuild["KB Build Offline — vector_store/build_index.py"]
+        KB["kb_documents/\ntechnical/*.md + billing/*.md\n20 to 40 FAQ/policy snippets"]
+        CHUNK["Chunk: ~300 tokens\n50-token overlap"]
+        EMBED["Embed: all-MiniLM-L6-v2"]
+        UPSERT["Upsert to ChromaDB kb_support_docs\nMetadata: source_file, chunk_index, domain\nDeterministic chunk ID = source_file + chunk_index\nIdempotent on re-run"]
+        KB --> CHUNK --> EMBED --> UPSERT
+    end
+
+    subgraph Runtime["Runtime Retrieval rag_tool.py"]
+        QUERY["retrieve_context query domain k=4\nFilters by domain metadata"]
+        RESULT["Top-k chunks\ntext, source_file, score"]
+        RELCHECK{"check_relevance\ntop_score >= RAG_SCORE_THRESHOLD 0.30?"}
+        LOGRELEVANCE["Log WARNING\nlow_relevance_flags domain = True"]
+        PROCEED["low_relevance_flags domain = False"]
+        QUERY --> RESULT --> RELCHECK
+        RELCHECK -- "Yes" --> PROCEED
+        RELCHECK -- "No" --> LOGRELEVANCE
+    end
+
+    subgraph Prompt["Specialist Agent Prompt"]
+        PROMPT["build_specialist_prompt\nAnswer ONLY from retrieved context\nCite source_file per claim\nFallback: I do not have enough information\nIf reflection: prepend prior critique"]
+        DRAFT["Gemini draft response\nor None on total LLM failure"]
+        PROMPT --> DRAFT
+    end
+
+    subgraph Closure["Closure and Learning Precedent Memory"]
+        RESOLVE["Resolved ticket"]
+        EMBED2["Embed resolution summary"]
+        STORE["Store in ChromaDB\nas precedent for future cache hits"]
+        RESOLVE --> EMBED2 --> STORE
+    end
+
+    UPSERT --> QUERY
+    RESULT --> PROMPT
+    LOGRELEVANCE --> PROMPT
+    PROCEED --> PROMPT
+    STORE --> UPSERT
+```
+
+---
+
+### Validation & Escalation
+> **Paste into [mermaid.live](https://mermaid.live) to render.**
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
+stateDiagram-v2
+    direction TB
+    [*] --> CheckDraft: Enter validation_node
+    
+    state CheckDraft {
+        [*] --> IsNone: draft is None? (LLM call failed)
+        IsNone --> DependencyFailure: Yes
+        IsNone --> RunPolicyChecks: No
+    }
+    
+    state "Rule-Based Policy Checks" as PolicyChecks {
+        RunPolicyChecks --> R1: Draft contains PII?
+        RunPolicyChecks --> R2: Draft empty or > 2000 chars?
+        RunPolicyChecks --> R3: Overcommitment phrases not in context?
+        RunPolicyChecks --> R4: Context empty & no fallback?
+    }
+    
+    state "Reference-Guided CoT Judge + EGC" as JudgeGate {
+        Gate: decide_judge_call
+        Judge: llm_judge_check (CoT)
+        EGC: Evidence Graph Consistency
+        Gate --> Judge
+        Judge --> EGC
+    }
+    
+    PolicyChecks --> JudgeGate
+    
+    state "Combine & Decide" as DecideState {
+        Decision: All checks passed?
+        Decision --> FT_NONE: Yes
+        Decision --> FT_POLICY: Policy fail
+        Decision --> FT_QUALITY: EGC Isolation / Hallucination
+        Decision --> FT_MISROUTE: Wrong domain
+        Decision --> DependencyFailure: Both domains low relevance
+    }
+    
+    JudgeGate --> DecideState
+    FT_NONE --> EscTrigger
+    
+    state "Escalation Trigger Check" as EscTrigger {
+        EscCheck: decide_escalation
+        EscCheck --> AutoSend: No (escalation_triggered=False)
+        EscCheck --> Esc: Yes (escalation_triggered=True)
+    }
+    
+    DependencyFailure --> RouteNode
+    FT_POLICY --> RouteNode
+    FT_QUALITY --> RouteNode
+    FT_MISROUTE --> RouteNode
+    
+    RouteNode: Graph builder routes based on failure_type
+    AutoSend --> [*]
+    Esc --> [*]
+```
+
+---
+
+## Appendix C: Testing Strategy
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
 ```mermaid
@@ -1552,28 +1594,46 @@ graph TD
 
 ---
 
-## 21. Timeline & Phased Delivery
+## Appendix D: Timeline, Roles, & Evaluation
+> **Paste into [mermaid.live](https://mermaid.live) to render.**
 
-| Phase | Deliverable | Member | Weeks |
-|---|---|---|---|
-| Phase 0 | Accounts, repo setup, env, Docker skeleton | ALL | 1 |
-| Phase 1 | EDA, PII cleaning, dataset split | M1 | 1–2 |
-| Phase 2 | Gemini distillation (5K–15K rows labelled) | M1 | 2–3 |
-| Phase 3 | QLoRA fine-tuning (Mistral-7B, Kaggle GPU) | M1 | 3–5 |
-| Phase 4 | ML Sidecar (LangGraph orchestration + SurrogateShield) | M2 | 2–4 |
-| Phase 5 | Specialist agents + RAG + EGC Validation | M2 | 4–6 |
-| Phase 6 | Spring Boot Gateway + PostgreSQL + JWT Auth | M3 | 2–4 |
-| Phase 7 | Next.js Frontend (Ticket form + Review screen) | M3 | 4–6 |
-| Phase 8 | Fine-tuned model evaluation (held-out test, once) | M1 | 6 |
-| Phase 9 | Cross-team integration (all together) | ALL | 6–7 |
-| Phase 10 | Docker Compose full stack + deployment polish | M3 | 3–7 |
-| Phase 11 | Evaluation metrics, ablation, report writing | ALL | 7–8 |
-| Stretch | Rysera STEM LMS integration | M3 | 8+ |
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e2e8f0', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#475569', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff', 'fontFamily': 'Inter, sans-serif'}}}%%
+gantt
+    title Clario Delivery Timeline 8 Weeks
+    dateFormat  YYYY-MM-DD
+    section Member 1 WEERASEKARA R.V.
+    Dataset EDA                          :m1w1, 2026-01-05, 7d
+    PII Cleaning and Train Val Test Split :m1w2, after m1w1, 7d
+    Gemini Distillation Run              :m1w3, after m1w2, 7d
+    LoRA Fine-Tuning v1                  :m1w4, after m1w3, 14d
+    Held-out Evaluation                  :m1w6, after m1w4, 7d
+    Evaluation Report Writing            :m1w8, 2026-02-16, 7d
+
+    section Member 2 WETTASINGHE V.N.
+    LangGraph Learning and State Design  :m2w1, 2026-01-05, 7d
+    SurrogateShield and Classification Tools   :m2w2, after m2w1, 7d
+    Routing Node and Tests               :m2w3, after m2w2, 7d
+    KB Content and Chroma Index and RAG  :m2w4, after m2w3, 7d
+    Specialist Agents                    :m2w5, after m2w4, 7d
+    Validation and Escalation and Handoff :m2w6, after m2w5, 7d
+    Integration Debug                    :m2w7, after m2w6, 7d
+    Agent Metrics Report                 :m2w8, after m2w7, 7d
+
+    section Member 3 WICKRAMARATNA S.I.P.
+    Repo and Docker and Spring Boot Skeleton :m3w1, 2026-01-05, 7d
+    DB Schema and Auth and POST /tickets :m3w2, after m3w1, 7d
+    Next.js UI Scaffold and Ticket Form    :m3w3, after m3w2, 7d
+    Agent Review Screen Scaffold         :m3w4, after m3w3, 7d
+    Optimistic Locking and 409 Flow      :m3w5, after m3w4, 7d
+    Docker Compose Full Integration      :m3w6, after m3w5, 7d
+    Integration Debug                    :m3w7, after m3w6, 7d
+    Deployment Polish and Demo Rehearsal :m3w8, after m3w7, 7d
+```
 
 ---
 
-## 22. Evaluation Metrics
-
+### Evaluation Metrics
 | Metric | Measured by | Method |
 |---|---|---|
 | Fine-tuned model accuracy per task | Member 1 | `evaluate.py` on held-out test vs non-fine-tuned baseline |
@@ -1592,8 +1652,71 @@ graph TD
 
 ---
 
-## 23. Stretch Goal — Rysera STEM LMS Integration
+### Timeline & Phased Delivery
+| Phase | Deliverable | Member | Weeks |
+|---|---|---|---|
+| Phase 0 | Accounts, repo setup, env, Docker skeleton | ALL | 1 |
+| Phase 1 | EDA, PII cleaning, dataset split | M1 | 1–2 |
+| Phase 2 | Gemini distillation (5K–15K rows labelled) | M1 | 2–3 |
+| Phase 3 | QLoRA fine-tuning (Mistral-7B, Kaggle GPU) | M1 | 3–5 |
+| Phase 4 | ML Sidecar (LangGraph orchestration + SurrogateShield) | M2 | 2–4 |
+| Phase 5 | Specialist agents + RAG + EGC Validation | M2 | 4–6 |
+| Phase 6 | Spring Boot Gateway + PostgreSQL + JWT Auth | M3 | 2–4 |
+| Phase 7 | Next.js Frontend (Ticket form + Review screen) | M3 | 4–6 |
+| Phase 8 | Fine-tuned model evaluation (held-out test, once) | M1 | 6 |
+| Phase 9 | Cross-team integration (all together) | ALL | 6–7 |
+| Phase 10 | Docker Compose full stack + deployment polish | M3 | 3–7 |
+| Phase 11 | Evaluation metrics, ablation, report writing | ALL | 7–8 |
+| Stretch | Rysera STEM LMS integration | M3 | 8+ |
 
+---
+
+## Appendix E: ADRs & Stretch Goals
+### ADR-001: LangGraph for Orchestration
+- **Status:** Accepted
+- **Decision:** Use LangGraph (not a custom loop or CrewAI) for the multi-agent orchestration.
+- **Rationale:** Explicit state graph with typed state; conditional edges make the graph's branching readable and testable; bounded loop support; matches proposal commitment.
+- **Consequences:** Requires Python 3.11+. `TicketState` TypedDict is the cross-team shared contract — any field change must be coordinated with all three members.
+
+### ADR-002: Explicit Domain Flip on Reroute (v3)
+- **Status:** Accepted
+- **Decision:** The reroute path unconditionally flips `technical` to `billing` or vice versa rather than re-running `decide_routing()`.
+- **Rationale:** Re-running the same pure function on the same inputs produces the same wrong answer — this was a confirmed bug in v2 testing on the "payment failed but money was taken" case. An explicit flip guarantees the other specialist is actually tried.
+- **Consequences:** "Both" tickets can never reroute (no third domain); they escalate directly on dual-domain failure. The `reroute_attempted` boolean enforces a single-attempt cap.
+
+### ADR-003: Gated LLM Judge (Cost-Aware)
+- **Status:** Accepted
+- **Decision:** The LLM-as-judge call is not run on every ticket — only when RAG score is below threshold or randomly sampled (~17.5%).
+- **Rationale:** Each judge call adds ~2–5s latency and real API cost. Statistical sampling provides representative quality monitoring without running it on every ticket.
+- **Consequences:** Some low-quality drafts may pass without judge review; mitigated by rule-based policy checks which always run.
+
+### ADR-004: Optimistic Locking for Human Review
+- **Status:** Accepted
+- **Decision:** The `tickets` table has an integer `version` column; `PATCH /tickets/{id}/review` checks and increments it atomically; returns HTTP 409 on version mismatch.
+- **Rationale:** Multiple human agents can open the same escalated ticket simultaneously. Silent last-write-wins overwrites are a real support team data-loss bug.
+- **Consequences:** Frontend must handle 409 by preserving `draftBuffer` and re-fetching rather than discarding in-progress edits. `ConflictBanner` component required.
+
+### ADR-005: LoRA Adapters Not Merged Weights
+- **Status:** Accepted
+- **Decision:** Save and deploy LoRA adapter weights separately from the base model, not merged.
+- **Rationale:** Adapter files are ~50–200 MB vs 13–30 GB for a merged 7–8B model; faster iteration; easier to swap; no need to re-download the base model per experiment.
+- **Consequences:** `serve.py` must load both base model and adapter at startup. Startup time is longer but per-request latency is identical. Adapters stored on HuggingFace Hub private repo (not in Git — too large).
+
+### ADR-006: Semantic Caching — Deferred
+- **Status:** Deferred
+- **Decision:** `cache_check_node` is structurally in the graph but intentionally minimal at v1. Full semantic caching is deferred.
+- **Rationale:** Getting the core pipeline correct (reroute fix, validation, escalation) is higher priority. The cache node's position in the graph does not change when the logic is filled in.
+- **Consequences:** Near-duplicate tickets will go through the full pipeline until this is implemented.
+
+### ADR-007: JWT in localStorage (Acknowledged Risk)
+- **Status:** Accepted with documented caveat
+- **Decision:** Frontend stores JWT in `localStorage` for the academic demo.
+- **Rationale:** `httpOnly` cookie auth requires backend session support not in scope for this project.
+- **Mitigation:** Explicitly documented in `frontend/README.md` and the evaluation report as a known XSS risk, acceptable for an academic symposium demo, not recommended for production. Examiners who notice this should see it acknowledged proactively.
+
+---
+
+### Stretch Goal — Rysera STEM LMS Integration
 > **Only begin after Phases 1–11 are solid and evaluated. Do not start early.**
 
 ### Current Status
@@ -1639,54 +1762,7 @@ flowchart LR
 
 ---
 
-## 24. Architectural Decision Records (ADRs)
-
-### ADR-001: LangGraph for Orchestration
-- **Status:** Accepted
-- **Decision:** Use LangGraph (not a custom loop or CrewAI) for the multi-agent orchestration.
-- **Rationale:** Explicit state graph with typed state; conditional edges make the graph's branching readable and testable; bounded loop support; matches proposal commitment.
-- **Consequences:** Requires Python 3.11+. `TicketState` TypedDict is the cross-team shared contract — any field change must be coordinated with all three members.
-
-### ADR-002: Explicit Domain Flip on Reroute (v3)
-- **Status:** Accepted
-- **Decision:** The reroute path unconditionally flips `technical` to `billing` or vice versa rather than re-running `decide_routing()`.
-- **Rationale:** Re-running the same pure function on the same inputs produces the same wrong answer — this was a confirmed bug in v2 testing on the "payment failed but money was taken" case. An explicit flip guarantees the other specialist is actually tried.
-- **Consequences:** "Both" tickets can never reroute (no third domain); they escalate directly on dual-domain failure. The `reroute_attempted` boolean enforces a single-attempt cap.
-
-### ADR-003: Gated LLM Judge (Cost-Aware)
-- **Status:** Accepted
-- **Decision:** The LLM-as-judge call is not run on every ticket — only when RAG score is below threshold or randomly sampled (~17.5%).
-- **Rationale:** Each judge call adds ~2–5s latency and real API cost. Statistical sampling provides representative quality monitoring without running it on every ticket.
-- **Consequences:** Some low-quality drafts may pass without judge review; mitigated by rule-based policy checks which always run.
-
-### ADR-004: Optimistic Locking for Human Review
-- **Status:** Accepted
-- **Decision:** The `tickets` table has an integer `version` column; `PATCH /tickets/{id}/review` checks and increments it atomically; returns HTTP 409 on version mismatch.
-- **Rationale:** Multiple human agents can open the same escalated ticket simultaneously. Silent last-write-wins overwrites are a real support team data-loss bug.
-- **Consequences:** Frontend must handle 409 by preserving `draftBuffer` and re-fetching rather than discarding in-progress edits. `ConflictBanner` component required.
-
-### ADR-005: LoRA Adapters Not Merged Weights
-- **Status:** Accepted
-- **Decision:** Save and deploy LoRA adapter weights separately from the base model, not merged.
-- **Rationale:** Adapter files are ~50–200 MB vs 13–30 GB for a merged 7–8B model; faster iteration; easier to swap; no need to re-download the base model per experiment.
-- **Consequences:** `serve.py` must load both base model and adapter at startup. Startup time is longer but per-request latency is identical. Adapters stored on HuggingFace Hub private repo (not in Git — too large).
-
-### ADR-006: Semantic Caching — Deferred
-- **Status:** Deferred
-- **Decision:** `cache_check_node` is structurally in the graph but intentionally minimal at v1. Full semantic caching is deferred.
-- **Rationale:** Getting the core pipeline correct (reroute fix, validation, escalation) is higher priority. The cache node's position in the graph does not change when the logic is filled in.
-- **Consequences:** Near-duplicate tickets will go through the full pipeline until this is implemented.
-
-### ADR-007: JWT in localStorage (Acknowledged Risk)
-- **Status:** Accepted with documented caveat
-- **Decision:** Frontend stores JWT in `localStorage` for the academic demo.
-- **Rationale:** `httpOnly` cookie auth requires backend session support not in scope for this project.
-- **Mitigation:** Explicitly documented in `frontend/README.md` and the evaluation report as a known XSS risk, acceptable for an academic symposium demo, not recommended for production. Examiners who notice this should see it acknowledged proactively.
-
----
-
-## 25. Pre-Symposium Checklist
-
+### Pre-Symposium Checklist
 > **Paste into [mermaid.live](https://mermaid.live) to render.**
 
 ```mermaid

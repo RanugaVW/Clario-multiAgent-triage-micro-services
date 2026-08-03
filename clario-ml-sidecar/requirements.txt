@@ -23,7 +23,7 @@ cycler==0.12.1
 cymem==2.0.13
 distro==1.9.0
 durationpy==0.10
-en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85
+
 fastapi==0.139.2
 filelock==3.30.2
 filetype==1.2.0
