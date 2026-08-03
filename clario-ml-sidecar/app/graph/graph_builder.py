@@ -42,7 +42,8 @@ def _specialist_target(state: TicketState) -> str:
 
 
 def _after_validation(state: TicketState) -> str:
-    failure = state.get("failure_type")
+    """Route after validation based on failure_type signal."""
+    failure = state.get("failure_type", "none")
     if failure == "dependency_failure":
         return "escalation"
     if failure == "misroute":
@@ -50,6 +51,8 @@ def _after_validation(state: TicketState) -> str:
     if failure in {"quality", "policy"}:
         limit = int(os.getenv("MAX_REFLECTION_ATTEMPTS", "2"))
         return "reflection" if state.get("reflection_count", 0) < limit else "escalation"
+    # failure_type == "none": validation passed → go to escalation node
+    # escalation_node checks priority/sentiment to decide auto-resolve vs human review
     return "escalation"
 
 
@@ -73,6 +76,7 @@ def build_graph():
     graph.add_conditional_edges("cache_check", _after_cache)
     graph.add_edge("surrogate", "analyzer")
     graph.add_edge("analyzer", "classification")
+    graph.add_edge("classification", "routing")       # ← was missing; graph stopped here
     graph.add_conditional_edges("routing", _specialist_target)
     graph.add_edge("technical_agent", "validation")
     graph.add_edge("billing_agent", "validation")
