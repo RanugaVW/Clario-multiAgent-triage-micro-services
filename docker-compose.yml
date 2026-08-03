@@ -1,1 +1,41 @@
-# Placeholder: Docker Compose service definitions will go here.
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: clario_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-clario}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-clario_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Uncomment the below line when the init.sql is ready in Phase 2
+      # - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - clario_net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: clario_chromadb
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    restart: unless-stopped
+    networks:
+      - clario_net
+
+networks:
+  clario_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  chroma_data:

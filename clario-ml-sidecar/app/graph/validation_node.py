@@ -1,20 +1,12 @@
-"""Policy validation, gated LLM judging, and v3 failure-type classification."""
+"""Policy validation, local heuristic judging, and v3 failure-type classification."""
 
 from __future__ import annotations
 
-import asyncio
-import json
 import os
 import random
 
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-
 from app.graph.state import TicketState
 from app.tools.redaction_tool import mask_pii
-
-load_dotenv()
 FALLBACK_PHRASE = "I don't have enough information to resolve this"
 OVERCOMMITMENTS = ("guarantee", "definitely", "promise", "will refund")
 
@@ -49,29 +41,38 @@ def decide_judge_call(rag_top_score: dict, domain: str, random_seed: int | None 
 
 
 async def llm_judge_check(draft: str, ticket_text: str, retrieved_context: list[dict]) -> dict:
-    """Run one structured Gemini judge request, returning inconclusive on failure."""
-    context = "\n".join(f"[{item.get('source_file')}] {item.get('text')}" for item in retrieved_context)
-    prompt = ("Judge this support draft against the ticket and context. Return JSON only: "
-              '{"on_topic":bool,"grounded_in_context":bool,"appropriate_tone":bool,"reasoning":str}.\n'
-              f"Ticket: {ticket_text}\nDraft: {draft}\nContext: {context}")
-    try:
-        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-        for attempt in range(3):
-            try:
-                response = await asyncio.wait_for(client.aio.models.generate_content(
-                    model=os.getenv("GEMINI_JUDGE_MODEL", "gemini-2.5-flash-lite"), contents=prompt,
-                    config=types.GenerateContentConfig(response_mime_type="application/json")), timeout=10)
-                result = json.loads(response.text)
-                if all(isinstance(result.get(key), bool) for key in ("on_topic", "grounded_in_context", "appropriate_tone")):
-                    return result
-                raise ValueError("invalid judge schema")
-            except Exception:
-                if attempt == 2:
-                    break
-                await asyncio.sleep(2**attempt)
-    except Exception:
-        pass
-    return {"on_topic": None, "grounded_in_context": None, "appropriate_tone": None, "reasoning": "judge_call_failed"}
+    """Local heuristic judge — no external API needed.
+
+    Checks:
+    - on_topic: key ticket words appear in the draft
+    - grounded_in_context: draft content overlaps with retrieved context
+    - appropriate_tone: no overly aggressive / inappropriate language
+    """
+    ticket_words = set(ticket_text.lower().split())
+    draft_lower = draft.lower()
+
+    # on_topic: at least 2 meaningful ticket words appear in the draft
+    stopwords = {"i", "a", "the", "is", "my", "to", "and", "of", "in", "it", "me", "was", "for", "on", "are"}
+    meaningful = [w for w in ticket_words if len(w) > 3 and w not in stopwords]
+    on_topic = sum(1 for w in meaningful if w in draft_lower) >= max(1, len(meaningful) // 4)
+
+    # grounded_in_context: draft shares words with context OR says it has no info
+    context_text = " ".join(item.get("text", "").lower() for item in retrieved_context)
+    context_words = set(context_text.split())
+    overlap = sum(1 for w in set(draft_lower.split()) if w in context_words and w not in stopwords)
+    fallback_used = FALLBACK_PHRASE.lower() in draft_lower
+    grounded_in_context = fallback_used or overlap >= 3
+
+    # appropriate_tone: no aggressive language
+    bad_phrases = ("i refuse", "this is stupid", "you idiot", "bad request")
+    appropriate_tone = not any(p in draft_lower for p in bad_phrases)
+
+    return {
+        "on_topic": on_topic,
+        "grounded_in_context": grounded_in_context,
+        "appropriate_tone": appropriate_tone,
+        "reasoning": "local_heuristic_judge",
+    }
 
 
 async def validation_node(state: TicketState) -> TicketState:
