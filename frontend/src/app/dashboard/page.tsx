@@ -28,11 +28,12 @@ type TicketWithResolution = {
   id: string;
   raw_text: string;
   created_at: string;
-  resolutions: { final_response: string; resolved_by: string }[];
+  status: string;
+  resolutions: { final_response: string; resolved_by: string; escalated: boolean }[];
 };
 
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
@@ -42,7 +43,7 @@ export default function Home() {
   const [result, setResult] = useState<TicketResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pastTickets, setPastTickets] = useState<TicketWithResolution[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
 
   
   const { user, role, loading, roleLoading } = useAuth();
@@ -50,12 +51,15 @@ export default function Home() {
 
   const fetchHistory = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('tickets')
-      .select('*, resolutions(*)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (data) setPastTickets(data);
+    try {
+      const res = await fetch(`http://127.0.0.1:8600/customer_tickets/${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPastTickets(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch history:', e);
+    }
   };
 
   useEffect(() => {
@@ -120,7 +124,7 @@ export default function Home() {
         let payload;
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+          const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
 
           let response: Response;
           try {
@@ -144,7 +148,7 @@ export default function Home() {
           const isNetworkError = fetchErr instanceof TypeError && fetchErr.message.includes('fetch');
           throw new Error(
             isAbort
-              ? 'The backend took too long to respond (>30s). The sidecar may be loading a model or processing a heavy request. Please try again in a moment.'
+              ? 'The backend took too long to respond (>120s). The sidecar may be loading a model or processing a heavy request. Please try again in a moment.'
               : isNetworkError
                 ? 'Cannot reach the ML sidecar at http://localhost:8600. Make sure the backend is running (uvicorn app.main:app --host 0.0.0.0 --port 8600 --reload) inside the clario-ml-sidecar venv.'
                 : fetchErr.message || 'Backend request failed.'
@@ -191,24 +195,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* My Tickets button — top-left of header */}
-        {user && (
-          <div className="absolute left-0 top-0">
-            <button
-              id="my-tickets-btn"
-              onClick={() => { fetchHistory(); setShowHistory(true); }}
-              className="flex items-center space-x-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 hover:border-indigo-500/40 text-slate-300 hover:text-white text-sm font-medium px-4 py-2 rounded-xl transition-all duration-200"
-            >
-              <History className="w-4 h-4 text-indigo-400" />
-              <span>My Tickets</span>
-              {pastTickets.length > 0 && (
-                <span className="bg-indigo-500/30 text-indigo-300 text-xs px-1.5 py-0.5 rounded-full border border-indigo-500/40 ml-1">
-                  {pastTickets.length}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
+        {/* Removed absolute My Tickets button, using tabs below */}
 
         <div className="flex justify-center items-center mb-4 space-x-3">
           <div className="bg-indigo-500/20 p-3 rounded-2xl border border-indigo-500/30">
@@ -222,15 +209,43 @@ export default function Home() {
           Submit a support ticket and watch our LangGraph orchestration securely classify, route, and resolve issues in real-time.
         </p>
       </div>
+      
+      {/* ─── Tabs ─── */}
+      {user && (
+        <div className="flex justify-center space-x-4 mb-10 animate-fade-in w-full">
+          <button
+            onClick={() => setActiveTab('new')}
+            className={`px-8 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center min-w-[180px] ${activeTab === 'new' ? 'bg-gradient-to-r from-indigo-500 to-sky-500 text-white shadow-[0_0_25px_rgba(99,102,241,0.4)] scale-105' : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/80'}`}
+          >
+            <Ticket className="w-5 h-5 mr-2" /> Submit Ticket
+          </button>
+          <button
+            onClick={() => { fetchHistory(); setActiveTab('history'); }}
+            className={`px-8 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center min-w-[180px] ${activeTab === 'history' ? 'bg-gradient-to-r from-indigo-500 to-sky-500 text-white shadow-[0_0_25px_rgba(99,102,241,0.4)] scale-105' : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/80'}`}
+          >
+            <History className="w-5 h-5 mr-2" /> My Tickets
+            {pastTickets.length > 0 && (
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-indigo-500/30 text-indigo-300 border border-indigo-500/30'}`}>
+                {pastTickets.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
 
+      {activeTab === 'new' && (
       <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         
         {/* Left Column: Form */}
         <section className="glass-panel p-8 rounded-3xl w-full animate-fade-in relative overflow-hidden" style={{ animationDelay: '0.1s' }}>
           {isProcessing && (
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-3xl">
-              <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-              <p className="text-indigo-300 font-medium animate-pulse">Orchestrating ticket...</p>
+            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-10 flex flex-col items-center justify-center rounded-3xl p-6 text-center">
+              <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+              <h3 className="text-indigo-300 font-bold text-lg mb-2 animate-pulse">Analyzing with Gemma-3...</h3>
+              <p className="text-slate-300 text-sm max-w-xs">
+                The very first ticket takes 15-30s to load the model into memory. 
+                Subsequent tickets take ~3 seconds to process.
+              </p>
             </div>
           )}
           
@@ -335,76 +350,81 @@ export default function Home() {
           )}
         </section>
       </div>
+      )}
 
-      {/* ─── Slide-in Ticket History Drawer ─── */}
-      {showHistory && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* backdrop */}
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowHistory(false)}
-          />
-          {/* panel */}
-          <aside className="relative z-10 w-full max-w-md bg-[#0d1526] border-l border-slate-700/50 h-full flex flex-col shadow-2xl animate-fade-in">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700/50">
-              <div className="flex items-center space-x-3">
-                <History className="w-5 h-5 text-indigo-400" />
-                <h2 className="text-lg font-semibold text-white">My Tickets</h2>
-                <span className="text-xs bg-slate-700/60 text-slate-400 px-2 py-0.5 rounded-full">{pastTickets.length} total</span>
-              </div>
-              <button
-                onClick={() => setShowHistory(false)}
-                className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
+      {/* ─── Ticket History Full View ─── */}
+      {activeTab === 'history' && (
+        <div className="w-full max-w-5xl mx-auto animate-fade-in pb-12">
+          {pastTickets.length === 0 ? (
+            <div className="text-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/50 glass-panel">
+              <Ticket className="w-16 h-16 mx-auto mb-4 opacity-20 text-indigo-400" />
+              <p className="text-slate-400 text-lg">You haven't submitted any tickets yet.</p>
+              <button 
+                onClick={() => setActiveTab('new')}
+                className="mt-6 text-indigo-400 hover:text-indigo-300 font-medium underline-offset-4 hover:underline"
               >
-                <X className="w-4 h-4" />
+                Submit your first ticket
               </button>
             </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-              {pastTickets.length === 0 ? (
-                <div className="text-center py-16 text-slate-500">
-                  <Ticket className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p>No tickets submitted yet.</p>
-                </div>
-              ) : (
-                pastTickets.map(t => {
-                  const resolved = t.resolutions && t.resolutions.length > 0;
-                  return (
-                    <div
-                      key={t.id}
-                      className={`rounded-2xl border p-4 ${
-                        resolved
-                          ? 'bg-slate-900/60 border-slate-700/40'
-                          : 'bg-slate-900/30 border-slate-800/40'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <p className="text-sm text-slate-200 leading-relaxed italic flex-1">"{t.raw_text}"</p>
-                        {resolved ? (
-                          <span className="flex items-center shrink-0 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                            <CheckCircle className="w-3 h-3 mr-1" /> Resolved
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {pastTickets.map(t => {
+                const finalResolution = t.resolutions?.find(r => r.escalated === false) || t.resolutions?.[0];
+                const isFullyResolved = t.status === 'resolved';
+                const isEscalated = t.status === 'escalated';
+                
+                return (
+                  <div key={t.id} className={`glass-panel p-6 rounded-3xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col h-full ${isFullyResolved ? 'border-emerald-500/30 bg-emerald-950/10 shadow-[0_10px_30px_rgba(16,185,129,0.05)]' : isEscalated ? 'border-amber-500/30 bg-amber-950/10 shadow-[0_10px_30px_rgba(245,158,11,0.05)]' : 'border-indigo-500/20'}`}>
+                    <div className="flex items-start justify-between mb-5">
+                      <div className="flex-1 pr-4">
+                        <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1.5 block flex items-center">
+                          <Ticket className="w-3 h-3 mr-1" /> Your Issue
+                        </span>
+                        <p className="text-slate-200 font-medium leading-snug line-clamp-2">"{t.raw_text}"</p>
+                      </div>
+                      <div className="shrink-0">
+                        {isFullyResolved ? (
+                          <span className="flex items-center text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(52,211,153,0.15)]">
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Resolved
+                          </span>
+                        ) : isEscalated ? (
+                          <span className="flex items-center text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.15)] animate-pulse">
+                            <Clock className="w-3.5 h-3.5 mr-1.5" /> In Review
                           </span>
                         ) : (
-                          <span className="flex items-center shrink-0 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                            <Clock className="w-3 h-3 mr-1" /> Pending
+                          <span className="flex items-center text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-500/30 px-3 py-1.5 rounded-full">
+                            <AlertCircle className="w-3.5 h-3.5 mr-1.5" /> Pending
                           </span>
                         )}
                       </div>
-                      {resolved ? (
-                        <div className="bg-[#0b1120] rounded-xl p-3 border border-slate-800">
-                          <span className="text-xs uppercase tracking-wider text-slate-500 block mb-1">AI Response</span>
-                          <p className="text-emerald-300 text-xs leading-relaxed">{t.resolutions[0].final_response}</p>
+                    </div>
+                    
+                    <div className="flex-grow">
+                      {(isFullyResolved && finalResolution?.final_response) ? (
+                        <div className="bg-[#0b1120] rounded-2xl p-4 border border-slate-800 relative overflow-hidden mt-2 h-full">
+                          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-400 to-emerald-600"></div>
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500 block mb-2 font-bold flex items-center">
+                            <CheckCircle className="w-3 h-3 mr-1" /> Final Response
+                          </span>
+                          <p className="text-emerald-300 text-sm leading-relaxed">{finalResolution.final_response}</p>
                         </div>
                       ) : (
-                        <p className="text-xs text-slate-500 italic">Awaiting agent review…</p>
+                        <div className="mt-2 p-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 flex flex-col items-center justify-center text-center h-full min-h-[100px]">
+                          <Cpu className="w-6 h-6 text-slate-600 mb-2" />
+                          <p className="text-xs text-slate-400 font-medium">A human agent has taken over this ticket and is currently drafting a resolution.</p>
+                        </div>
                       )}
-                      <p className="text-xs text-slate-600 mt-2">{new Date(t.created_at).toLocaleString()}</p>
                     </div>
-                  );
-                })
-              )}
+                    
+                    <div className="mt-5 pt-4 border-t border-slate-800/80 text-[11px] text-slate-500 font-medium flex justify-between items-center uppercase tracking-wider">
+                      <span>ID: {t.id.split('-')[0]}</span>
+                      <span>{new Date(t.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </aside>
+          )}
         </div>
       )}
 

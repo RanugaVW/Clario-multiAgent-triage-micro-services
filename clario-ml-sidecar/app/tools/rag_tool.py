@@ -39,33 +39,60 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         raise CircuitBreakerOpenError("chroma_rag circuit breaker is open")
     try:
         client = chromadb.PersistentClient(path=_chroma_path())
+        
+        matches = []
+        embeds = [_embedding_model().encode(query, normalize_embeddings=True).tolist()]
+
+        # Query standard support docs
         try:
             collection = client.get_collection(_COLLECTION_NAME)
+            result = collection.query(
+                query_embeddings=embeds,
+                n_results=k,
+                where={"domain": domain},
+                include=["documents", "metadatas", "distances"],
+            )
+            docs = result.get("documents", [[]])[0] or []
+            metas = result.get("metadatas", [[]])[0] or []
+            dists = result.get("distances", [[]])[0] or []
+            for text, item, distance in zip(docs, metas, dists):
+                matches.append({
+                    "text": text,
+                    "source_file": item.get("source_file", "unknown"),
+                    "score": max(0.0, 1.0 - (float(distance) / 2.0)),
+                })
         except ValueError:
-            breaker.record_success()
-            return []
-        result = collection.query(
-            query_embeddings=[_embedding_model().encode(query).tolist()],
-            n_results=k,
-            where={"domain": domain},
-            include=["documents", "metadatas", "distances"],
-        )
+            pass
+            
+        # Query codebase if technical
+        if domain == "technical":
+            try:
+                code_coll = client.get_collection("kb_codebase")
+                code_res = code_coll.query(
+                    query_embeddings=embeds,
+                    n_results=k,
+                    include=["documents", "metadatas", "distances"],
+                )
+                c_docs = code_res.get("documents", [[]])[0] or []
+                c_metas = code_res.get("metadatas", [[]])[0] or []
+                c_dists = code_res.get("distances", [[]])[0] or []
+                for text, item, distance in zip(c_docs, c_metas, c_dists):
+                    matches.append({
+                        "text": text,
+                        "source_file": item.get("source_file", "unknown"),
+                        "score": max(0.0, 1.0 - (float(distance) / 2.0)),
+                    })
+            except ValueError:
+                pass
+                
     except Exception:
         breaker.record_failure()
         raise
-    documents = result.get("documents", [[]])[0] or []
-    metadata = result.get("metadatas", [[]])[0] or []
-    distances = result.get("distances", [[]])[0] or []
-    matches = [
-        {
-            "text": text,
-            "source_file": item.get("source_file", "unknown"),
-            "score": max(0.0, 1.0 - float(distance)),
-        }
-        for text, item, distance in zip(documents, metadata, distances)
-    ]
+        
     breaker.record_success()
-    return matches
+    # Sort combined matches by score descending and keep top k
+    matches.sort(key=lambda x: x["score"], reverse=True)
+    return matches[:k]
 
 
 def check_relevance(retrieved_context: list[dict], threshold: float | None = None) -> bool:
@@ -74,3 +101,50 @@ def check_relevance(retrieved_context: list[dict], threshold: float | None = Non
         return False
     score_threshold = threshold if threshold is not None else float(os.getenv("RAG_SCORE_THRESHOLD", "0.3"))
     return float(retrieved_context[0].get("score", 0.0)) >= score_threshold
+
+
+def add_precedent(ticket_id: str, redacted_text: str, final_response: str, domain: str) -> None:
+    """Embeds a resolved ticket into the vector store for future RAG retrieval."""
+    if not redacted_text or not final_response:
+        return
+        
+    try:
+        client = chromadb.PersistentClient(path=_chroma_path())
+        collection = client.get_or_create_collection(_COLLECTION_NAME)
+        
+        # Only embed the ticket issue, but keep resolution in the stored document
+        content = f"Ticket Issue:\n{redacted_text}\n\nResolution:\n{final_response}"
+        
+        # We use a deterministic ID based on the ticket_id
+        doc_id = f"precedent_{ticket_id}"
+        
+        # Insert or update
+        collection.upsert(
+            ids=[doc_id],
+            embeddings=[_embedding_model().encode(redacted_text, normalize_embeddings=True).tolist()],
+            documents=[content],
+            metadatas=[{
+                "domain": domain,
+                "source_file": "precedent_memory",
+                "ticket_id": ticket_id
+            }]
+        )
+    except Exception as e:
+        # We don't want precedent memory failures to crash the resolution flow
+        print(f"Failed to add precedent to ChromaDB: {e}")
+
+def rewrite_query(query: str, domain: str) -> str:
+    """Corrective RAG: Rewrite a query to improve retrieval when initial context is irrelevant."""
+    try:
+        from app.tools.local_llm import llm_invoke
+        prompt = (
+            f"You are a retrieval optimization assistant for the {domain} domain.\n"
+            f"The following user query failed to retrieve relevant documents from the knowledge base.\n"
+            f"Rewrite the query to be more descriptive, extracting key technical terms, and removing conversational noise.\n"
+            f"Output ONLY the rewritten query text.\n\n"
+            f"Original Query: {query}"
+        )
+        return llm_invoke(prompt, temperature=0.3).strip()
+    except Exception as e:
+        print(f"Failed to rewrite query: {e}")
+        return query

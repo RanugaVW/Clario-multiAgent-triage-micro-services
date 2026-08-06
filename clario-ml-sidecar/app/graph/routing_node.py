@@ -12,8 +12,16 @@ def _has_keyword(text: str, keywords: frozenset[str]) -> bool:
     return any(keyword in lower_text for keyword in keywords)
 
 
+def check_rag_required(text: str) -> bool:
+    """Adaptive RAG: Bypass retrieval for very short or simple queries."""
+    if len(text.split()) < 5:
+        # Simple greetings or very short text often don't need RAG
+        return False
+    return True
+
+
 def decide_routing(category: str | None, confidence: float | None, text: str) -> str:
-    """Choose the initial specialist domain without modifying state."""
+    """Choose the initial specialist domain without modifying state. Routes to both if unsure."""
     if confidence is not None and confidence < 0.6:
         return "both"
     if _has_keyword(text, TECHNICAL_KEYWORDS) and _has_keyword(text, BILLING_KEYWORDS):
@@ -38,11 +46,13 @@ def routing_node(state: TicketState) -> TicketState:
         return {**state, "routing_decision": flipped, "reroute_attempted": True}
 
     if not needs_reroute and not reroute_attempted:
+        text = state.get("redacted_text", "")
         decision = decide_routing(
             state.get("category"),
             state.get("classification_confidence"),
-            state.get("redacted_text", ""),
+            text,
         )
-        return {**state, "routing_decision": decision}
+        rag_required = check_rag_required(text)
+        return {**state, "routing_decision": decision, "rag_required": rag_required}
 
     raise ValueError("Routing node received an invalid reroute state")

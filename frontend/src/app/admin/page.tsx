@@ -572,6 +572,45 @@ function HumanReviewCard({ ticket }: { ticket: Ticket }) {
   const classification = ticket.ticket_classifications?.[0];
   const resolution = ticket.resolutions?.find(r => r.escalated);
   const escalationReasons = resolution?.escalation_reasons || [];
+  
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyText, setReplyText] = useState(draft?.draft_text || resolution?.final_response || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleResolve = async () => {
+    if (!replyText.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await supabase.from('tickets').update({ status: 'resolved' }).eq('id', ticket.id);
+      await supabase.from('resolutions').insert({
+        ticket_id: ticket.id,
+        final_response: replyText.trim(),
+        escalated: false,
+        resolved_at: new Date().toISOString()
+      });
+      
+      // Embed to precedent memory
+      try {
+        await fetch('http://localhost:8600/embed_resolved_ticket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticket_id: ticket.id,
+            ticket_text: ticket.raw_text,
+            final_response: replyText.trim(),
+            domain: ticket.ticket_classifications?.[0]?.category || 'General'
+          })
+        });
+      } catch (embedError) {
+        console.error("Failed to embed precedent memory", embedError);
+      }
+      
+      window.location.reload();
+    } catch (e) {
+      console.error("Failed to resolve", e);
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="glass-panel rounded-2xl overflow-hidden border border-amber-500/20">
@@ -624,9 +663,40 @@ function HumanReviewCard({ ticket }: { ticket: Ticket }) {
           </p>
         </div>
 
-        <button className="w-full bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white text-sm font-semibold py-2.5 rounded-xl transition-all duration-300">
-          Take Over Review
-        </button>
+        {!isReplying ? (
+          <button 
+            onClick={() => setIsReplying(true)}
+            className="w-full bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white text-sm font-semibold py-2.5 rounded-xl transition-all duration-300">
+            Take Over Review
+          </button>
+        ) : (
+          <div className="mt-4 space-y-3">
+            <textarea
+              className="w-full bg-[#0b1120] text-slate-200 text-sm rounded-xl border border-slate-700 p-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
+              rows={4}
+              placeholder="Draft your response to the customer..."
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              disabled={isSubmitting}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsReplying(false)}
+                disabled={isSubmitting}
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResolve}
+                disabled={isSubmitting || !replyText.trim()}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-white text-sm font-semibold py-2.5 rounded-xl transition-all disabled:opacity-50"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 mx-auto animate-spin" /> : 'Send & Resolve'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

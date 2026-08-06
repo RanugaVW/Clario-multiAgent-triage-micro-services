@@ -30,6 +30,8 @@ class TicketState(TypedDict):
     classification_source: Literal["gemini_stand_in", "gemini_stand_in_fallback", "fine_tuned_model"]
     # routing_node writes; specialist, validation, escalation, and handoff nodes read.
     routing_decision: Literal["technical", "billing", "both"] | None
+    # routing_node writes; specialist nodes read to skip retrieval for simple queries (Adaptive RAG).
+    rag_required: bool
     # specialist nodes write; validation, reflection, escalation, and handoff nodes read.
     agent_drafts: dict[str, str | None]
     # specialist nodes write; validation, reflection, and handoff nodes read.
