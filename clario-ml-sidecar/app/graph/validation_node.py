@@ -7,9 +7,36 @@ import random
 
 from app.graph.state import TicketState
 from app.tools.redaction_tool import mask_pii
+import re
+
 FALLBACK_PHRASE = "I don't have enough information to resolve this"
 OVERCOMMITMENTS = ("guarantee", "definitely", "promise", "will refund")
 
+def check_for_technical_leaks(draft: str) -> bool:
+    """
+    Data Loss Prevention (DLP) Guardrail: 
+    Checks the [CUSTOMER RESPONSE] section for code-like patterns.
+    Returns True if a leak is detected, False otherwise.
+    """
+    if "[CUSTOMER RESPONSE]" not in draft:
+        return False
+        
+    customer_part = draft.split("[CUSTOMER RESPONSE]")[-1].strip()
+    
+    # Heuristics for catching technical leaks
+    leak_patterns = [
+        r'\b[a-z]+[A-Z][a-z]+[A-Z]?[a-z]*\b',  # camelCase variables
+        r'\b\w+\.(java|ts|tsx|js|py)\b',       # File extensions
+        r'\b(SELECT|UPDATE|INSERT|DELETE)\b.*(?i:FROM|INTO)', # SQL keywords
+        r'(\/var\/www|\/usr\/local|C:\\Users\\)', # Common file paths
+        r'Exception:|Error:|Traceback',        # Raw error outputs
+    ]
+    
+    for pattern in leak_patterns:
+        if re.search(pattern, customer_part):
+            return True
+            
+    return False
 
 def run_policy_checks(draft: str | None, retrieved_context: list[dict], pii_found: list) -> dict:
     """Run free output-policy checks before any optional judge call."""
@@ -29,6 +56,10 @@ def run_policy_checks(draft: str | None, retrieved_context: list[dict], pii_foun
     context_is_weak = not retrieved_context or all(float(item.get("score", 0)) < threshold for item in retrieved_context)
     if context_is_weak and FALLBACK_PHRASE.lower() not in draft.lower():
         failed.append("missing_low_context_fallback")
+        
+    if check_for_technical_leaks(draft):
+        failed.append("technical_leak_detected")
+        
     return {"passed": not failed, "failed_rules": failed}
 
 
