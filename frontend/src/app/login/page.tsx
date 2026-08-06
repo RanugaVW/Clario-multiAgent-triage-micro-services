@@ -46,10 +46,17 @@ export default function Login() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      <div className="glass-panel p-8 sm:p-12 rounded-3xl w-full max-w-md animate-fade-in relative overflow-hidden">
+    <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* 3D Wave Background */}
+      <iframe 
+        src="/landing.html?bgOnly=true" 
+        className="absolute inset-0 w-full h-full border-none pointer-events-auto"
+        style={{ zIndex: 0 }}
+      />
+      
+      <div className="glass-panel p-8 sm:p-12 rounded-3xl w-full max-w-md animate-fade-in relative overflow-hidden" style={{ zIndex: 10 }}>
         {/* Background elements */}
-        <div className="absolute top-0 right-0 p-8 opacity-5">
+        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
           <Shield className="w-48 h-48" />
         </div>
 

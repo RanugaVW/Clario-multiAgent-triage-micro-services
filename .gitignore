@@ -76,3 +76,4 @@ langsmith-data/
 langsmith-exports/
 wandb/
 mlruns/
+/docs/*
