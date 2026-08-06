@@ -83,8 +83,9 @@ async def process_ticket(ticket: TicketRequest) -> dict:
             pass
         raise HTTPException(status_code=500, detail="Ticket processing failed safely.") from e
         
-    is_escalated = final_state.get("escalation_triggered", False)
-    status = "escalated" if is_escalated else "resolved"
+    # Enforce Human-in-the-loop: All tickets must be reviewed
+    is_escalated = True
+    status = "escalated"
     final_response = final_state.get("final_response")
     handoff = build_handoff_package(final_state) if is_escalated else None
 
@@ -136,7 +137,9 @@ async def process_ticket(ticket: TicketRequest) -> dict:
         
         # Save to human_reviews if escalated
         if is_escalated:
-            escalation_reasons = final_state.get("escalation_reasons", [])
+            escalation_reasons = final_state.get("escalation_reasons", []) or []
+            if "Mandatory Human Review" not in escalation_reasons:
+                escalation_reasons.append("Mandatory Human Review")
             # Pick the best draft we have even if escalated
             best_draft = next(iter(agent_drafts.values()), None) if agent_drafts else None
             review_payload = {
@@ -161,3 +164,34 @@ async def process_ticket(ticket: TicketRequest) -> dict:
     if is_escalated:
         return {"state": final_state, "handoff_package": handoff}
     return {"state": final_state, "final_response": final_response}
+
+@app.get('/customer_tickets/{user_id}')
+async def get_customer_tickets(user_id: str):
+    try:
+        res = supabase_client.table('tickets').select('*, resolutions(*)').eq('user_id', user_id).order('created_at', desc=True).execute()
+        return res.data
+    except Exception as e:
+        logger.error(f'Failed to fetch tickets: {e}')
+        return []
+
+class EmbedResolvedTicketRequest(BaseModel):
+    ticket_id: str
+    ticket_text: str
+    final_response: str
+    domain: str
+
+@app.post('/embed_resolved_ticket')
+async def embed_resolved_ticket(request: EmbedResolvedTicketRequest):
+    """Embeds a resolved ticket into the vector store as precedent memory."""
+    try:
+        from app.tools.redaction_tool import mask_pii
+        from app.tools.rag_tool import add_precedent
+        
+        # We must mask the PII before saving to ChromaDB to prevent leakage
+        redacted_text, _ = mask_pii(request.ticket_text)
+        add_precedent(request.ticket_id, redacted_text, request.final_response, request.domain)
+        
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Failed to embed resolved ticket: {e}")
+        return {"status": "error", "message": str(e)}

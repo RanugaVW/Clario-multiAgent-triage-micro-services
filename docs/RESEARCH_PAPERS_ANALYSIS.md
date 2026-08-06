@@ -324,7 +324,26 @@ graph TD
 
 ---
 
-## 10. Current RAG Implementation Baseline
+## 10. Constitutional AI and Output Guardrails for Data Loss Prevention
+*(Anthropic / Rebuff / NeMo Guardrails Research)*
+
+### What the Research Does
+As AI models are given access to increasingly sensitive data (like source code or databases via RAG), there is a significant risk of **Data Leakage** where the LLM hallucinates and includes private internal system information in a customer-facing response. 
+Research into **Constitutional AI** (providing the model with a strict set of rules it must follow) and **Output Guardrails** (secondary filtering mechanisms) solves this. Guardrails act as a proxy layer that intercepts the LLM's output and runs heuristic checks (Regex, Keyword matching) or secondary LLM critique checks to detect PII, code snippets, or system secrets before the user sees them.
+
+### Key Lessons for Undergraduates
+*   **Prompting is Not Enough:** Explicitly telling an LLM "Do not reveal secrets" in the system prompt is insufficient. LLMs can still hallucinate and ignore instructions.
+*   **Defense in Depth:** Security requires a secondary, deterministic verification layer (like a Regex or DLP filter) to catch leaks that the probabilistic LLM misses.
+
+### Proposed System Improvements for Clario
+*   **Heuristic Output Guardrail:** In our `validation_node.py`, we implement a Data Loss Prevention (DLP) check that intercepts the generated draft. It isolates the `[CUSTOMER RESPONSE]` section and runs a regex/heuristic check for code-like patterns (e.g., camelCase, `.java`, `.ts`, `SELECT`). If caught, it immediately fails the policy check (`technical_leak_detected`) and routes to human escalation.
+
+### Viva Defense
+> *"To solve the critical problem of LLMs hallucinating and leaking our proprietary Rysera LMS source code to customers, we implemented an Output Guardrail inspired by Constitutional AI research. We recognized that simply prompting the LLM to 'hide technical details' was unsafe. Instead, we built a deterministic Data Loss Prevention (DLP) check in our validation node that parses the customer response for code syntax. If a leak is detected, the graph fails the validation policy and escalates to a human, ensuring zero technical leakage."*
+
+---
+
+## 11. Current RAG Implementation Baseline
 
 ### Full Description
 Our current baseline implementation of Retrieval-Augmented Generation (RAG) within Clario serves as the foundational architecture before incorporating the advanced multi-agent and distillation techniques discussed in the research above. 
@@ -495,3 +514,52 @@ classDiagram
     SpecialistAgents --> ValidationModule : submits to
     ValidationModule --> SpecialistAgents : provides feedback
 ```
+
+---
+
+## 12. Agentic Retrieval-Augmented Generation: A Survey on Agentic RAG
+*(Singh, A. et al., arXiv:2501.09136v4, Apr 2026)*
+
+### What the Research Does
+This comprehensive survey identifies the fundamental limitations of static Retrieval-Augmented Generation (RAG) pipelines—specifically their inability to handle multi-step reasoning, contextual dynamic adaptability, and complex error recovery. It formalizes **Agentic RAG**, an architecture where autonomous AI agents use design patterns (Reflection, Planning, Tool Use, and Multi-Agent Collaboration) to dynamically orchestrate retrieval and generation. 
+The paper categorizes Agentic RAG into several topologies:
+*   **Single-Agent (Router):** One central agent routes queries to tools.
+*   **Multi-Agent:** Specialized agents operate in parallel for diverse data types.
+*   **Corrective Agentic RAG:** Agents actively evaluate retrieved context and rewrite queries if the context is poor.
+*   **Adaptive Agentic RAG:** A classifier predicts query complexity to bypass RAG entirely for simple facts, or engage multi-hop RAG for complex questions.
+*   **Graph-Based (Agent-G):** A hybrid system using ontology/graph DBs for relationships and vector DBs for unstructured text.
+
+### Key Lessons for Undergraduates
+*   **Retrieval Quality is the Bottleneck:** Advanced agentic reasoning loops cannot compensate for consistently poor initial retrieval.
+*   **Agent Autonomy Needs Constraints:** Unbounded agent loops (like AutoGPT) hallucinate or get stuck. Production Agentic RAG requires explicit boundaries, stopping criteria, and state tracking (like LangGraph).
+*   **Architectural Trade-offs:** Adding multi-agent reflection increases accuracy but dramatically increases latency and computational overhead.
+
+### Visual Architecture Comparison
+```mermaid
+graph TD
+    subgraph Baseline: Traditional Static RAG
+        A1[User Query] --> B1(ChromaDB Retrieval)
+        B1 --> C1[LLM Synthesis]
+        C1 --> D1[Final Output]
+        note1[Result: Fails if initial search is poor]
+    end
+    
+    subgraph Suggested: Corrective & Adaptive Agentic RAG
+        A2[User Query] --> B2{Adaptive Classifier}
+        B2 -->|Simple| C2[Direct LLM Answer]
+        B2 -->|Complex| D2(Context Retrieval Agent)
+        D2 --> E2{Relevance Evaluator}
+        E2 -->|Irrelevant| F2(Query Refinement Agent)
+        F2 --> D2
+        E2 -->|Relevant| G2(Response Synthesis Agent)
+        G2 --> H2[Final Output]
+        note2[Result: Self-correcting loop ensures high accuracy]
+    end
+```
+
+### Proposed System Improvements for Clario
+*   **Corrective Retrieval Loop:** In `rag_tool.py`, we add a `check_relevance` mechanism. If the retrieved ChromaDB chunks do not score high enough on semantic overlap with the query, we trigger a query re-write loop before passing it to the generator.
+*   **Adaptive Routing:** In our `routing_node.py`, we implement a lightweight check to determine if the query actually needs RAG (e.g., standard greetings or simple status requests) versus complex technical support issues, bypassing vector search when unnecessary.
+
+### Viva Defense
+> *"We evolved Clario from a traditional static RAG pipeline to an Adaptive, Corrective Agentic RAG system based on the Agentic RAG Survey by Singh et al. (2026). Traditional RAG pipelines fail catastrophically if the initial retrieval is poor. By implementing a relevance evaluator node that acts as a 'Critic', our system can autonomously identify poor context, rewrite the search query, and retrieve better documents before generating the final support response. Furthermore, our Adaptive Classifier bypasses retrieval entirely for straightforward queries, saving latency and token costs."*
