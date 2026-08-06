@@ -1,23 +1,60 @@
-"""Local inference — fully offline, zero model downloads required.
+"""Local inference — uses Gemma-3 1B with a fine-tuned LoRA adapter.
 
-Classification: Enhanced keyword + rule-based classifier (instant, <1ms).
-Draft generation: RAG-context template synthesizer (instant, grounded, no hallucinations).
-
-No HuggingFace models are loaded at runtime. The sentence-transformers model
-used by rag_tool.py (all-MiniLM-L6-v2) is the ONLY model in this pipeline.
+Classification: Prompts the fine-tuned adapter to output Category, Priority, and Sentiment.
+Draft generation: Synthesizes a practical support response based on RAG context.
 """
 
 from __future__ import annotations
 
 import logging
+import json
+import ast
+import os
 from typing import Any
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import PeftModel
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
+_model = None
+_tokenizer = None
 
-# ──────────────────────────────────────────────────────────────────────────────
-# RAG-based draft synthesis — instant, grounded, no model needed
-# ──────────────────────────────────────────────────────────────────────────────
+def _load_model():
+    """Loads the Gemma 3 base model and attaches the fine-tuned LoRA adapter."""
+    global _model, _tokenizer
+    if _model is not None:
+        return
+        
+    logger.info("Loading Gemma-3 1B base model and fine-tuned LoRA adapter...")
+    base_model_name = "google/gemma-3-1b-it"
+    adapter_path = r"C:\Users\ranug\Downloads\gemma3-lms-ticket-adapter-final\gemma3-lms-ticket-adapter-final"
+    
+    load_dotenv(r"C:\Users\ranug\Clario\clario\ml_finetuning\.env")
+    hf_token = os.environ.get("HF_TOKEN")
+    if not hf_token:
+        logger.warning("No HF_TOKEN found in environment. Accessing the gated Gemma-3 model will fail if not logged in via CLI.")
+
+    try:
+        dev = "cuda" if torch.cuda.is_available() else "cpu"
+        _tokenizer = AutoTokenizer.from_pretrained(adapter_path, token=hf_token)
+        base_model = AutoModelForCausalLM.from_pretrained(
+            base_model_name,
+            device_map=dev,
+            torch_dtype=torch.float16 if dev == "cuda" else torch.float32,
+            token=hf_token
+        )
+        
+        _model = PeftModel.from_pretrained(base_model, adapter_path)
+        _model.eval()
+        logger.info("Model loaded successfully.")
+    except Exception as e:
+        logger.error(f"Failed to load Gemma-3 model: {e}")
+        raise
+
 
 def _parse_specialist_prompt(prompt: str) -> tuple[str, list[dict]]:
     """Extract ticket text and context chunks from the specialist prompt string."""
@@ -46,147 +83,111 @@ def _parse_specialist_prompt(prompt: str) -> tuple[str, list[dict]]:
     return ticket_text.strip(), context_chunks
 
 
-def _extract_actionable_sentences(text: str, max_sentences: int = 3) -> list[str]:
-    """Pull out the most actionable sentences from a KB chunk."""
-    action_starters = (
-        "check", "clear", "ensure", "visit", "contact", "please", "try",
-        "disable", "use", "open", "go to", "restart", "update", "if you",
-        "you can", "you may", "refund", "our system", "this may",
+def llm_invoke(prompt: str, temperature: float = 0.3) -> str:
+    """Helper to invoke Gemini 3.1 Flash for general tasks."""
+    load_dotenv(r"C:\Users\ranug\Clario\clario\ml_finetuning\.env")
+    client = genai.Client()
+    response = client.models.generate_content(
+        model='gemini-3.1-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(temperature=temperature),
     )
-    sentences = [s.strip() for s in text.replace("\n", " ").split(".") if s.strip()]
-    action = [s for s in sentences if any(s.lower().startswith(k) for k in action_starters)]
-    combined = action + [s for s in sentences if s not in action]
-    return [s + "." for s in combined[:max_sentences] if len(s) > 15]
-
-
-_FALLBACK_MSG = "I don't have enough information to resolve this."
-
-_OPENERS = {
-    "technical": "Thank you for reaching out. I'm sorry to hear you're experiencing a technical issue.",
-    "billing":   "Thank you for contacting us. I understand how concerning a billing issue can be.",
-    "account":   "Thank you for reaching out. I'll help you resolve your account issue right away.",
-    "general":   "Thank you for contacting support. I'm happy to help.",
-}
-
+    return response.text
 
 def generate_draft(prompt: str) -> str:
-    """Synthesize a professional support response directly from RAG context.
-
-    Instant — no model loading, no network calls.
-    Only uses sentences grounded in the retrieved KB chunks.
-    Returns the canonical low-context fallback if no context was retrieved.
-    """
+    """Synthesize a dual response using Gemini 3.1 Flash and RAG context."""
     ticket_text, context_chunks = _parse_specialist_prompt(prompt)
-
-    # Determine domain from the prompt header
-    domain = "general"
-    pl = prompt.lower()
-    if "billing" in pl[:80]:
-        domain = "billing"
-    elif "technical" in pl[:80]:
-        domain = "technical"
-    elif "account" in pl[:80]:
-        domain = "account"
-
     if not context_chunks or not ticket_text:
-        return _FALLBACK_MSG
+        return "I don't have enough information to resolve this."
 
-    opener = _OPENERS.get(domain, _OPENERS["general"])
-
-    # Gather actionable sentences from top 2 chunks
-    steps: list[str] = []
-    for chunk in context_chunks[:2]:
-        steps.extend(_extract_actionable_sentences(chunk["text"], max_sentences=2))
-
-    if not steps:
-        return _FALLBACK_MSG
-
-    body_lines = ["Here are some steps that should resolve your issue:"]
-    for i, step in enumerate(steps[:4], 1):
-        body_lines.append(f"  {i}. {step}")
-
-    closing = (
-        "If the issue persists after trying these steps, "
-        "please reply to this message and we'll escalate to a specialist."
+    context_str = "\n\n".join([f"Source {i+1}:\n{c['text']}" for i, c in enumerate(context_chunks)])
+    
+    system_instruction = (
+        "You are a Senior Technical Support Engineer. Based on the provided Knowledge Base and Source Code Context, "
+        "diagnose the root cause of the customer's issue.\n"
+        "Output ONLY a valid JSON object with exactly two keys:\n"
+        "1. 'technical_report': A deep-dive technical explanation of the root cause for internal engineering review. Reference specific files/code if applicable.\n"
+        "2. 'user_solution': A soft, non-technical, polite response to send to the customer providing a workaround or explaining the next steps without exposing technical jargon.\n"
     )
-
-    return "\n\n".join([opener, "\n".join(body_lines), closing])
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Keyword-based classifier — instant, no model, no download
-# ──────────────────────────────────────────────────────────────────────────────
-
-_CATEGORIES = ["Technical", "Billing", "Account", "General", "Other"]
-_PRIORITIES_BY_CATEGORY = {
-    "Billing": "High",
-    "Technical": "Medium",
-    "Account": "Medium",
-    "General": "Low",
-    "Other": "Low",
-}
-
-_KEYWORDS: dict[str, set[str]] = {
-    "Billing": {
-        "payment", "charged", "charge", "refund", "invoice", "billing",
-        "billed", "bank", "money", "deducted", "fee", "subscription", "price",
-        "cost", "transaction", "credit", "card",
-    },
-    "Account": {
-        "login", "password", "account", "sign in", "signin", "profile",
-        "verify", "locked", "access", "username", "email", "register",
-        "forgot", "reset", "2fa", "authentication",
-    },
-    "Technical": {
-        "error", "crash", "bug", "failed", "not working", "issue", "broken",
-        "video", "stream", "load", "slow", "download", "upload", "app",
-        "website", "page", "screen", "freeze", "glitch", "connection",
-    },
-}
-
-_NEGATIVE_WORDS = {
-    "failed", "broken", "error", "cannot", "can't", "not", "never",
-    "wrong", "bad", "terrible", "awful", "worst", "frustrat", "disappoint",
-    "upset", "angry", "stolen", "fraud", "scam",
-}
+    user_instruction = f"Ticket:\n{ticket_text}\n\nKnowledge Base / Source Code Context:\n{context_str}\n\nWrite the response in JSON format:"
+    
+    try:
+        load_dotenv(r"C:\Users\ranug\Clario\clario\ml_finetuning\.env")
+        client = genai.Client()
+        response = client.models.generate_content(
+            model='gemini-3.1-flash',
+            contents=system_instruction + "\n\n" + user_instruction,
+            config=types.GenerateContentConfig(
+                temperature=0.3,
+                response_mime_type="application/json"
+            ),
+        )
+        
+        data = json.loads(response.text)
+        tech_report = data.get("technical_report", "No technical report generated.")
+        user_solution = data.get("user_solution", "No user solution generated.")
+        
+        return f"**[INTERNAL TECHNICAL REPORT]**\n{tech_report}\n\n**[CUSTOMER RESPONSE]**\n{user_solution}"
+    except Exception as e:
+        logger.error(f"Failed to generate draft with Gemini: {e}")
+        return f"Failed to generate draft: {str(e)}"
 
 
 def classify_ticket_local(text: str) -> dict[str, Any]:
-    """Classify a ticket using enhanced keyword rules — instant, no model needed.
-
+    """Classify a ticket using the fine-tuned Gemma-3 model.
     Returns a dict with: category, priority, sentiment, confidence, source.
     """
-    t = text.lower()
+    _load_model()
+    
+    system_instruction = "You are a classification assistant. Output ONLY a valid JSON object with exactly these keys: 'category', 'priority', 'sentiment'."
+    user_instruction = f"""Analyze the following customer support ticket and classify it.
+Allowed categories: Technical, Billing, Account, General, Other
+Allowed priorities: Low, Medium, High
+Allowed sentiments: Positive, Neutral, Negative, Strongly Negative
 
-    # Category — check each domain's keywords
-    scores: dict[str, int] = {}
-    for cat, words in _KEYWORDS.items():
-        scores[cat] = sum(1 for w in words if w in t)
-
-    best_cat = max(scores, key=lambda k: scores[k])
-    category = best_cat if scores[best_cat] > 0 else "General"
-    confidence = min(0.5 + scores.get(category, 0) * 0.1, 0.95)
-
-    # Sentiment
-    neg_count = sum(1 for w in _NEGATIVE_WORDS if w in t)
-    if neg_count >= 3:
-        sentiment = "Strongly Negative"
-    elif neg_count >= 1:
-        sentiment = "Negative"
-    else:
-        sentiment = "Neutral"
-
-    # Priority — base from category, boost for strong negative sentiment
-    priority = _PRIORITIES_BY_CATEGORY.get(category, "Low")
-    if sentiment == "Strongly Negative" and priority in ("Low", "Medium"):
-        priority = "High"
-    elif sentiment == "Negative" and priority == "Low":
-        priority = "Medium"
-
-    return {
-        "category": category,
-        "priority": priority,
-        "sentiment": sentiment,
-        "confidence": round(confidence, 2),
-        "source": "keyword_classifier",
-    }
+Ticket text:
+{text}
+"""
+    messages = [
+        {"role": "system", "content": system_instruction},
+        {"role": "user", "content": user_instruction}
+    ]
+    
+    prompt_str = _tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+    inputs = _tokenizer(prompt_str, return_tensors="pt").to(_model.device)
+    
+    with torch.no_grad():
+        outputs = _model.generate(
+            **inputs,
+            max_new_tokens=100,
+            temperature=0.1,
+            do_sample=False
+        )
+    
+    response = _tokenizer.decode(outputs[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True).strip()
+    
+    # Clean and parse JSON
+    try:
+        clean_resp = response
+        if "```json" in clean_resp:
+            clean_resp = clean_resp.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean_resp:
+            clean_resp = clean_resp.split("```")[1].split("```")[0].strip()
+            
+        data = ast.literal_eval(clean_resp)
+        return {
+            "category": data.get("category", "General"),
+            "priority": data.get("priority", "Low"),
+            "sentiment": data.get("sentiment", "Neutral"),
+            "confidence": 0.85,
+            "source": "gemma3_lora"
+        }
+    except Exception as e:
+        logger.error(f"Failed to parse JSON from Gemma-3: {response} - Error: {e}")
+        return {
+            "category": "General",
+            "priority": "Low",
+            "sentiment": "Neutral",
+            "confidence": 0.0,
+            "source": "gemma3_lora_error"
+        }
