@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle } from 'lucide-react';
+import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle, Trash2, Copy } from 'lucide-react';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
+
+function parseCustomerResponse(text: string | null | undefined): string {
+  if (!text) return 'No final response was produced.';
+  if (text.includes('**[CUSTOMER RESPONSE]**')) {
+    return text.split('**[CUSTOMER RESPONSE]**')[1].trim();
+  }
+  return text;
+}
 
 
 type TicketState = {
@@ -11,6 +21,7 @@ type TicketState = {
   routing_decision?: string;
   failure_type?: string;
   escalation_triggered?: boolean;
+  ticket_id?: string;
 };
 
 type HandoffPackage = {
@@ -37,28 +48,62 @@ import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [ticketId, setTicketId] = useState('demo-001');
   const [ticketText, setTicketText] = useState('Payment failed but the money was taken from my bank account.');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<TicketResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pastTickets, setPastTickets] = useState<TicketWithResolution[]>([]);
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [successModal, setSuccessModal] = useState<{show: boolean, trackingId: string}>({show: false, trackingId: ''});
+  const [copied, setCopied] = useState<string | null>(null);
 
-  
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(text);
+    setTimeout(() => setCopied(null), 2000);
+  };
   const { user, role, loading, roleLoading } = useAuth();
   const router = useRouter();
 
   const fetchHistory = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8600/customer_tickets/${user.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPastTickets(data);
-      }
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('*, resolutions(*)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setPastTickets(data || []);
     } catch (e) {
       console.error('Failed to fetch history:', e);
+    }
+  };
+
+  const handleDeleteTicket = async (ticketId: string) => {
+    if (!confirm("Are you sure you want to delete this ticket? This will immediately stop processing.")) return;
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch(`${API_URL}/customer_tickets/${ticketId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchHistory(); // refresh UI
+        // If the deleted ticket was the currently displayed result, clear it
+        if (result && result.state.ticket_id === ticketId) {
+          setResult(null);
+        }
+      } else {
+        alert("Failed to delete the ticket.");
+      }
+    } catch (e) {
+      console.error('Failed to delete ticket:', e);
+      alert("Failed to delete the ticket.");
     }
   };
 
@@ -94,70 +139,69 @@ export default function Home() {
     setResult(null);
 
     try {
-      let ticketUuid = ticketId;
+      let base64String = null;
+      if (imageFile) {
+        base64String = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            // Remove the data:image/png;base64, prefix
+            const base64 = result.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(imageFile);
+        });
+      }
+
+      let ticketUuid = crypto.randomUUID();
+      const SIDECAR_URL = 'http://127.0.0.1:8600';
       
-      // 1. Save ticket to Supabase first to get real UUID (acts as gateway)
-        if (user) {
-          const { data: ticketData, error: ticketError } = await supabase
-            .from('tickets')
-            .insert({ 
-              user_id: user.id, 
-              raw_text: ticketText, 
-              subject: 'Support Ticket',
-              customer_email: user.email,
-              customer_name: user.email?.split('@')[0] || 'Unknown'
-            })
-            .select()
-            .single();
-            
-          if (ticketError) {
-            console.error("Supabase insert error:", ticketError);
-            setError(ticketError.message || "Failed to save ticket to DB");
-          }
-            
-          if (ticketData && !ticketError) {
-            ticketUuid = ticketData.id;
-          }
-        }
-        
-        // 2. Call ML Sidecar with the real UUID
-        let payload;
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
+      if (user) {
+        // Insert directly into Supabase (Legacy behavior for demo)
+        const { error: dbError } = await supabase
+          .from('tickets')
+          .insert({
+            id: ticketUuid,
+            user_id: user.id,
+            customer_name: user.email?.split('@')[0] || 'Unknown',
+            customer_email: user.email,
+            raw_text: ticketText,
+            status: 'received'
+          });
 
-          let response: Response;
-          try {
-            response = await fetch('http://localhost:8600/process_ticket', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ticket_id: ticketUuid, raw_text: ticketText }),
-              signal: controller.signal,
-            });
-          } finally {
-            clearTimeout(timeoutId);
-          }
-          
-          payload = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(payload.detail || 'Request failed');
-          }
-        } catch (fetchErr: any) {
-          const isAbort = fetchErr.name === 'AbortError';
-          const isNetworkError = fetchErr instanceof TypeError && fetchErr.message.includes('fetch');
-          throw new Error(
-            isAbort
-              ? 'The backend took too long to respond (>120s). The sidecar may be loading a model or processing a heavy request. Please try again in a moment.'
-              : isNetworkError
-                ? 'Cannot reach the ML sidecar at http://localhost:8600. Make sure the backend is running (uvicorn app.main:app --host 0.0.0.0 --port 8600 --reload) inside the clario-ml-sidecar venv.'
-                : fetchErr.message || 'Backend request failed.'
-          );
-        }
+        if (dbError) throw new Error(dbError.message);
 
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
         
-        setResult(payload);
+        // Fire-and-forget the sidecar processing request to make the UI instant
+        fetch(`${SIDECAR_URL}/process_ticket`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ 
+            ticket_id: ticketUuid,
+            raw_text: ticketText,
+            image_base64: base64String || undefined
+          }),
+        }).catch(err => {
+          console.error("Sidecar submission failed in background:", err);
+        });
+      } else {
+        throw new Error("Must be logged in to submit ticket");
+      }
+
+        // Success!
+        setSuccessModal({ show: true, trackingId: ticketUuid });
+        setTicketText('');
+        setImageFile(null);
+        setImageBase64(null);
         if (user) fetchHistory();
+        setActiveTab('history');
+
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred while connecting to the sidecar.');
     } finally {
@@ -168,6 +212,49 @@ export default function Home() {
   return (
     <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center">
       
+      {/* Success Modal */}
+      {successModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 animate-fade-in relative">
+            <button 
+              onClick={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4 border border-emerald-500/30">
+                <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Ticket Submitted Successfully!</h3>
+              <p className="text-slate-400 text-sm mb-6">Your issue has been securely logged and is being routed by our LangGraph orchestration.</p>
+              
+              <div className="w-full bg-slate-950 rounded-xl p-4 border border-slate-800 flex flex-col items-center">
+                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">Tracking ID</span>
+                <div className="flex items-center space-x-3 w-full justify-center">
+                  <span className="font-mono text-emerald-400 text-sm">{successModal.trackingId}</span>
+                  <button 
+                    onClick={() => handleCopy(successModal.trackingId)}
+                    className="text-slate-400 hover:text-white transition-colors p-1"
+                    title="Copy to clipboard"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+                {copied === successModal.trackingId && <span className="text-[10px] text-emerald-400 mt-1">Copied!</span>}
+              </div>
+
+              <button
+                onClick={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
+                className="mt-6 w-full py-3 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl font-semibold transition-colors"
+              >
+                View My Tickets
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header section */}
       <div className="text-center mb-12 animate-fade-in relative w-full">
         {user && (
@@ -234,120 +321,67 @@ export default function Home() {
       )}
 
       {activeTab === 'new' && (
-      <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      <div className="w-full max-w-2xl mx-auto items-start">
         
-        {/* Left Column: Form */}
-        <section className="glass-panel p-8 rounded-3xl w-full animate-fade-in relative overflow-hidden" style={{ animationDelay: '0.1s' }}>
-          {isProcessing && (
-            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-10 flex flex-col items-center justify-center rounded-3xl p-6 text-center">
-              <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-              <h3 className="text-indigo-300 font-bold text-lg mb-2 animate-pulse">Analyzing with Gemma-3...</h3>
-              <p className="text-slate-300 text-sm max-w-xs">
-                The very first ticket takes 15-30s to load the model into memory. 
-                Subsequent tickets take ~3 seconds to process.
-              </p>
+        {/* Form */}
+        <section className="glass-panel p-8 w-full animate-fade-in relative overflow-hidden" style={{ animationDelay: '0.1s' }}>
+
+          <h2 className="text-xl font-mono tracking-widest uppercase mb-8 flex items-center text-white border-b border-[#222222] pb-4">
+            <Ticket className="w-5 h-5 mr-3 text-[#00E5FF]" />
+            INITIALIZE_TICKET
+          </h2>
+          
+          {error && (
+            <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded flex items-start text-sm">
+              <AlertCircle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
           )}
           
-          <h2 className="text-2xl font-semibold mb-6 flex items-center text-white">
-            <Ticket className="w-5 h-5 mr-3 text-indigo-400" />
-            New Ticket
-          </h2>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             <div>
-              <label htmlFor="ticket-id" className="block text-sm font-medium text-slate-300 mb-2">
-                Ticket Reference
-              </label>
-              <input
-                id="ticket-id"
-                required
-                value={ticketId}
-                onChange={(e) => setTicketId(e.target.value)}
-                placeholder="e.g. SUP-1001"
-                className="glass-input w-full px-4 py-3 rounded-xl"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="ticket-text" className="block text-sm font-medium text-slate-300 mb-2">
-                Customer Issue
+              <label htmlFor="ticket-text" className="block text-[10px] font-mono tracking-widest text-[#888888] uppercase mb-2">
+                ISSUE_PAYLOAD
               </label>
               <textarea
                 id="ticket-text"
                 required
                 value={ticketText}
                 onChange={(e) => setTicketText(e.target.value)}
-                placeholder="Describe the customer's issue..."
-                className="glass-input w-full px-4 py-3 rounded-xl h-40 resize-y"
+                placeholder="Describe the issue..."
+                className="glass-input w-full px-0 py-3 text-sm h-40 resize-y"
               />
+            </div>
+            
+            <div>
+              <label htmlFor="ticket-image" className="block text-[10px] font-mono tracking-widest text-[#888888] uppercase mb-2">
+                ATTACH_TELEMETRY (IMAGE)
+              </label>
+              <input
+                id="ticket-image"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setImageFile(e.target.files[0]);
+                  }
+                }}
+                className="w-full py-3 file:mr-4 file:py-2 file:px-4 file:border file:border-[#222222] file:bg-[#111111] file:text-[10px] file:font-mono file:tracking-widest file:text-[#ececec] hover:file:bg-[#222222] hover:file:text-white transition-all text-[#888888] text-sm"
+              />
+              {imageFile && (
+                <p className="mt-2 text-[10px] font-mono text-[#00E5FF]">ATTACHED: {imageFile.name}</p>
+              )}
             </div>
 
             <button
               type="submit"
               disabled={isProcessing}
-              className="w-full bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#111111] hover:bg-[#00E5FF] text-[#00E5FF] hover:text-[#050505] border border-[#00E5FF] font-mono tracking-widest uppercase text-xs py-4 px-6 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>{isProcessing ? 'Processing...' : 'Submit to Pipeline'}</span>
+              <span>{isProcessing ? 'PROCESSING...' : 'PROCESS_TICKET'}</span>
               {!isProcessing && <Send className="w-4 h-4 ml-2" />}
             </button>
           </form>
-        </section>
-
-        {/* Right Column: Results */}
-        <section className={`w-full transition-all duration-500 ease-in-out ${result || error ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}>
-          {error && (
-            <div className="glass-panel border-red-500/30 p-6 rounded-3xl bg-red-950/20 mb-6 flex items-start space-x-4">
-              <ShieldAlert className="text-red-400 w-6 h-6 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="text-red-400 font-semibold text-lg mb-1">Processing Error</h3>
-                <p className="text-red-300/80">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {result && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="glass-panel p-8 rounded-3xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-5">
-                  <Bot className="w-32 h-32" />
-                </div>
-                
-                <h2 className="text-2xl font-semibold mb-8 flex items-center text-white">
-                  <CheckCircle2 className="w-5 h-5 mr-3 text-emerald-400" />
-                  Analysis Complete
-                </h2>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-                  <MetricCard label="Category" value={result.state.category} />
-                  <MetricCard label="Priority" value={result.state.priority} />
-                  <MetricCard label="Sentiment" value={result.state.sentiment} />
-                  <MetricCard label="Route" value={result.state.routing_decision} />
-                  <MetricCard label="Failure Type" value={result.state.failure_type} />
-                  <MetricCard label="Escalated" value={String(result.state.escalation_triggered)} />
-                </div>
-
-                <div className="border-t border-slate-700/50 pt-6">
-                  <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-4 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    Agent Reasoning / Final Output
-                  </h3>
-                  <div className="bg-slate-900/50 rounded-xl p-5 border border-slate-700/50 text-slate-300 leading-relaxed">
-                    {result.handoff_package?.reasoning_summary || result.final_response || 'No final response was produced.'}
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-panel p-6 rounded-3xl">
-                <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-4">
-                  Raw Graph State Payload
-                </h3>
-                <pre className="bg-[#0b1120] p-4 rounded-xl text-emerald-400/90 text-xs overflow-x-auto border border-slate-800 font-mono shadow-inner">
-                  {JSON.stringify(result, null, 2)}
-                </pre>
-              </div>
-            </div>
-          )}
         </section>
       </div>
       )}
@@ -367,62 +401,10 @@ export default function Home() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {pastTickets.map(t => {
-                const finalResolution = t.resolutions?.find(r => r.escalated === false) || t.resolutions?.[0];
-                const isFullyResolved = t.status === 'resolved';
-                const isEscalated = t.status === 'escalated';
-                
-                return (
-                  <div key={t.id} className={`glass-panel p-6 rounded-3xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col h-full ${isFullyResolved ? 'border-emerald-500/30 bg-emerald-950/10 shadow-[0_10px_30px_rgba(16,185,129,0.05)]' : isEscalated ? 'border-amber-500/30 bg-amber-950/10 shadow-[0_10px_30px_rgba(245,158,11,0.05)]' : 'border-indigo-500/20'}`}>
-                    <div className="flex items-start justify-between mb-5">
-                      <div className="flex-1 pr-4">
-                        <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1.5 block flex items-center">
-                          <Ticket className="w-3 h-3 mr-1" /> Your Issue
-                        </span>
-                        <p className="text-slate-200 font-medium leading-snug line-clamp-2">"{t.raw_text}"</p>
-                      </div>
-                      <div className="shrink-0">
-                        {isFullyResolved ? (
-                          <span className="flex items-center text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(52,211,153,0.15)]">
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Resolved
-                          </span>
-                        ) : isEscalated ? (
-                          <span className="flex items-center text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.15)] animate-pulse">
-                            <Clock className="w-3.5 h-3.5 mr-1.5" /> In Review
-                          </span>
-                        ) : (
-                          <span className="flex items-center text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-500/30 px-3 py-1.5 rounded-full">
-                            <AlertCircle className="w-3.5 h-3.5 mr-1.5" /> Pending
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex-grow">
-                      {(isFullyResolved && finalResolution?.final_response) ? (
-                        <div className="bg-[#0b1120] rounded-2xl p-4 border border-slate-800 relative overflow-hidden mt-2 h-full">
-                          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-400 to-emerald-600"></div>
-                          <span className="text-[10px] uppercase tracking-wider text-slate-500 block mb-2 font-bold flex items-center">
-                            <CheckCircle className="w-3 h-3 mr-1" /> Final Response
-                          </span>
-                          <p className="text-emerald-300 text-sm leading-relaxed">{finalResolution.final_response}</p>
-                        </div>
-                      ) : (
-                        <div className="mt-2 p-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 flex flex-col items-center justify-center text-center h-full min-h-[100px]">
-                          <Cpu className="w-6 h-6 text-slate-600 mb-2" />
-                          <p className="text-xs text-slate-400 font-medium">A human agent has taken over this ticket and is currently drafting a resolution.</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-5 pt-4 border-t border-slate-800/80 text-[11px] text-slate-500 font-medium flex justify-between items-center uppercase tracking-wider">
-                      <span>ID: {t.id.split('-')[0]}</span>
-                      <span>{new Date(t.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex flex-col w-full max-w-4xl mx-auto">
+              {pastTickets.map(t => (
+                <UserTicketRow key={t.id} ticket={t} onDelete={handleDeleteTicket} onCopy={handleCopy} copiedId={copied} />
+              ))}
             </div>
           )}
         </div>
@@ -446,11 +428,70 @@ export default function Home() {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value?: string }) {
+// ─── UserTicketRow ──────────────────────────────────────────────────────────
+
+import { ChevronDown, ChevronUp } from 'lucide-react';
+
+function UserTicketRow({ ticket, onDelete, onCopy, copiedId }: { ticket: TicketWithResolution; onDelete: (id: string) => void; onCopy: (id: string) => void; copiedId: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+  const finalResolution = ticket.resolutions?.find(r => r.escalated === false) || ticket.resolutions?.[0];
+  const isFullyResolved = ticket.status === 'resolved';
+  const isEscalated = ticket.status === 'escalated';
+  
+  let statusColor = '#888888';
+  let statusLabel = 'PROCESSING';
+  if (isEscalated) { statusColor = '#FFD600'; statusLabel = 'REQUIRES REVIEW'; }
+  else if (isFullyResolved) { statusColor = '#00FF66'; statusLabel = 'COMPLETED'; }
+
+  const issueSnippet = ticket.raw_text.substring(0, 80) + (ticket.raw_text.length > 80 ? '...' : '');
+
   return (
-    <div className="bg-slate-900/40 border border-slate-700/50 p-4 rounded-2xl flex flex-col justify-center">
-      <span className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">{label}</span>
-      <span className="text-slate-100 font-semibold truncate capitalize">{value ?? '—'}</span>
+    <div className="border border-[#222222] bg-[#111111] mb-2 transition-all duration-200 hover:border-[#444444]">
+      {/* Unexpanded Row */}
+      <div 
+        className="flex items-center justify-between p-4 cursor-pointer select-none"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex items-center space-x-6 flex-1 min-w-0">
+          <div className="flex items-center space-x-3 w-36 shrink-0">
+            <span className="w-1.5 h-1.5" style={{ backgroundColor: statusColor }} />
+            <span className="text-xs font-mono tracking-widest text-[#888888] truncate">{ticket.id.split('-')[0]}</span>
+          </div>
+          <span className="text-[10px] text-[#888888] font-mono w-20 shrink-0">{new Date(ticket.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          <span className="text-sm text-[#ececec] truncate font-sans">{issueSnippet}</span>
+        </div>
+        
+        <div className="flex items-center space-x-6 shrink-0 pl-4">
+          <span className="text-[10px] font-mono tracking-widest" style={{ color: statusColor }}>[{statusLabel}]</span>
+          <button onClick={(e) => { e.stopPropagation(); onDelete(ticket.id); }} className="text-[#555555] hover:text-[#FF3366] transition-colors flex items-center h-full">
+            <Trash2 className="w-4 h-4" />
+          </button>
+          {expanded ? <ChevronUp className="w-4 h-4 text-[#888888]" /> : <ChevronDown className="w-4 h-4 text-[#888888]" />}
+        </div>
+      </div>
+
+      {/* Expanded Details */}
+      {expanded && (
+        <div className="border-t border-[#222222] p-6 bg-[#050505] space-y-6">
+          <div>
+            <span className="text-[10px] font-mono tracking-widest text-[#555555] uppercase block mb-2 flex items-center">
+              ORIGINAL_PAYLOAD 
+              <button onClick={() => onCopy(ticket.id)} className="ml-4 hover:text-white"><Copy className="w-3 h-3"/></button>
+              {copiedId === ticket.id && <span className="ml-2 text-[#00FF66] normal-case">copied</span>}
+            </span>
+            <p className="text-sm text-[#ececec] leading-relaxed font-sans whitespace-pre-wrap">"{ticket.raw_text}"</p>
+          </div>
+          
+          <div className="border-t border-[#222222] pt-4">
+            <span className="text-[10px] font-mono tracking-widest uppercase block mb-2" style={{ color: statusColor }}>SYS_RESOLUTION</span>
+            <div className="bg-[#111111] border border-[#222222] p-4 min-h-[100px] font-sans text-sm text-[#ececec]">
+              {(isFullyResolved && finalResolution?.final_response) 
+                ? parseCustomerResponse(finalResolution.final_response) 
+                : 'A human agent has taken over this ticket and is currently drafting a resolution.'}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

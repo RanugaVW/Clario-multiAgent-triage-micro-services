@@ -39,7 +39,7 @@ export default function Login() {
       } else if (role === 'agent') {
         router.push('/agent');
       } else {
-        router.push('/');
+        router.push('/dashboard');
       }
     }
     setLoading(false);
@@ -50,7 +50,7 @@ export default function Login() {
       {/* 3D Wave Background */}
       <iframe 
         src="/landing.html?bgOnly=true" 
-        className="absolute inset-0 w-full h-full border-none pointer-events-auto"
+        className="absolute inset-0 w-full h-full border-none pointer-events-none"
         style={{ zIndex: 0 }}
       />
       

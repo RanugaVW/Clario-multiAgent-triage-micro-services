@@ -1,28 +1,45 @@
 import os
+import re
 from pathlib import Path
 import chromadb
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
+from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 
-_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_ROOT / ".env")
+_ROOT = Path(__file__).resolve().parents[3]
+_SIDECAR_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_SIDECAR_ROOT / ".env")
 
 _MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 _COLLECTION_NAME = "kb_codebase"
 
 def _chroma_path() -> str:
     configured = Path(os.getenv("CHROMA_PATH", "./vector_store/chroma_data"))
-    return str(configured if configured.is_absolute() else _ROOT / configured)
+    return str(configured if configured.is_absolute() else _SIDECAR_ROOT / configured)
 
-def chunk_text(text: str, chunk_size: int = 1500, overlap: int = 200) -> list[str]:
-    """Basic character chunker."""
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = start + chunk_size
-        chunks.append(text[start:end])
-        start = end - overlap
-    return chunks
+def get_splitter_for_ext(ext: str):
+    mapping = {
+        ".ts": Language.TS,
+        ".tsx": Language.TS,
+        ".js": Language.JS,
+        ".jsx": Language.JS,
+        ".py": Language.PYTHON,
+        ".java": Language.JAVA,
+        ".md": Language.MARKDOWN,
+        ".html": Language.HTML
+    }
+    lang = mapping.get(ext)
+    if lang:
+        return RecursiveCharacterTextSplitter.from_language(
+            language=lang, chunk_size=1500, chunk_overlap=200
+        )
+    return RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=200)
+
+def redact_secrets(text: str) -> str:
+    """Masks hardcoded secrets, keys, and tokens in source code."""
+    # Pattern to match: (secret|password|key|token) followed by = or : and a string literal
+    pattern = re.compile(r'(?i)(secret|password|key|token|api_key|pwd)\s*[:=]\s*(["\'])(.*?)\2')
+    return pattern.sub(r'\1 = \2[REDACTED_SECRET]\2', text)
 
 def ingest_directories(directories: list[str], extensions: set[str]):
     print("Loading embedding model...")
@@ -45,9 +62,12 @@ def ingest_directories(directories: list[str], extensions: set[str]):
             
         print(f"Walking {dir_path}...")
         for root, _, files in os.walk(dir_path):
-            if "node_modules" in root or ".next" in root or "dist" in root or "target" in root or ".venv" in root:
+            if any(skip in root for skip in ["node_modules", ".next", "dist", "target", ".venv", ".git"]):
                 continue
             for file in files:
+                # Skip environment and property files entirely
+                if file.startswith('.env') or file.endswith('.properties') or file.endswith('.yml') or file.endswith('.pem'):
+                    continue
                 ext = Path(file).suffix
                 if ext in extensions:
                     file_path = Path(root) / file
@@ -60,8 +80,12 @@ def ingest_directories(directories: list[str], extensions: set[str]):
                     
                     if not content.strip():
                         continue
+                    
+                    # Redact secrets before chunking
+                    content = redact_secrets(content)
                         
-                    chunks = chunk_text(content)
+                    splitter = get_splitter_for_ext(ext)
+                    chunks = splitter.split_text(content)
                     
                     ids = [f"{file_path}_{i}" for i in range(len(chunks))]
                     metadatas = [{"source_file": str(file_path)} for _ in range(len(chunks))]
@@ -79,7 +103,11 @@ def ingest_directories(directories: list[str], extensions: set[str]):
     print("Ingestion complete!")
 
 if __name__ == "__main__":
+    # Pointing to both Clario workspace and Rysera-stem workspace for full technical knowledge.
     dirs_to_ingest = [
+        str(_ROOT / "frontend"),
+        str(_ROOT / "clario-app"),
+        str(_ROOT / "clario-ml-sidecar"),
         r"C:\Users\ranug\Downloads\rysera-stem-web",
         r"C:\Users\ranug\Downloads\rysera-stem-backend"
     ]
