@@ -25,20 +25,15 @@ from app.graph.validation_node import validation_node
 load_dotenv()
 
 
-async def both_specialists_node(state: TicketState) -> TicketState:
-    """Run Technical and Billing specialists concurrently, then merge domain-keyed outputs."""
-    technical, billing = await asyncio.gather(technical_agent_node(state), billing_agent_node(state))
-    fields = ("agent_drafts", "retrieved_context", "rag_top_score", "low_relevance_flags")
-    merged = {field: {**technical.get(field, {}), **billing.get(field, {})} for field in fields}
-    return {**state, **merged}
-
 
 def _after_cache(state: TicketState) -> str:
-    return "validation" if state.get("cache_hit") else "surrogate"
+    # If it's a cache hit, bypass validation (which requires context/redaction) 
+    # and go straight to escalation to set the final_response
+    return "escalation" if state.get("cache_hit") else "surrogate"
 
 
 def _specialist_target(state: TicketState) -> str:
-    return {"technical": "technical_agent", "billing": "billing_agent", "both": "both_specialists"}[state["routing_decision"]]
+    return {"technical": "technical_agent", "billing": "billing_agent", "escalation": "escalation"}[state["routing_decision"]]
 
 
 def _after_validation(state: TicketState) -> str:
@@ -66,7 +61,6 @@ def build_graph():
     graph.add_node("routing", routing_node)
     graph.add_node("technical_agent", technical_agent_node)
     graph.add_node("billing_agent", billing_agent_node)
-    graph.add_node("both_specialists", both_specialists_node)
     graph.add_node("validation", validation_node)
     graph.add_node("reflection", reflection_node)
     graph.add_node("escalation", escalation_node)
@@ -80,7 +74,6 @@ def build_graph():
     graph.add_conditional_edges("routing", _specialist_target)
     graph.add_edge("technical_agent", "validation")
     graph.add_edge("billing_agent", "validation")
-    graph.add_edge("both_specialists", "validation")
     graph.add_conditional_edges("validation", _after_validation)
     graph.add_conditional_edges("reflection", _specialist_target)
     graph.add_edge("escalation", "resolve")
