@@ -32,7 +32,7 @@ public class TicketController {
         // Extract the user UUID from the Supabase JWT 'sub' claim
         UUID userId = UUID.fromString(jwt.getSubject());
         
-        Ticket ticket = ticketService.createTicket(request.getRawText(), request.getSubject(), userId);
+        Ticket ticket = ticketService.createTicket(request.getRawText(), request.getSubject(), userId, request.getImageBase64());
         return ResponseEntity.accepted().body(ticket);
     }
 }
@@ -41,4 +41,5 @@ public class TicketController {
 class CreateTicketRequest {
     private String rawText;
     private String subject;
+    private String imageBase64;
 }
