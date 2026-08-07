@@ -2,14 +2,18 @@
 
 from app.graph.state import TicketState
 
-TECHNICAL_KEYWORDS = frozenset({"error", "failed", "crash", "not working", "bug"})
-BILLING_KEYWORDS = frozenset({"payment", "charged", "bank", "refund", "billed"})
+TECHNICAL_KEYWORDS = {"error": 2, "failed": 1, "crash": 3, "not working": 1, "bug": 2}
+BILLING_KEYWORDS = {"payment": 3, "charged": 3, "bank": 2, "refund": 3, "billed": 3, "buying": 2, "billing": 3}
 
 
-def _has_keyword(text: str, keywords: frozenset[str]) -> bool:
-    """Return whether a configured routing phrase occurs in text."""
+def _calculate_score(text: str, weighted_keywords: dict[str, int]) -> int:
+    """Calculate a domain score based on keyword weights."""
     lower_text = text.lower()
-    return any(keyword in lower_text for keyword in keywords)
+    score = 0
+    for keyword, weight in weighted_keywords.items():
+        if keyword in lower_text:
+            score += weight
+    return score
 
 
 def check_rag_required(text: str) -> bool:
@@ -21,16 +25,29 @@ def check_rag_required(text: str) -> bool:
 
 
 def decide_routing(category: str | None, confidence: float | None, text: str) -> str:
-    """Choose the initial specialist domain without modifying state. Routes to both if unsure."""
-    if confidence is not None and confidence < 0.6:
-        return "both"
-    if _has_keyword(text, TECHNICAL_KEYWORDS) and _has_keyword(text, BILLING_KEYWORDS):
-        return "both"
+    """Choose the initial specialist domain without modifying state. Routes to escalation if unsure."""
+    if confidence is not None and confidence < 0.7:
+        return "escalation"
+        
+    # Primary logic: Trust the LLM's classification category
     if category == "Technical":
         return "technical"
     if category in {"Billing", "Account"}:
         return "billing"
-    return "both"
+        
+    # Fallback logic: Compute weighted scores if category is missing or unrecognized
+    tech_score = _calculate_score(text, TECHNICAL_KEYWORDS)
+    billing_score = _calculate_score(text, BILLING_KEYWORDS)
+    
+    if tech_score > 0 or billing_score > 0:
+        if billing_score > tech_score:
+            return "billing"
+        if tech_score > billing_score:
+            return "technical"
+        # If scores are exactly tied and > 0, we can't decide confidently
+        return "escalation"
+        
+    return "escalation"
 
 
 def routing_node(state: TicketState) -> TicketState:
