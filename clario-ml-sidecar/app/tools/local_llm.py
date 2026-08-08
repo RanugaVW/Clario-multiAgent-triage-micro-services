@@ -33,14 +33,14 @@ def _load_model():
     base_model_name = "google/gemma-3-1b-it"
     adapter_path = os.environ.get("GEMMA_ADAPTER_PATH", r"C:\Users\ranug\Downloads\gemma3-lms-ticket-adapter-final\gemma3-lms-ticket-adapter-final")
     
-    load_dotenv(os.environ.get("ML_ENV_PATH", r"C:\Users\ranug\Clario\clario\ml_finetuning\.env"))
+    # We are already in the sidecar, load_dotenv is called in main.py, but just in case:
+    load_dotenv()
     hf_token = os.environ.get("HF_TOKEN")
     if not hf_token:
         logger.warning("No HF_TOKEN found in environment. Accessing the gated Gemma-3 model will fail if not logged in via CLI.")
 
     try:
         dev = "cuda" if torch.cuda.is_available() else "cpu"
-        _tokenizer = AutoTokenizer.from_pretrained(adapter_path, token=hf_token)
         base_model = AutoModelForCausalLM.from_pretrained(
             base_model_name,
             device_map=dev,
@@ -48,7 +48,15 @@ def _load_model():
             token=hf_token
         )
         
-        _model = PeftModel.from_pretrained(base_model, adapter_path)
+        _tokenizer = AutoTokenizer.from_pretrained(base_model_name, token=hf_token)
+        
+        if os.path.exists(adapter_path):
+            _model = PeftModel.from_pretrained(base_model, adapter_path)
+            logger.info("Base model and LoRA adapter loaded successfully.")
+        else:
+            logger.warning(f"Adapter path not found: {adapter_path}. Falling back to base model only.")
+            _model = base_model
+
         _model.eval()
         logger.info("Model loaded successfully.")
     except Exception as e:
@@ -84,11 +92,11 @@ def _parse_specialist_prompt(prompt: str) -> tuple[str, list[dict]]:
 
 
 def llm_invoke(prompt: str, temperature: float = 0.3) -> str:
-    """Helper to invoke Gemini 3.1 Flash for general tasks."""
-    load_dotenv(os.environ.get("ML_ENV_PATH", r"C:\Users\ranug\Clario\clario\ml_finetuning\.env"))
+    """Helper to invoke Gemini Flash for general tasks."""
+    load_dotenv()
     client = genai.Client()
     response = client.models.generate_content(
-        model='gemini-3.1-flash-lite',
+        model=os.environ.get("GEMINI_DRAFT_MODEL", "gemini-2.0-flash-lite"),
         contents=prompt,
         config=types.GenerateContentConfig(temperature=temperature),
     )
@@ -115,10 +123,10 @@ def generate_draft(prompt: str) -> str:
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            load_dotenv(os.environ.get("ML_ENV_PATH", r"C:\Users\ranug\Clario\clario\ml_finetuning\.env"))
+            load_dotenv()
             client = genai.Client()
             response = client.models.generate_content(
-                model='gemini-3.1-flash-lite',
+                model=os.environ.get("GEMINI_DRAFT_MODEL", "gemini-2.0-flash"),
                 contents=system_instruction + "\n\n" + user_instruction,
                 config=types.GenerateContentConfig(
                     temperature=0.3,
