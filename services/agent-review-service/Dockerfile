@@ -1,0 +1,8 @@
+FROM eclipse-temurin:21-jdk-alpine
+VOLUME /tmp
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+COPY src src
+RUN ./mvnw install -DskipTests
+ENTRYPOINT ["java","-jar","target/agent-review-service-0.0.1-SNAPSHOT.jar"]
