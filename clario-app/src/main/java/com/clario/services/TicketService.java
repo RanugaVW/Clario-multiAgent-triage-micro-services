@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -17,10 +19,8 @@ import java.util.concurrent.CompletableFuture;
 public class TicketService {
 
     private final TicketRepository ticketRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    @Value("${clario.ml-sidecar.url:http://localhost:8600/process_ticket}")
-    private String mlSidecarUrl;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public Ticket createTicket(String rawText, String subject, UUID userId, String imageBase64) {
@@ -47,9 +47,12 @@ public class TicketService {
             if (imageBase64 != null) {
                 payload.put("image_base64", imageBase64);
             }
-            restTemplate.postForObject(mlSidecarUrl, payload, String.class);
+            
+            String jsonPayload = objectMapper.writeValueAsString(payload);
+            redisTemplate.opsForList().leftPush("ticket_queue", jsonPayload);
+            System.out.println("Dispatched ticket " + ticketId + " to Redis queue.");
         } catch (Exception e) {
-            System.err.println("Failed to dispatch to ML sidecar: " + e.getMessage());
+            System.err.println("Failed to dispatch to Redis queue: " + e.getMessage());
         }
     }
 }
