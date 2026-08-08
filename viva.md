@@ -63,19 +63,18 @@ If you deploy this architecture to a cloud provider, you must provision an insta
 
 ---
 
-## 🚀 The API Pivot Strategy (How to drop costs to $12/month)
+## 🚀 The Hybrid Strategy (Keep Gemma, API for OCR)
 
-During the viva, a great architectural point to bring up is the **API Pivot Strategy**. 
+During the viva, a great architectural point to bring up is the **Hybrid Strategy**. 
 
-If you decide to replace the local `Gemma-3-1b` (Classification) and local `Qwen2-VL` (OCR) entirely with **Gemini API calls** (like `gemini-3.1-flash-lite`), the system architecture fundamentally changes:
+If you keep `Gemma-3-1b` running locally for strict data privacy during classification, but replace the massive `Qwen2-VL` (OCR) with the **Gemini API**, the system architecture changes significantly:
 
-1.  **VRAM Requirement drops to 0 GB:** The only local ML model left would be the RAG embedding model (`all-MiniLM-L6-v2`), which is so small (~90MB) that it runs perfectly on a standard CPU.
-2.  **No GPU Server Needed:** You no longer need to pay for an AWS `g4dn.xlarge` or a RunPod GPU.
-3.  **New Hosting Cost:** You can now host the Python ML Sidecar on a standard, cheap CPU Virtual Private Server (VPS) with 2GB of RAM.
-    *   **DigitalOcean Droplet (2GB RAM):** ~$12 / month
-    *   **AWS t3.small (2GB RAM):** ~$15 / month
-    *   **Render Standard (2GB RAM):** ~$25 / month
-4.  **Gemini API Cost:** Gemini 1.5 Flash / 3.1 Flash-Lite has an extremely generous Free Tier (1 million tokens per day). Even if you exceed it, the cost is fractions of a cent per ticket.
+1.  **VRAM Requirement drops to ~3.4 GB:** 
+    *   Gemma (~2.5 GB) + Embeddings (~0.1 GB) + CUDA Overhead (~0.8 GB).
+2.  **Hosting Impact:** 
+    *   **Major Clouds (AWS/GCP):** The cost **does not change** (~$384/mo). This is because cloud providers like AWS do not rent out "half a GPU" or 4GB GPUs. Their smallest GPU instance is still the `g4dn.xlarge` (16GB VRAM), so you pay the same price regardless of if you use 3GB or 15GB of it.
+    *   **Community Clouds (Vast.ai / RunPod):** The cost **drops significantly**. Because you only need 3.4 GB of VRAM, you can rent much older, cheaper consumer GPUs (like an NVIDIA GTX 1060 6GB or a partitioned RTX 3060). This drops the hosting cost from ~$146/mo down to roughly **~$30 to $50 / month**.
+3.  **Gemini API Cost:** Gemini 3.1 Flash-Lite has an extremely generous Free Tier. Even if exceeded, the cost for image OCR is fractions of a cent per ticket.
 
 **The Trade-off:** 
-By switching to APIs, your monthly hosting cost drops from **~$384** down to **~$12**. However, you sacrifice data privacy (since customer tickets are now being sent to Google's servers for classification and OCR, rather than being processed 100% locally on your own hardware).
+You maintain 100% data privacy for all text-based tickets (since Gemma handles them locally), while only sacrificing privacy for tickets that specifically contain image attachments.
