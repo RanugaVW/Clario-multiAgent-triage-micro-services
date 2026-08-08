@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clario Ticket Orchestration</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; background: #f5f7fb; color: #18212f; }
+    body { margin: 0; padding: 2rem 1rem; }
+    main { max-width: 920px; margin: auto; }
+    h1 { margin-bottom: .25rem; } p { color: #536174; }
+    .card { background: #fff; border: 1px solid #dfe5ef; border-radius: 12px; padding: 1.25rem; margin-top: 1rem; box-shadow: 0 2px 7px #1720330d; }
+    label { display: block; font-weight: 650; margin: .7rem 0 .35rem; }
+    input, textarea { box-sizing: border-box; width: 100%; border: 1px solid #b9c5d7; border-radius: 7px; padding: .7rem; font: inherit; }
+    textarea { min-height: 140px; resize: vertical; } button { margin-top: 1rem; background: #2457d6; border: 0; border-radius: 7px; color: #fff; padding: .7rem 1rem; cursor: pointer; font-weight: 650; }
+    button:disabled { opacity: .6; cursor: wait; } .hidden { display: none; } .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; }
+    .metric { background: #f5f7fb; border-radius: 7px; padding: .65rem; } .metric span { display: block; font-size: .8rem; color: #617087; } pre { overflow: auto; white-space: pre-wrap; background: #101827; color: #d7e3f4; padding: 1rem; border-radius: 7px; }
+    .error { color: #af1e2d; font-weight: 600; } .notice { border-left: 4px solid #e6a300; padding-left: .75rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Clario Ticket Orchestration</h1>
+    <p>Submit a support ticket and inspect routing, specialist validation, and any human-review handoff.</p>
+    <section class="card">
+      <form id="ticket-form">
+        <label for="ticket-id">Ticket ID</label>
+        <input id="ticket-id" required value="demo-001" placeholder="e.g. SUP-1001">
+        <label for="ticket-text">Ticket description</label>
+        <textarea id="ticket-text" required placeholder="Describe the customer's issue…">Payment failed but the money was taken from my bank account.</textarea>
+        <button id="submit" type="submit">Process ticket</button>
+      </form>
+    </section>
+    <section id="result" class="card hidden" aria-live="polite">
+      <h2>Result</h2>
+      <div id="summary" class="grid"></div>
+      <p id="reasoning" class="notice hidden"></p>
+      <h3>Full response</h3>
+      <pre id="json"></pre>
+    </section>
+    <p id="error" class="error hidden"></p>
+  </main>
+  <script>
+    const form = document.querySelector('#ticket-form'), submit = document.querySelector('#submit');
+    const result = document.querySelector('#result'), error = document.querySelector('#error');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); error.classList.add('hidden'); result.classList.add('hidden'); submit.disabled = true;
+      submit.textContent = 'Processing…';
+      try {
+        const response = await fetch('/process_ticket', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ ticket_id: document.querySelector('#ticket-id').value, raw_text: document.querySelector('#ticket-text').value }) });
+        const payload = await response.json(); if (!response.ok) throw new Error(payload.detail || 'Request failed');
+        const state = payload.state, handoff = payload.handoff_package;
+        document.querySelector('#summary').innerHTML = [['Category', state.category], ['Priority', state.priority], ['Sentiment', state.sentiment], ['Route', state.routing_decision], ['Failure type', state.failure_type], ['Escalated', String(state.escalation_triggered)]].map(([name, value]) => `<div class="metric"><span>${name}</span>${value ?? '—'}</div>`).join('');
+        const reasoning = handoff?.reasoning_summary || payload.final_response || 'No final response was produced.';
+        document.querySelector('#reasoning').textContent = reasoning; document.querySelector('#reasoning').classList.remove('hidden');
+        document.querySelector('#json').textContent = JSON.stringify(payload, null, 2); result.classList.remove('hidden');
+      } catch (err) { error.textContent = `Unable to process ticket: ${err.message}`; error.classList.remove('hidden'); }
+      finally { submit.disabled = false; submit.textContent = 'Process ticket'; }
+    });
+  </script>
+</body>
+</html>

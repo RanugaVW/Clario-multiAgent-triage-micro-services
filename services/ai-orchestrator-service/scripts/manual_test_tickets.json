@@ -1,0 +1,8 @@
+[
+  {"ticket_id": "manual-technical", "raw_text": "The app crashes when I open the dashboard."},
+  {"ticket_id": "manual-billing", "raw_text": "Please send a receipt for my subscription payment."},
+  {"ticket_id": "manual-ambiguous", "raw_text": "Payment failed but the money was taken from my bank account."},
+  {"ticket_id": "manual-reroute", "raw_text": "I see an error while paying and believe I was charged twice."},
+  {"ticket_id": "manual-dual-low", "raw_text": "A mysterious process changed my service in an unexpected way."},
+  {"ticket_id": "manual-quality", "raw_text": "Please guarantee that my complicated request will be fixed today."}
+]
