@@ -1,0 +1,71 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Frontend",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "presentation": {
+        "panel": "new",
+        "clear": true
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Start Spring Boot",
+      "type": "shell",
+      "command": "./mvnw spring-boot:run",
+      "options": {
+        "cwd": "${workspaceFolder}/clario-app"
+      },
+      "presentation": {
+        "panel": "new",
+        "clear": true
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Start ML Worker",
+      "type": "shell",
+      "command": "source .venv/bin/activate && python -m app.worker",
+      "options": {
+        "cwd": "${workspaceFolder}/clario-ml-sidecar"
+      },
+      "presentation": {
+        "panel": "new",
+        "clear": true
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Start ML API",
+      "type": "shell",
+      "command": "source .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8600 --reload",
+      "options": {
+        "cwd": "${workspaceFolder}/clario-ml-sidecar"
+      },
+      "presentation": {
+        "panel": "new",
+        "clear": true
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Start Clario System",
+      "dependsOn": [
+        "Start Frontend",
+        "Start Spring Boot",
+        "Start ML Worker",
+        "Start ML API"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

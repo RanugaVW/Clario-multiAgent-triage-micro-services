@@ -1,8 +1,9 @@
-com\clario\ClarioApplication.class
-com\clario\controllers\CreateTicketRequest.class
-com\clario\config\SecurityConfig.class
-com\clario\entities\Ticket.class
-com\clario\controllers\TicketController.class
-com\clario\services\TicketService.class
-com\clario\repositories\TicketRepository.class
-com\clario\config\CorsConfig.class
+com/clario/ClarioApplication.class
+com/clario/repositories/TicketRepository.class
+com/clario/services/TicketService.class
+com/clario/config/SecurityConfig.class
+com/clario/config/CorsConfig.class
+com/clario/controllers/CreateTicketRequest.class
+com/clario/controllers/TicketController.class
+com/clario/config/JwtDebugFilter.class
+com/clario/entities/Ticket.class

@@ -26,7 +26,7 @@ def _chroma_path() -> str:
 def _embedding_model() -> SentenceTransformer:
     global _embedder
     if _embedder is None:
-        _embedder = SentenceTransformer(_MODEL_NAME, local_files_only=True)
+        _embedder = SentenceTransformer(_MODEL_NAME)
     return _embedder
 
 

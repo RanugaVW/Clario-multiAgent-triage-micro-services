@@ -43,7 +43,7 @@ def redact_secrets(text: str) -> str:
 
 def ingest_directories(directories: list[str], extensions: set[str]):
     print("Loading embedding model...")
-    embedder = SentenceTransformer(_MODEL_NAME, local_files_only=True)
+    embedder = SentenceTransformer(_MODEL_NAME)
     
     print("Connecting to ChromaDB...")
     client = chromadb.PersistentClient(path=_chroma_path())
