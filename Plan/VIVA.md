@@ -98,3 +98,25 @@ This is where the microservice architecture shines. The system handles massive s
 
 **How to Scale Up:**
 If resolving 500 tickets sequentially takes too long, you simply spin up *more* ML worker instances on additional GPU servers. Because Redis `brpop` is an atomic operation, multiple workers can safely pull from the exact same queue simultaneously without ever processing the same ticket twice. This is horizontal scaling at its finest!
+
+---
+
+## 🏗️ Phase 2: From Monolith to Microservices (Viva Pitch)
+
+During the viva, you can confidently explain the roadmap for Phase 2: officially transitioning the architecture into a fully containerized **Domain-Driven Microservices** setup. 
+
+### 1. The Problem with the Current "Monolithic" Structure
+While the system is currently decoupled by language (Java vs. Python), the internal codebases are too bundled:
+*   **Resource Contention (The biggest issue):** In the current `clario-ml-sidecar`, both `Gemma-3-1b` and `Qwen2-VL` are loaded into the exact same Python process. They fight for the same pool of VRAM. If a massive spike of images comes in, the process could crash, taking down the text classification capabilities with it.
+*   **Coupled Deployments:** If a developer updates the RAG prompt in `local_llm.py`, they have to reboot the entire Python server, momentarily taking down the OCR tool as well.
+
+### 2. The Decision: Feasibility of Microservices
+The panel will ask: *"Is it actually feasible to convert this?"*
+Your answer: **Yes, it is extremely feasible because we do not need to change our tech stack.**
+*   We already use the industry-standard microservice glue: **Redis** and **REST (FastAPI/Spring Boot)**.
+*   The transition only requires reorganizing our existing code into smaller folders (e.g., extracting the Java API Gateway from the Java Ticket Core) and wrapping each folder in a `Dockerfile`.
+
+### 3. How the "Hybrid Strategy" Makes This Easier
+Adopting the **Hybrid Strategy** (keeping Gemma local, moving OCR to the Gemini API) makes the Microservices migration significantly easier:
+*   Instead of having to provision two separate GPU microservices (one for Gemma, one for Qwen), we only need **one small GPU microservice** (for Gemma).
+*   The OCR microservice simply becomes a lightweight Python API that forwards Base64 images to Google's Gemini servers. This removes the VRAM contention problem entirely and cuts our required cloud hosting costs drastically, making our enterprise deployment highly cost-effective and structurally resilient.
