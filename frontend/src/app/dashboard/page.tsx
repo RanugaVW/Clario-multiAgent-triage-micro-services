@@ -46,6 +46,8 @@ type TicketWithResolution = {
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
+import MorphButton from '../../components/MorphButton';
+import ShakeButton from '../../components/ShakeButton';
 
 export default function Home() {
   const [ticketText, setTicketText] = useState('Payment failed but the money was taken from my bank account.');
@@ -57,13 +59,6 @@ export default function Home() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [successModal, setSuccessModal] = useState<{show: boolean, trackingId: string}>({show: false, trackingId: ''});
-  const [copied, setCopied] = useState<string | null>(null);
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(text);
-    setTimeout(() => setCopied(null), 2000);
-  };
   const { user, role, loading, roleLoading } = useAuth();
   const router = useRouter();
 
@@ -224,15 +219,8 @@ export default function Home() {
                 <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">Tracking ID</span>
                 <div className="flex items-center space-x-3 w-full justify-center">
                   <span className="font-mono text-emerald-400 text-sm">{successModal.trackingId}</span>
-                  <button 
-                    onClick={() => handleCopy(successModal.trackingId)}
-                    className="text-slate-400 hover:text-white transition-colors p-1"
-                    title="Copy to clipboard"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
+                  <MorphButton textToCopy={successModal.trackingId} label="Copy ID" />
                 </div>
-                {copied === successModal.trackingId && <span className="text-[10px] text-emerald-400 mt-1">Copied!</span>}
               </div>
 
               <button
@@ -394,7 +382,7 @@ export default function Home() {
           ) : (
             <div className="flex flex-col w-full max-w-4xl mx-auto">
               {pastTickets.map(t => (
-                <UserTicketRow key={t.id} ticket={t} onDelete={handleDeleteTicket} onCopy={handleCopy} copiedId={copied} />
+                <UserTicketRow key={t.id} ticket={t} onDelete={handleDeleteTicket} />
               ))}
             </div>
           )}
@@ -424,7 +412,7 @@ export default function Home() {
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 
-function UserTicketRow({ ticket, onDelete, onCopy, copiedId }: { ticket: TicketWithResolution; onDelete: (id: string) => void; onCopy: (id: string) => void; copiedId: string | null }) {
+function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onDelete: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   const finalResolution = ticket.resolutions?.find(r => r.escalated === false) || ticket.resolutions?.[0];
   const isFullyResolved = ticket.status === 'resolved';
@@ -455,9 +443,7 @@ function UserTicketRow({ ticket, onDelete, onCopy, copiedId }: { ticket: TicketW
         
         <div className="flex items-center space-x-6 shrink-0 pl-4">
           <span className="text-[10px] font-mono tracking-widest" style={{ color: statusColor }}>[{statusLabel}]</span>
-          <button onClick={(e) => { e.stopPropagation(); onDelete(ticket.id); }} className="text-[#555555] hover:text-[#FF3366] transition-colors flex items-center h-full">
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <ShakeButton onDelete={(e) => { e.stopPropagation(); onDelete(ticket.id); }} />
           {expanded ? <ChevronUp className="w-4 h-4 text-[#888888]" /> : <ChevronDown className="w-4 h-4 text-[#888888]" />}
         </div>
       </div>
@@ -466,11 +452,10 @@ function UserTicketRow({ ticket, onDelete, onCopy, copiedId }: { ticket: TicketW
       {expanded && (
         <div className="border-t border-[#222222] p-6 bg-[#050505] space-y-6">
           <div>
-            <span className="text-[10px] font-mono tracking-widest text-[#555555] uppercase block mb-2 flex items-center">
-              ORIGINAL_PAYLOAD 
-              <button onClick={() => onCopy(ticket.id)} className="ml-4 hover:text-white"><Copy className="w-3 h-3"/></button>
-              {copiedId === ticket.id && <span className="ml-2 text-[#00FF66] normal-case">copied</span>}
-            </span>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-mono tracking-widest text-[#555555] uppercase block">ORIGINAL_PAYLOAD</span>
+              <MorphButton textToCopy={ticket.id} label="Copy ID" />
+            </div>
             <p className="text-sm text-[#ececec] leading-relaxed font-sans whitespace-pre-wrap">"{ticket.raw_text}"</p>
           </div>
           
