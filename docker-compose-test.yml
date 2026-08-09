@@ -1,0 +1,5 @@
+services:
+  ticket-core-service:
+    build: services/ticket-core-service
+    ports:
+      - "8081:8081"

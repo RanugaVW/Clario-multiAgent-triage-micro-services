@@ -15,31 +15,7 @@ from app.graph.graph_builder import build_graph
 from app.graph.handoff_node import build_handoff_package
 
 logger = logging.getLogger(__name__)
-from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Preload heavy ML models in the background to reduce latency on the first request."""
-    import threading
-    from app.tools.local_llm import _load_model as load_llm
-    from app.tools.local_ocr import _load_model_singleton as load_ocr
-    
-    def preload_models():
-        try:
-            logger.info("Preloading ML Models at startup...")
-            load_llm()
-            load_ocr()
-            logger.info("ML Models preloaded successfully.")
-        except Exception as e:
-            logger.error(f"Failed to preload models: {e}")
-            
-    # Run in background thread so it doesn't block Uvicorn from starting up and binding the port
-    threading.Thread(target=preload_models, daemon=True).start()
-    
-    yield
-    # Cleanup on shutdown (if any)
-    
-app = FastAPI(title="Clario Agent Orchestration", lifespan=lifespan)
+app = FastAPI(title="Clario Agent Orchestration")
 
 app.add_middleware(
     CORSMiddleware,
@@ -104,8 +80,17 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
     try:
         import time
         if ticket.image_base64:
-            from app.tools.local_ocr import process_image_async
-            ocr_text = await process_image_async(ticket.image_base64)
+            import httpx
+            ocr_url = os.environ.get("OCR_URL", "http://ocr-vision-service:8000")
+            try:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(f"{ocr_url}/ocr", json={"image_base64": ticket.image_base64}, timeout=60.0)
+                    resp.raise_for_status()
+                    ocr_text = resp.json().get("text", "")
+            except Exception as e:
+                logger.error(f"Failed to reach OCR Service: {e}")
+                ocr_text = "[OCR FAILED]"
+                
             # Sync the extracted text back to the database so the Admin can see it
             initial_state["raw_text"] += f"\n\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\n{ocr_text}"
             try:

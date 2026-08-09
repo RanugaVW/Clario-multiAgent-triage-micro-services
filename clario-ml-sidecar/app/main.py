@@ -103,6 +103,8 @@ active_tasks_lock = asyncio.Lock()
 async def background_orchestration(ticket: TicketRequest, initial_state: dict, start_time: float):
     try:
         import time
+        from app.tools.redaction_tool import mask_pii
+        from app.tools.rag_tool import add_precedent
         if ticket.image_base64:
             from app.tools.local_ocr import process_image_async
             ocr_text = await process_image_async(ticket.image_base64)
@@ -135,11 +137,23 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
     finally:
         async with active_tasks_lock:
             active_tasks.pop(ticket.ticket_id, None)
-        
-    is_escalated = True
-    status = "escalated"
+
+    is_escalated = bool(final_state.get("escalation_triggered"))
+    status = "escalated" if is_escalated else "resolved"
     final_response = final_state.get("final_response")
     handoff = build_handoff_package(final_state) if is_escalated else None
+
+    if not is_escalated and final_response:
+        try:
+            redacted_text = final_state.get("redacted_text") or ticket.raw_text
+            if redacted_text == ticket.raw_text:
+                redacted_text, _ = mask_pii(ticket.raw_text)
+            domain = final_state.get("routing_decision") or final_state.get("category") or "technical"
+            if domain not in {"technical", "billing"}:
+                domain = "technical"
+            add_precedent(ticket.ticket_id, redacted_text, final_response, domain)
+        except Exception as embed_err:
+            logger.warning(f"Failed to embed precedent for ticket {ticket.ticket_id}: {embed_err}")
 
     try:
         supabase_client.table("tickets").update({
@@ -182,6 +196,14 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "ticket_id": ticket.ticket_id,
                 "final_response": final_response,
                 "escalated": False,
+                "total_reflection_count": final_state.get("reflection_count", 0),
+            }
+            supabase_client.table("resolutions").insert(resolution_payload).execute()
+        elif final_response:
+            resolution_payload = {
+                "ticket_id": ticket.ticket_id,
+                "final_response": final_response,
+                "escalated": True,
                 "total_reflection_count": final_state.get("reflection_count", 0),
             }
             supabase_client.table("resolutions").insert(resolution_payload).execute()

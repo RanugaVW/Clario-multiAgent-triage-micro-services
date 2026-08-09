@@ -8,12 +8,13 @@ from pathlib import Path
 
 import chromadb
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+from google import genai
+from google.genai import types
 
 ROOT = Path(__file__).resolve().parents[1]
 KB_ROOT = Path(__file__).resolve().parent / "kb_documents"
 COLLECTION_NAME = "kb_support_docs"
-MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+MODEL_NAME = "gemini-embedding-2"
 
 
 def chroma_path() -> str:
@@ -48,9 +49,19 @@ def build_index() -> int:
         raise RuntimeError(f"No markdown KB documents found in {KB_ROOT}")
     texts, domains, sources, ordinals = zip(*rows)
     ids = [hashlib.sha256(f"{source}:{ordinal}".encode()).hexdigest() for source, ordinal in zip(sources, ordinals)]
-    embeddings = SentenceTransformer(MODEL_NAME).encode(list(texts)).tolist()
-    client = chromadb.PersistentClient(path=chroma_path())
-    collection = client.get_or_create_collection(
+    
+    client = genai.Client()
+    embeddings = []
+    for text in texts:
+        res = client.models.embed_content(
+            model=MODEL_NAME,
+            contents=[text],
+            config=types.EmbedContentConfig(output_dimensionality=384)
+        )
+        embeddings.append(res.embeddings[0].values)
+    
+    chroma_client = chromadb.PersistentClient(path=chroma_path())
+    collection = chroma_client.get_or_create_collection(
         COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
     )
     collection.upsert(

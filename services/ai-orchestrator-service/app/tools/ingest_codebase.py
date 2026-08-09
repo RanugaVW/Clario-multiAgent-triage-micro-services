@@ -3,14 +3,15 @@ import re
 from pathlib import Path
 import chromadb
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+from google import genai
+from google.genai import types
 from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 
 _ROOT = Path(__file__).resolve().parents[3]
 _SIDECAR_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(_SIDECAR_ROOT / ".env")
 
-_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+_MODEL_NAME = "gemini-embedding-2"
 _COLLECTION_NAME = "kb_codebase"
 
 def _chroma_path() -> str:
@@ -42,8 +43,8 @@ def redact_secrets(text: str) -> str:
     return pattern.sub(r'\1 = \2[REDACTED_SECRET]\2', text)
 
 def ingest_directories(directories: list[str], extensions: set[str]):
-    print("Loading embedding model...")
-    embedder = SentenceTransformer(_MODEL_NAME)
+    print("Loading Gemini embedding client...")
+    client_genai = genai.Client()
     
     print("Connecting to ChromaDB...")
     client = chromadb.PersistentClient(path=_chroma_path())
@@ -90,8 +91,15 @@ def ingest_directories(directories: list[str], extensions: set[str]):
                     ids = [f"{file_path}_{i}" for i in range(len(chunks))]
                     metadatas = [{"source_file": str(file_path)} for _ in range(len(chunks))]
                     
-                    print(f"Embedding {len(chunks)} chunks for {file}...")
-                    embeddings = embedder.encode(chunks, normalize_embeddings=True).tolist()
+                    print(f"Embedding {len(chunks)} chunks for {file} via Gemini...")
+                    embeddings = []
+                    for c in chunks:
+                        res = client_genai.models.embed_content(
+                            model=_MODEL_NAME,
+                            contents=[c],
+                            config=types.EmbedContentConfig(output_dimensionality=384)
+                        )
+                        embeddings.append(res.embeddings[0].values)
                     
                     collection.add(
                         ids=ids,

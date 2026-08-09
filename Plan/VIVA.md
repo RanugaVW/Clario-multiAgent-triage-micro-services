@@ -2,6 +2,38 @@
 
 If we want to host the full Clario ML Sidecar in the cloud **with all local AI models running purely on GPU hardware** (bypassing the Gemini API completely), here is the exact breakdown of the VRAM (Video RAM) calculations required.
 
+---
+
+## Viva Impact Note: Duplicate Tickets and Sequential Processing
+
+### The Problem We Had
+When many users submitted the same issue, the system still routed each ticket through the full ML pipeline. That meant repeated calls to redaction, routing, Gemma classification, retrieval, and escalation logic, even when the answer had already been found earlier. In practice, the worker also hardcoded tickets as escalated, so resolved tickets did not cleanly finish as completed/resolved.
+
+### Strategy We Used
+We fixed the pipeline in two places:
+1. The worker now respects the real escalation result from the graph instead of forcing every ticket into the escalated path.
+2. Resolved tickets are automatically embedded into precedent memory, using redacted and normalized text, so the next similar ticket can reuse the previous answer.
+3. The duplicate check now compares normalized semantic text and uses a slightly more tolerant similarity gate, so paraphrased versions are more likely to match the same cluster.
+
+### Logic Behind It
+1. First ticket in a cluster runs the full pipeline once.
+2. The final answer is stored as precedent memory.
+3. The next ticket with the same or strongly similar meaning is checked against the semantic cache before doing expensive downstream work.
+4. If the similarity score is high enough, the system reuses the earlier answer instead of recomputing one from scratch.
+
+### Impact Numbers for Viva
+Use this simple example:
+- Without the fix: 100 repeated tickets = 100 full pipeline runs.
+- With the fix: 1 full pipeline run + 99 cache hits.
+
+If one full ticket takes about 45 seconds and a cache hit takes about 1 second, then:
+- Before: 100 × 45s = 4,500s = 75 minutes.
+- After: 45s + 99 × 1s = 144s = 2.4 minutes.
+- Time saved: 4,356s = 72.6 minutes.
+- Reduction: about 96.8%.
+
+That is the main viva point: the system becomes sequential for GPU safety, but repeated issue clusters are answered almost immediately after the first resolution is stored.
+
 ## 1. Local LLM: Classification & Sentiment (`google/gemma-3-1b-it`)
 *   **Parameter Count:** 1 Billion parameters
 *   **Precision:** Loaded in native `bfloat16` (16-bit precision)
