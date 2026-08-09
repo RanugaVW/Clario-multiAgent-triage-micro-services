@@ -33,11 +33,71 @@
 
 body {
   color: var(--color-foreground);
-  background: var(--color-background);
+  background-color: var(--color-background);
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
   font-family: var(--font-sans);
+  z-index: 0;
+}
+
+/* Fix for browser autofill ruining glassmorphism */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    transition: background-color 9999s ease-in-out 0s;
+    -webkit-text-fill-color: white !important;
+}
+
+/* Premium Animated Gradient Background */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  width: 65vmax;
+  height: 65vmax;
+  filter: blur(160px);
+  opacity: 0.08;
+  z-index: -1;
+  pointer-events: none;
+  animation: liquid-blob 25s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body::before {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6); /* Indigo to Violet */
+  top: -15%;
+  left: -15%;
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+}
+
+body::after {
+  background: linear-gradient(135deg, #00e5ff, #0ea5e9); /* Cyan to Sky */
+  bottom: -15%;
+  right: -15%;
+  animation-delay: -12s;
+  animation-duration: 30s;
+  animation-direction: alternate-reverse;
+  border-radius: 60% 40% 30% 70% / 50% 60% 50% 40%;
+}
+
+@keyframes liquid-blob {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  }
+  33% {
+    transform: translate(15vw, 15vh) rotate(120deg) scale(1.1);
+    border-radius: 60% 40% 30% 70% / 50% 60% 50% 40%;
+  }
+  66% {
+    transform: translate(-10vw, 20vh) rotate(240deg) scale(0.9);
+    border-radius: 50% 50% 70% 30% / 30% 50% 70% 40%;
+  }
+  100% {
+    transform: translate(5vw, -5vh) rotate(360deg) scale(1.05);
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  }
 }
 
 /* Custom scrollbar */

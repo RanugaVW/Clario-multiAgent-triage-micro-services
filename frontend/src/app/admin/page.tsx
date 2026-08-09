@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
+import ShakeButton from '../../components/ShakeButton';
+import RotateButton from '../../components/RotateButton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
 
@@ -296,10 +298,7 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-mono tracking-widest uppercase text-white flex items-center">
               <Bot className="w-5 h-5 mr-2 text-[#00E5FF]" /> AI Agents
             </h2>
-            <button onClick={fetchData} disabled={dataLoading} className="text-xs text-slate-400 hover:text-white transition-colors flex items-center">
-              {dataLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Activity className="w-3 h-3 mr-1" />}
-              Refresh
-            </button>
+            <RotateButton onClick={fetchData} isLoading={dataLoading} />
           </div>
 
           {dataLoading ? (
@@ -470,10 +469,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-slate-800/50 border border-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg w-64 focus:outline-none focus:border-indigo-500 transition-colors"
                 />
-                <button onClick={fetchData} disabled={dataLoading} className="text-xs text-slate-400 hover:text-white transition-colors flex items-center">
-                  {dataLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Activity className="w-3 h-3 mr-1" />}
-                  Refresh
-                </button>
+                <RotateButton onClick={fetchData} isLoading={dataLoading} />
               </div>
             </div>
 
@@ -660,9 +656,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
         <div className="flex items-center space-x-6 shrink-0 pl-4">
           <span className="text-[10px] font-mono tracking-widest" style={{ color: statusColor }}>[{statusLabel}]</span>
           {onDelete && (
-            <button onClick={(e) => { e.stopPropagation(); onDelete(ticket.id); }} className="text-[#555555] hover:text-[#FF3366] transition-colors flex items-center h-full">
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <ShakeButton onDelete={(e) => { e.stopPropagation(); onDelete(ticket.id); }} />
           )}
           {expanded ? <ChevronUp className="w-4 h-4 text-[#888888]" /> : <ChevronDown className="w-4 h-4 text-[#888888]" />}
         </div>
