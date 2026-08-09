@@ -11,6 +11,7 @@ import {
   Shield, Layers, CheckCircle2, Trash2, Image as ImageIcon,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
 
@@ -734,7 +735,16 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
               </div>
               
               <div className="bg-[#111111] border border-[#222222] p-4 min-h-[150px] font-sans text-sm text-[#ececec]">
-                 {resolution?.final_response ? parseAdminResponse(resolution.final_response) : (draft?.draft_text ? parseAdminResponse(draft.draft_text) : 'AWAITING PROCESS...')}
+                 {resolution?.final_response 
+                    ? parseAdminResponse(resolution.final_response) 
+                    : (draft?.draft_text 
+                        ? parseAdminResponse(draft.draft_text) 
+                        : (isEscalated 
+                            ? 'AWAITING HUMAN REVIEW...' 
+                            : <div className="flex justify-center items-center py-8"><WavePhysicsLoader theme="dark" /></div>
+                          )
+                      )
+                 }
               </div>
             </div>
             

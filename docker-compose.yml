@@ -1,10 +1,10 @@
-version: '3.8'
+
 
 services:
   redis-broker:
     image: redis:alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
 
   api-gateway:
     build:
@@ -12,31 +12,41 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    env_file:
+      - ./clario-app/.env
     environment:
+      - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
       - SPRING_PROFILES_ACTIVE=docker
-    depends_on:
-      - ticket-core-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   ticket-core-service:
     build:
       context: ./services/ticket-core-service
       dockerfile: Dockerfile
-    ports:
-      - "8081:8080"
+    env_file:
+      - ./clario-app/.env
     environment:
+      - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATA_REDIS_HOST=redis-broker
-    depends_on:
-      - redis-broker
+      - SPRING_DATA_REDIS_PORT=6379
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "db.mdvfvtpbwqhccmaarpli.supabase.co:host-gateway"
 
   agent-review-service:
     build:
       context: ./services/agent-review-service
       dockerfile: Dockerfile
-    ports:
-      - "8082:8080"
+    env_file:
+      - ./clario-app/.env
     environment:
+      - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
       - SPRING_PROFILES_ACTIVE=docker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "db.mdvfvtpbwqhccmaarpli.supabase.co:host-gateway"
 
   nlp-classifier-service:
     build:
@@ -44,6 +54,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - ./clario-ml-sidecar/.env
 
   ocr-vision-service:
     build:
@@ -51,19 +63,17 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8001:8000"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    env_file:
+      - ./clario-ml-sidecar/.env
 
   ai-orchestrator-service:
     build:
       context: ./services/ai-orchestrator-service
       dockerfile: Dockerfile
+    env_file:
+      - ./clario-ml-sidecar/.env
     environment:
+      - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
       - REDIS_HOST=redis-broker
       - CLASSIFIER_URL=http://nlp-classifier-service:8000
       - OCR_URL=http://ocr-vision-service:8000

@@ -422,6 +422,7 @@ export default function Home() {
 // ─── UserTicketRow ──────────────────────────────────────────────────────────
 
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 
 function UserTicketRow({ ticket, onDelete, onCopy, copiedId }: { ticket: TicketWithResolution; onDelete: (id: string) => void; onCopy: (id: string) => void; copiedId: string | null }) {
   const [expanded, setExpanded] = useState(false);
@@ -478,7 +479,10 @@ function UserTicketRow({ ticket, onDelete, onCopy, copiedId }: { ticket: TicketW
             <div className="bg-[#111111] border border-[#222222] p-4 min-h-[100px] font-sans text-sm text-[#ececec]">
               {(isFullyResolved && finalResolution?.final_response) 
                 ? parseCustomerResponse(finalResolution.final_response) 
-                : 'A human agent has taken over this ticket and is currently drafting a resolution.'}
+                : (isEscalated 
+                    ? 'A human agent has taken over this ticket and is currently drafting a resolution.'
+                    : <div className="flex justify-center items-center py-8"><WavePhysicsLoader theme="dark" /></div>
+                  )}
             </div>
           </div>
         </div>
