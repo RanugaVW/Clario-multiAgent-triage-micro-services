@@ -54,77 +54,76 @@ export default function Login() {
         style={{ zIndex: 0 }}
       />
       
-      <div className="glass-panel p-8 sm:p-12 rounded-3xl w-full max-w-md animate-fade-in relative overflow-hidden" style={{ zIndex: 10 }}>
+      <div className="relative z-10 w-full max-w-md p-8 sm:p-10 rounded-[2.5rem] bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] animate-fade-in">
         {/* Background elements */}
-        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-          <Shield className="w-48 h-48" />
+        <div className="absolute -top-20 -right-20 p-8 opacity-10 pointer-events-none blur-3xl">
+          <Shield className="w-64 h-64 text-indigo-500" />
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="bg-indigo-500/20 p-3 rounded-2xl border border-indigo-500/30">
-              <Shield className="text-indigo-400 w-6 h-6" />
+          <div className="flex flex-col items-center mb-10 text-center">
+            <div className="bg-white/5 p-4 rounded-3xl border border-white/10 mb-4 shadow-[0_0_20px_rgba(255,255,255,0.05)]">
+              <Shield className="text-indigo-400 w-8 h-8" />
             </div>
-            <h1 className="text-3xl font-bold text-white">Sign In to Clario</h1>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Welcome back</h1>
+            <p className="text-white/50 mt-2 text-sm">Please enter your details to sign in</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-5">
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm p-3 rounded-xl">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-2xl flex items-center justify-center backdrop-blur-md">
                 {error}
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-slate-400" />
+            <div className="space-y-4">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-white/40 group-focus-within:text-indigo-400 transition-colors" />
                 </div>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="glass-input w-full pl-10 pr-4 py-3 rounded-xl text-sm"
-                  placeholder="agent@clario.com"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/40 focus:bg-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all outline-none backdrop-blur-sm"
+                  placeholder="Email address"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <KeyRound className="h-5 w-5 text-slate-400" />
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <KeyRound className="h-5 w-5 text-white/40 group-focus-within:text-indigo-400 transition-colors" />
                 </div>
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="glass-input w-full pl-10 pr-4 py-3 rounded-xl text-sm"
-                  placeholder="••••••••"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/40 focus:bg-white/10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all outline-none backdrop-blur-sm"
+                  placeholder="Password"
                 />
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] flex items-center justify-center space-x-2 disabled:opacity-50"
-            >
-              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
-              {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
-            </button>
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-white text-black hover:bg-gray-100 font-semibold py-3.5 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-70 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+              >
+                <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
+                {!loading && <ArrowRight className="w-5 h-5 ml-1" />}
+              </button>
+            </div>
           </form>
 
-          <div className="mt-8 text-center text-sm text-slate-400">
-            <p className="mb-2">Role is automatically assigned from your database profile.</p>
-            <p>
-              Need an account?{' '}
-              <a href="/register" className="text-indigo-400 hover:text-indigo-300 transition-colors">
-                Register here
+          <div className="mt-8 text-center text-sm">
+            <p className="text-white/40 mb-1">Role is automatically assigned from your profile.</p>
+            <p className="text-white/60">
+              Don't have an account?{' '}
+              <a href="/register" className="text-white hover:text-indigo-400 font-medium transition-colors underline underline-offset-4 decoration-white/20">
+                Create one now
               </a>
             </p>
           </div>
