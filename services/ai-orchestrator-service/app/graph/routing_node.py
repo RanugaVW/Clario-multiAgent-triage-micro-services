@@ -30,10 +30,12 @@ def decide_routing(category: str | None, confidence: float | None, text: str) ->
         return "escalation"
         
     # Primary logic: Trust the LLM's classification category
-    if category == "Technical":
-        return "technical"
-    if category in {"Billing", "Account"}:
-        return "billing"
+    if category:
+        cat_lower = category.lower()
+        if "technical" in cat_lower or "tech" in cat_lower:
+            return "technical"
+        if "billing" in cat_lower or "account" in cat_lower or "payment" in cat_lower:
+            return "billing"
         
     # Fallback logic: Compute weighted scores if category is missing or unrecognized
     tech_score = _calculate_score(text, TECHNICAL_KEYWORDS)

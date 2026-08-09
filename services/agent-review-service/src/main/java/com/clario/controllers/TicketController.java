@@ -6,8 +6,6 @@ import com.clario.services.TicketService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,17 +20,20 @@ public class TicketController {
     private final TicketRepository ticketRepository;
 
     @GetMapping
-    public ResponseEntity<List<Ticket>> getUserTickets(@AuthenticationPrincipal Jwt jwt) {
-        UUID userId = UUID.fromString(jwt.getSubject());
-        return ResponseEntity.ok(ticketRepository.findByUserId(userId));
+    public ResponseEntity<List<Ticket>> getUserTickets(@RequestHeader(value = "X-User-Id", required = false) String userId) {
+        if (userId == null) {
+            userId = "00000000-0000-0000-0000-000000000000"; // fallback
+        }
+        return ResponseEntity.ok(ticketRepository.findByUserId(UUID.fromString(userId)));
     }
 
     @PostMapping
-    public ResponseEntity<Ticket> createTicket(@RequestBody CreateTicketRequest request, @AuthenticationPrincipal Jwt jwt) {
-        // Extract the user UUID from the Supabase JWT 'sub' claim
-        UUID userId = UUID.fromString(jwt.getSubject());
+    public ResponseEntity<Ticket> createTicket(@RequestBody CreateTicketRequest request, @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        if (userId == null) {
+            userId = "00000000-0000-0000-0000-000000000000";
+        }
         
-        Ticket ticket = ticketService.createTicket(request.getRawText(), request.getSubject(), userId, request.getImageBase64());
+        Ticket ticket = ticketService.createTicket(request.getRawText(), request.getSubject(), UUID.fromString(userId), request.getImageBase64());
         return ResponseEntity.accepted().body(ticket);
     }
 }

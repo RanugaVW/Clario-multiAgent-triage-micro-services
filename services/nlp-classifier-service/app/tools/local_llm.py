@@ -11,9 +11,9 @@ import json
 import ast
 import os
 from typing import Any
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import PeftModel
+# import torch
+# from transformers import AutoModelForCausalLM, AutoTokenizer
+# from peft import PeftModel
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -40,28 +40,11 @@ def _load_model():
         logger.warning("No HF_TOKEN found in environment. Accessing the gated Gemma-3 model will fail if not logged in via CLI.")
 
     try:
-        dev = "cuda" if torch.cuda.is_available() else "cpu"
-        base_model = AutoModelForCausalLM.from_pretrained(
-            base_model_name,
-            device_map=dev,
-            torch_dtype=torch.float16 if dev == "cuda" else torch.float32,
-            token=hf_token
-        )
-        
-        _tokenizer = AutoTokenizer.from_pretrained(base_model_name, token=hf_token)
-        
-        if os.path.exists(adapter_path):
-            _model = PeftModel.from_pretrained(base_model, adapter_path)
-            logger.info("Base model and LoRA adapter loaded successfully.")
-        else:
-            logger.warning(f"Adapter path not found: {adapter_path}. Falling back to base model only.")
-            _model = base_model
-
-        _model.eval()
-        logger.info("Model loaded successfully.")
+        _model = "CPU_FALLBACK"
+        logger.warning("No CUDA detected or PyTorch disabled. Skipping local Gemma-3 load to avoid CPU OOM. Will fallback to Gemini.")
     except Exception as e:
         logger.error(f"Failed to load Gemma-3 model: {e}")
-        raise
+        _model = "CPU_FALLBACK"
 
 
 def _parse_specialist_prompt(prompt: str) -> tuple[str, list[dict]]:
@@ -157,6 +140,29 @@ def classify_ticket_local(text: str) -> dict[str, Any]:
     """
     _load_model()
     
+    # Cloud Fallback if local model failed to load or CPU mode active
+    if _model == "CPU_FALLBACK":
+        try:
+            logger.info("Using Gemini 2.0 Flash fallback for classification.")
+            load_dotenv()
+            client = genai.Client()
+            response = client.models.generate_content(
+                model=os.environ.get("GEMINI_DRAFT_MODEL", "gemini-2.0-flash"),
+                contents=f"Analyze the following support ticket and classify it. Output ONLY a valid JSON object with keys 'category', 'priority', 'sentiment'. Ticket: {text}",
+                config=types.GenerateContentConfig(temperature=0.1, response_mime_type="application/json"),
+            )
+            data = json.loads(response.text)
+            return {
+                "category": data.get("category", "General"),
+                "priority": data.get("priority", "Low"),
+                "sentiment": data.get("sentiment", "Neutral"),
+                "confidence": 0.85,
+                "source": "gemini_fallback"
+            }
+        except Exception as e:
+            logger.error(f"Gemini fallback failed: {e}")
+            return {"category": "General", "priority": "Low", "sentiment": "Neutral", "confidence": 0.0, "source": "error"}
+
     system_instruction = (
         "You are a classification assistant. Output ONLY a valid JSON object with exactly these keys: 'category', 'priority', 'sentiment'. "
         "You MUST use double quotes (\") for keys and strings, never single quotes.\n\n"

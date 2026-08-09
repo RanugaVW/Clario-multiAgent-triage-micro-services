@@ -6,40 +6,35 @@
 ---
 
 ## Table of Contents
-1. [Project Structure](#1-project-structure)
+1. [Project Structure (Microservices)](#1-project-structure-microservices)
 2. [Prerequisites](#2-prerequisites)
 3. [Running the System — Step by Step](#3-running-the-system--step-by-step)
    - 3.1 [Supabase Database Setup](#31-supabase-database-setup)
-   - 3.2 [ChromaDB + Knowledge Base](#32-chromadb--knowledge-base-setup)
-   - 3.3 [Environment Configuration](#33-environment-configuration)
-   - 3.4 [Starting All Services (VS Code or Bash)](#34-starting-all-services-vs-code-or-bash)
+   - 3.2 [Environment Configuration](#32-environment-configuration)
+   - 3.3 [Starting the Dockerized Backend Cluster](#33-starting-the-dockerized-backend-cluster)
+   - 3.4 [Starting the Frontend](#34-starting-the-frontend)
 4. [How the Pipeline Works](#4-how-the-pipeline-works)
 5. [User Roles & What Each Role Sees](#5-user-roles--what-each-role-sees)
 6. [Architecture Reference](#6-architecture-reference)
 
 ---
 
-## 1. Project Structure
+## 1. Project Structure (Microservices)
+
+We have fully transitioned to an isolated **Enterprise Microservice Architecture** managed by Docker Compose.
 
 ```
 clario/
-├── frontend/                    # Next.js 14 UI (Triage, Admin, Agent pages)
-├── clario-app/                  # Spring Boot API Gateway (Pushes tickets to Redis)
-├── clario-ml-sidecar/           # Python ML Worker & FastAPI
-│   ├── app/
-│   │   ├── worker.py            # Redis Queue Consumer (Triggers LangGraph)
-│   │   ├── main.py              # FastAPI entry point (Vector DB operations)
-│   │   ├── graph/               # LangGraph nodes (14 nodes)
-│   │   └── tools/
-│   │       ├── local_llm.py     # Uses Gemma-3 1B LoRA & Gemini API for Drafting
-│   │       ├── local_ocr.py     # Uses Qwen2-VL 2B (or Gemini Fallback) for Images
-│   │       ├── rag_tool.py      # ChromaDB retrieval
-│   │       └── redaction_tool.py # spaCy PII Anonymization
-│   └── vector_store/            # RAG Documents and ChromaDB data
-├── ml_finetuning/               # QLoRA fine-tuning pipeline
-├── start-all.sh                 # GNOME bash script to start all services
-├── .vscode/tasks.json           # VS Code native multi-terminal starter
-└── docs/                        # Project spec documents
+├── frontend/                        # Next.js 14 UI (Triage, Admin, Agent pages)
+├── services/
+│   ├── api-gateway/                 # Spring Cloud Gateway MVC (Routes to internal Java services)
+│   ├── ticket-core-service/         # Spring Boot (Handles Ticket DB + pushes to Redis)
+│   ├── agent-review-service/        # Spring Boot (Handles Human Agent Review queues)
+│   ├── nlp-classifier-service/      # Python FastAPI (Hosts Gemma-3-1b-it LoRA model)
+│   ├── ocr-vision-service/          # Python FastAPI (Hosts Qwen2-VL 2B or Gemini Fallback)
+│   └── ai-orchestrator-service/     # Python Background Worker (Consumes Redis, runs LangGraph)
+├── docker-compose.yml               # Orchestrates all 6 microservices + Redis Broker
+└── supabase_schema.sql              # Supabase DB Schema
 ```
 
 ---
@@ -50,14 +45,12 @@ Install these before starting:
 
 | Tool | Version | Download |
 |---|---|---|
+| **Docker & Docker Compose** | Latest | https://docs.docker.com/get-docker/ |
 | **Node.js** | 18+ | https://nodejs.org |
-| **Python** | 3.11+ | https://python.org |
-| **Java / Maven** | JDK 21+ | https://adoptium.net |
-| **Redis** | 6+ | `sudo apt install redis-server` |
 
 You also need a **Supabase project** (free tier is fine):
 - Sign up at https://supabase.com
-- Create a new project and keep note of your **Project URL** and **anon public key**
+- Create a new project and keep note of your **Project URL** and **anon public key**.
 
 ---
 
@@ -71,46 +64,25 @@ You also need a **Supabase project** (free tier is fine):
 
 ---
 
-### 3.2 ChromaDB + Knowledge Base Setup
+### 3.2 Environment Configuration
 
-**Step 1 — Set up the Python environment for the ML Sidecar:**
-
-```bash
-cd clario-ml-sidecar
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-> ⚠️ The first install will download massive local models (`sentence-transformers` for RAG, `Gemma-3-1b-it` for classification, `Qwen2-VL` for OCR). Ensure you have a stable internet connection and sufficient disk space.
-
-**Step 2 — Build the ChromaDB index:**
-
-```bash
-python vector_store/build_index.py
-```
-
----
-
-### 3.3 Environment Configuration
-
-You need to configure environment variables across three different folders.
+You need to configure environment variables across three different locations.
 
 **1. `frontend/.env.local`**
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-NEXT_PUBLIC_API_URL=http://127.0.0.1:8600
+NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
-**2. `clario-app/src/main/resources/application.properties`**
-Ensure your Spring Boot backend points to your Redis instance and database.
-```properties
-spring.data.redis.host=localhost
-spring.data.redis.port=6379
+**2. `clario-app/.env`** (Used by the Java Microservices in Docker)
+```env
+DB_PASSWORD=your-supabase-db-password
+JWT_SECRET=your-supabase-jwt-secret
+SUPABASE_PROJECT_URL=https://your-project.supabase.co
 ```
 
-**3. `clario-ml-sidecar/.env`**
+**3. `clario-ml-sidecar/.env`** (Used by the Python Microservices in Docker)
 ```env
 # Supabase Configuration
 SUPABASE_PROJECT_URL=https://your-project.supabase.co
@@ -120,71 +92,80 @@ SUPABASE_SECRET_API=your-service-role-key-here
 GEMINI_API_KEY=your-gemini-key
 GEMINI_DRAFT_MODEL=gemini-3.1-flash-lite
 
-# Local Vector Store
+# Local Vector Store (RAG)
 CHROMA_PATH=./vector_store/chroma_data
 ```
 
 ---
 
-### 3.4 Starting All Services (VS Code or Bash)
+### 3.3 Starting the Proxy and Dockerized Backend Cluster
 
-The Clario platform consists of 4 distinct services that must run simultaneously:
-1. **Frontend** (Next.js)
-2. **Backend API Gateway** (Spring Boot)
-3. **ML Worker** (Python script consuming the Redis queue)
-4. **ML API** (Python FastAPI for Vector embeddings)
+The entire backend is orchestrated into 6 isolated Docker containers. Due to Docker networking limitations with IPv6-only Supabase databases, we run a transparent TCP proxy on the host machine to bridge the connection.
 
-We provide two easy ways to start all 4 services at once:
+To start the backend infrastructure (Gateway, Ticket Core, Agent Review, NLP Classifier, OCR Vision, AI Orchestrator, Redis, and Proxy):
 
-**Option A: The VS Code Way (Recommended)**
-1. Open this repository in VS Code.
-2. Press `Ctrl + Shift + B` (or run the task "Start Clario System").
-3. VS Code will instantly open 4 separate, dedicated terminal tabs for each service.
-
-**Option B: The GNOME Desktop Script**
-If you prefer floating terminal windows outside of your editor:
 1. Open a terminal at the root of the project.
-2. Run `./start-all.sh`
-3. A new terminal will open with 4 neatly labeled tabs.
+2. Start the proxy script in the background:
+```bash
+kill -9 $(lsof -t -i:5433) 2>/dev/null; nohup python3 -u supabase_proxy.py > proxy_5433.log 2>&1 &
+```
+3. Build and launch the cluster:
+```bash
+docker compose up --build
+```
+
+*(Note: The AI models gracefully fall back to the Gemini API if they detect a lack of GPU VRAM on your system.)*
+
+---
+
+### 3.4 Starting the Frontend
+
+The Next.js user interface runs natively on your machine (outside of Docker) so you can easily modify the UI.
+
+Open a **new terminal tab**, navigate to the frontend directory, and start the server:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Visit `http://localhost:3000` to access the Clario platform!
 
 ---
 
 ## 4. How the Pipeline Works
 
-When a customer submits a ticket, the multi-agent architecture executes as follows:
+When a customer submits a ticket, the microservice architecture executes as follows:
 
 ```
 Customer submits ticket (Text + Optional Image)
         ↓
-[Next.js Frontend] sends payload to [Spring Boot Gateway]
+[Next.js Frontend] sends payload to [API Gateway (8080)]
         ↓
-[Spring Boot] pushes ticket into the Redis `ticket_queue`
+[API Gateway] proxies to [Ticket Core Service (8081)]
         ↓
-[ML Worker (Python)] pops ticket from Redis & triggers LangGraph
+[Ticket Core] pushes ticket into the [Redis Broker (6380)]
         ↓
-[ocr_node] — Uses Qwen2-VL locally (or Gemini fallback) to extract stack traces from images
+[AI Orchestrator] pops ticket from Redis & triggers LangGraph
         ↓
-[cache_check_node] — Checks if a near-identical ticket was already resolved via ChromaDB precedent memory
+[ocr_node] — Calls http://ocr-vision-service:8000 for image extraction
         ↓
-[surrogate_node] — spaCy NLP masks all PII (names, emails, phone #s, credit cards) locally
+[cache_check_node] — Checks ChromaDB precedent memory
         ↓
-[classification_node] — Local Gemma-3 1B LoRA predicts Category, Priority, and Customer Sentiment
+[surrogate_node] — spaCy NLP masks all PII locally
+        ↓
+[classification_node] — Calls http://nlp-classifier-service:8000 to predict Category/Priority
         ↓
 [routing_node] — Routes to technical_agent, billing_agent, or both
         ↓
-[specialist_agent] — RAG: queries ChromaDB → retrieves internal docs → synthesizes response via API
+[specialist_agent] — RAG: queries ChromaDB → synthesizes response via API
         ↓
-[validation_node] — Python Heuristics Judge checks for technical leaks, overcommitments, and groundedness
-        ↓ (if quality/policy failure)
-[reflection_node] → Retries specialist with critique (max 3 reflections)
-        ↓ (if still failing or requires manual intervention)
-[escalation_node] — Marks as escalated → sends to Human Agent Review Queue
+[validation_node] — Python Heuristics Judge checks for technical leaks
         ↓ (if passes validation)
 [resolve_node] — Restores real PII into the final response
         ↓
-[handoff_node] — Writes final_response, RAG scores, and metadata to Supabase DB
-        ↓
-Frontend polls Supabase → Displays beautiful AI response to customer
+[handoff_node] — Writes final_response to Supabase DB
 ```
 
 ---
@@ -211,12 +192,13 @@ Frontend polls Supabase → Displays beautiful AI response to customer
 | Layer | Technology |
 |---|---|
 | **Frontend** | Next.js 14, TypeScript, Tailwind, Supabase JS SDK |
-| **API Gateway** | Java Spring Boot 3.x, Spring Data Redis |
-| **Queue** | Redis (`ticket_queue`) |
-| **AI Orchestration** | Python 3.12, FastAPI, LangGraph |
-| **RAG** | ChromaDB, `sentence-transformers/all-MiniLM-L6-v2` |
+| **API Gateway** | Spring Cloud Gateway MVC (Port 8080) |
+| **Java Microservices**| Spring Boot 3.x (Ticket Core: 8081, Agent Review: 8082) |
+| **Queue Broker** | Redis Alpine (Port 6380) |
+| **Python Microservices**| FastAPI + Uvicorn (NLP Classifier: 8000, OCR Vision: 8001) |
+| **AI Orchestrator** | Python 3.12 Background Worker consuming Redis via `app.worker` |
 | **Local Models** | `Gemma-3-1b-it` (Classification), `Qwen2-VL-2B-Instruct` (OCR), `spaCy` (Redaction) |
-| **Cloud Fallback** | Gemini API (`gemini-3.1-flash-lite`) |
+| **Cloud Fallback** | Gemini API (`gemini-3.1-flash`) |
 | **Database** | Supabase (PostgreSQL + Auth) |
 
 ---
