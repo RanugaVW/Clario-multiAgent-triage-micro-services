@@ -7,15 +7,16 @@ from pathlib import Path
 
 import chromadb
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+from google import genai
+from google.genai import types
 
 from app.tools.circuit_breaker import CircuitBreakerOpenError, get_breaker
 
 _ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(_ROOT / ".env")
-_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+_MODEL_NAME = "gemini-embedding-2"
 _COLLECTION_NAME = "kb_support_docs"
-_embedder: SentenceTransformer | None = None
+_embedder_client: genai.Client | None = None
 
 
 def _chroma_path() -> str:
@@ -23,11 +24,19 @@ def _chroma_path() -> str:
     return str(configured if configured.is_absolute() else _ROOT / configured)
 
 
-def _embedding_model() -> SentenceTransformer:
-    global _embedder
-    if _embedder is None:
-        _embedder = SentenceTransformer(_MODEL_NAME)
-    return _embedder
+def _embedding_model() -> genai.Client:
+    global _embedder_client
+    if _embedder_client is None:
+        _embedder_client = genai.Client()
+    return _embedder_client
+
+def get_embedding(text: str) -> list[float]:
+    res = _embedding_model().models.embed_content(
+        model=_MODEL_NAME,
+        contents=[text],
+        config=types.EmbedContentConfig(output_dimensionality=384)
+    )
+    return res.embeddings[0].values
 
 
 def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
@@ -41,7 +50,7 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         client = chromadb.PersistentClient(path=_chroma_path())
         
         matches = []
-        embeds = [_embedding_model().encode(query, normalize_embeddings=True).tolist()]
+        embeds = [get_embedding(query)]
 
         # Query standard support docs
         try:
@@ -121,7 +130,7 @@ def add_precedent(ticket_id: str, redacted_text: str, final_response: str, domai
         # Insert or update
         collection.upsert(
             ids=[doc_id],
-            embeddings=[_embedding_model().encode(redacted_text, normalize_embeddings=True).tolist()],
+            embeddings=[get_embedding(redacted_text)],
             documents=[content],
             metadatas=[{
                 "domain": domain,
