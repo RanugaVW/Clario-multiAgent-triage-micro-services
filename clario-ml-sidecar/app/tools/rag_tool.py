@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import chromadb
@@ -18,6 +19,10 @@ _COLLECTION_NAME = "kb_support_docs"
 _embedder: SentenceTransformer | None = None
 
 
+_WHITESPACE_RE = re.compile(r"\s+")
+_PUNCT_RE = re.compile(r"[^\w\s]")
+
+
 def _chroma_path() -> str:
     configured = Path(os.getenv("CHROMA_PATH", "./vector_store/chroma_data"))
     return str(configured if configured.is_absolute() else _ROOT / configured)
@@ -28,6 +33,13 @@ def _embedding_model() -> SentenceTransformer:
     if _embedder is None:
         _embedder = SentenceTransformer(_MODEL_NAME)
     return _embedder
+
+
+def canonicalize_ticket_text(text: str) -> str:
+    """Normalize ticket text so semantically equivalent issues compare more reliably."""
+    cleaned = text.lower().strip()
+    cleaned = _PUNCT_RE.sub(" ", cleaned)
+    return _WHITESPACE_RE.sub(" ", cleaned).strip()
 
 
 def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
@@ -114,6 +126,7 @@ def add_precedent(ticket_id: str, redacted_text: str, final_response: str, domai
         
         # Only embed the ticket issue, but keep resolution in the stored document
         content = f"Ticket Issue:\n{redacted_text}\n\nResolution:\n{final_response}"
+        normalized_text = canonicalize_ticket_text(redacted_text)
         
         # We use a deterministic ID based on the ticket_id
         doc_id = f"precedent_{ticket_id}"
@@ -121,7 +134,7 @@ def add_precedent(ticket_id: str, redacted_text: str, final_response: str, domai
         # Insert or update
         collection.upsert(
             ids=[doc_id],
-            embeddings=[_embedding_model().encode(redacted_text, normalize_embeddings=True).tolist()],
+            embeddings=[_embedding_model().encode(normalized_text, normalize_embeddings=True).tolist()],
             documents=[content],
             metadatas=[{
                 "domain": domain,
