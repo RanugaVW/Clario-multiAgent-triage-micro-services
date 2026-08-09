@@ -525,8 +525,48 @@
     <!-- Reveal Logic -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
+            // Background Typo Animation
+            const bgTypo = document.querySelector('.bg-typo');
+            if (bgTypo) {
+                const text = bgTypo.innerText.trim();
+                bgTypo.innerHTML = text.split('').map(char => `<span style="opacity:0; transition: opacity 0.05s">${char}</span>`).join('');
+                const spans = bgTypo.querySelectorAll('span');
+                let i = 0;
+                let isDeleting = false;
+                
+                function typeBg() {
+                    if (isDeleting) {
+                        if (i > 0) {
+                            i--;
+                            spans[i].style.opacity = '0';
+                            setTimeout(typeBg, 150);
+                        } else {
+                            isDeleting = false;
+                            setTimeout(typeBg, 1000);
+                        }
+                    } else {
+                        if (i < spans.length) {
+                            spans[i].style.opacity = '1';
+                            i++;
+                            setTimeout(typeBg, 200);
+                        } else {
+                            isDeleting = true;
+                            setTimeout(typeBg, 4000);
+                        }
+                    }
+                }
+                setTimeout(typeBg, 500);
+            }
+
             // bgOnly flag support for React login page
             if (window.location.search.includes('bgOnly=true')) {
+                document.body.style.background = 'transparent';
+                document.documentElement.style.background = 'transparent';
+                const hero = document.querySelector('.hero');
+                if (hero) hero.style.background = 'transparent';
+                const scrim = document.querySelector('.scrim');
+                if (scrim) scrim.style.display = 'none';
+
                 document.getElementById('reveal-nav').style.display = 'none';
                 document.querySelector('.center-column').style.display = 'none';
                 document.getElementById('reveal-footer').style.display = 'none';
@@ -1715,6 +1755,11 @@
 
         // Mount the simulation once DOM is ready
         document.addEventListener("DOMContentLoaded", () => {
+            if (window.location.search.includes('bgOnly=true')) {
+                const canvas = document.getElementById("fluid-canvas");
+                if (canvas) canvas.style.display = 'none';
+                return;
+            }
             const canvas = document.getElementById("fluid-canvas");
             if (canvas) fluidSimulation(canvas);
         });
