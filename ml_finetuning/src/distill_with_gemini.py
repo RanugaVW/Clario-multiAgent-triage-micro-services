@@ -9,10 +9,11 @@ from google.genai import types
 import logging
 import time
 
-load_dotenv(dotenv_path=r"C:\Users\ranug\Clario\clario\ml_finetuning\.env")
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(dotenv_path=os.path.join(base_dir, ".env"))
 
 # Setup Logging
-log_file = r"C:\Users\ranug\Clario\clario\ml_finetuning\data\curated_synthetic_lms\distillation_progress.log"
+log_file = os.path.join(base_dir, "data", "curated_synthetic_lms", "distillation_progress.log")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -147,8 +148,8 @@ async def call_gemini(product, issue_description, semaphore):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 async def main():
-    input_csv = r"C:\Users\ranug\Clario\clario\ml_finetuning\data\curated_synthetic_lms\train_split.csv"
-    output_jsonl = r"C:\Users\ranug\Clario\clario\ml_finetuning\data\curated_synthetic_lms\distilled_train.jsonl"
+    input_csv = os.path.join(base_dir, "data", "curated_synthetic_lms", "train_split.csv")
+    output_jsonl = os.path.join(base_dir, "data", "curated_synthetic_lms", "distilled_train.jsonl")
 
     logging.info(f"Loading data from {input_csv}...")
     df = pd.read_csv(input_csv)
