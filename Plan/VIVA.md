@@ -137,18 +137,58 @@ If resolving 500 tickets sequentially takes too long, you simply spin up *more* 
 
 During the viva, you can confidently explain the roadmap for Phase 2: officially transitioning the architecture into a fully containerized **Domain-Driven Microservices** setup. 
 
-### 1. The Problem with the Current "Monolithic" Structure
+### 1. The Real Meaning of Our Previous "Monolithic Hybrid" Architecture
+In our earlier stage, we utilized a **Monolithic Hybrid** architecture. 
+*   **What it means:** It wasn't a single codebase, but it wasn't fully decoupled either. We split the system by domain/language (Java Spring Boot for the API/Database, and Python for the ML Sidecar). However, internally, the components were monolithic—specifically, the Python ML Sidecar loaded all models (LLM, Vision, Embeddings) into a single heavy process.
+*   **Vs. Pure Monolith:** A pure monolith would have bundled *everything* (frontend, backend, ML logic) into one giant application. Our hybrid approach at least separated the web server from the ML worker.
+*   **Vs. Pure Microservices:** In a pure microservice architecture, the ML sidecar would be further broken down. OCR, Classification, and Embedding would each be independently deployable, scalable containers, completely eliminating VRAM contention.
+
+### 2. The Problem with the Current "Monolithic" Structure
 While the system is currently decoupled by language (Java vs. Python), the internal codebases are too bundled:
-*   **Resource Contention (The biggest issue):** In the current `clario-ml-sidecar`, both `Gemma-3-1b` and `Qwen2-VL` are loaded into the exact same Python process. They fight for the same pool of VRAM. If a massive spike of images comes in, the process could crash, taking down the text classification capabilities with it.
+*   **Resource Contention (The biggest issue):** In the current `clario-ml-sidecar`, both the text classification LLM and the vision model (`Qwen2-VL`) are loaded into the exact same Python process. They fight for the same pool of VRAM. If a massive spike of images comes in, the process could crash, taking down the text classification capabilities with it.
 *   **Coupled Deployments:** If a developer updates the RAG prompt in `local_llm.py`, they have to reboot the entire Python server, momentarily taking down the OCR tool as well.
 
-### 2. The Decision: Feasibility of Microservices
+### 3. The Decision: Feasibility of Microservices
 The panel will ask: *"Is it actually feasible to convert this?"*
 Your answer: **Yes, it is extremely feasible because we do not need to change our tech stack.**
 *   We already use the industry-standard microservice glue: **Redis** and **REST (FastAPI/Spring Boot)**.
 *   The transition only requires reorganizing our existing code into smaller folders (e.g., extracting the Java API Gateway from the Java Ticket Core) and wrapping each folder in a `Dockerfile`.
 
-### 3. How the "Hybrid Strategy" Makes This Easier
-Adopting the **Hybrid Strategy** (keeping Gemma local, moving OCR to the Gemini API) makes the Microservices migration significantly easier:
-*   Instead of having to provision two separate GPU microservices (one for Gemma, one for Qwen), we only need **one small GPU microservice** (for Gemma).
-*   The OCR microservice simply becomes a lightweight Python API that forwards Base64 images to Google's Gemini servers. This removes the VRAM contention problem entirely and cuts our required cloud hosting costs drastically, making our enterprise deployment highly cost-effective and structurally resilient.
+### 4. How the "Hybrid Strategy" Makes This Easier
+Adopting the **Hybrid Strategy** (keeping the LLM local, moving OCR to an external API) makes the Microservices migration significantly easier:
+*   Instead of having to provision two separate GPU microservices (one for the LLM, one for Vision), we only need **one small GPU microservice**.
+*   The OCR microservice simply becomes a lightweight Python API that forwards Base64 images to an external service. This removes the VRAM contention problem entirely and cuts our required cloud hosting costs drastically, making our enterprise deployment highly cost-effective and structurally resilient.
+
+---
+
+## 🦜 Why We Used LangChain (and Alternatives)
+
+During the viva, you may be asked why **LangChain** (specifically with LangGraph) was chosen as the core orchestration framework instead of other options.
+
+### Main Purpose of LangChain in Our System
+LangChain was used to build the **Agentic Orchestration Pipeline** efficiently. Its main purposes are:
+1.  **Stateful Workflow (LangGraph):** We needed a deterministic, predictable graph flow to route tickets (e.g., Redaction -> Classification -> RAG -> Escalation). LangGraph handles this state management elegantly.
+2.  **Memory Management:** It provides out-of-the-box mechanisms to manage conversation memory and context windows, which is crucial for our "Precedent Memory" cache.
+3.  **Standardized Interfaces:** It gives us a unified API to swap out LLMs (e.g., swapping Gemma for LLaMA-3.2) or change embedding models without rewriting the entire pipeline.
+
+### Why Not Other Strategies?
+Here is how LangChain compares to the alternatives we could have used:
+1.  **Custom Python Logic (Vanilla API calls with if/else):** 
+    *   *Why we avoided it:* Building a custom state machine, handling token limits, and manually parsing JSON responses from the LLM requires hundreds of lines of boilerplate code and is highly prone to bugs.
+2.  **LlamaIndex:** 
+    *   *Why we avoided it:* LlamaIndex is fantastic for data-heavy RAG (Retrieval-Augmented Generation) applications, but it is less flexible when you need to build a complex, multi-step agentic workflow (like deciding whether to escalate to a human or resolve automatically). LangChain/LangGraph is much better suited for control flow.
+3.  **AutoGen / CrewAI:** 
+    *   *Why we avoided it:* These frameworks are built for multi-agent *conversations* (where autonomous agents chat with each other to solve a problem). This is highly unpredictable. For an enterprise ticket triage system, we needed strict, deterministic routing, not autonomous agents hallucinating solutions together. LangChain gave us the exact control we needed.
+
+---
+
+## 🎙️ Future Work: Voice-to-Text Support (Accessibility)
+
+As part of our system's ongoing evolution, we are planning to implement a **Voice-to-Text feature** to drastically improve accessibility and reduce friction for end-users submitting tickets. 
+
+### How it integrates into our Architecture:
+1. **Frontend Capture:** The React/Next.js UI will allow users to record their issue vocally (e.g., via the Web Audio API).
+2. **Transcription (ASR):** We plan to integrate an Automatic Speech Recognition model (such as a quantized local **Whisper** model or a lightweight cloud transcription API) to convert the audio payload into a text transcript.
+3. **Seamless Pipeline Integration:** Because our system is built modularly with LangGraph, the transcribed text is simply treated as standard ticket input. It will be passed directly into our existing flow (PII Redaction -> Classification -> RAG) without requiring any changes to the core AI sidecar.
+
+This upgrade pushes the platform beyond standard text and image support, moving us closer to a fully **multi-modal** customer support experience.
