@@ -29,9 +29,9 @@ def _load_model():
     if _model is not None:
         return
         
-    logger.info("Loading Gemma-3 1B base model and fine-tuned LoRA adapter...")
-    base_model_name = "google/gemma-3-1b-it"
-    adapter_path = os.environ.get("GEMMA_ADAPTER_PATH", r"C:\Users\ranug\Downloads\gemma3-lms-ticket-adapter-final\gemma3-lms-ticket-adapter-final")
+    logger.info("Loading Llama-3.2 3B base model and fine-tuned LoRA adapter...")
+    base_model_name = "meta/llama-3.2-3B"
+    adapter_path = os.environ.get("GEMMA_ADAPTER_PATH", r"C:\Users\ranug\Downloads\llama3-ticket-adapter-final\llama3-ticket-adapter-final")
     
     # We are already in the sidecar, load_dotenv is called in main.py, but just in case:
     load_dotenv()
