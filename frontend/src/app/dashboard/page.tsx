@@ -48,6 +48,7 @@ import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import MorphButton from '../../components/MorphButton';
 import ShakeButton from '../../components/ShakeButton';
+import RotateButton from '../../components/RotateButton';
 
 export default function Home() {
   const [ticketText, setTicketText] = useState('Payment failed but the money was taken from my bank account.');
@@ -59,22 +60,22 @@ export default function Home() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [successModal, setSuccessModal] = useState<{show: boolean, trackingId: string}>({show: false, trackingId: ''});
+  const [dataLoading, setDataLoading] = useState(false);
   const { user, role, loading, roleLoading } = useAuth();
   const router = useRouter();
 
   const fetchHistory = async () => {
     if (!user) return;
+    setDataLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select('*, resolutions(*)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      setPastTickets(data || []);
+      const res = await fetch(`/api/user_tickets?userId=${user.id}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to fetch history');
+      setPastTickets(json.data || []);
     } catch (e) {
       console.error('Failed to fetch history:', e);
+    } finally {
+      setDataLoading(false);
     }
   };
 
@@ -368,6 +369,12 @@ export default function Home() {
       {/* ─── Ticket History Full View ─── */}
       {activeTab === 'history' && (
         <div className="w-full max-w-5xl mx-auto animate-fade-in pb-12">
+          <div className="flex justify-between items-center mb-6 max-w-4xl mx-auto px-2">
+            <h2 className="text-lg font-mono tracking-widest uppercase text-white flex items-center">
+              <History className="w-5 h-5 mr-3 text-[#00E5FF]" /> Ticket History
+            </h2>
+            <RotateButton onClick={fetchHistory} isLoading={dataLoading} />
+          </div>
           {pastTickets.length === 0 ? (
             <div className="text-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/50 glass-panel">
               <Ticket className="w-16 h-16 mx-auto mb-4 opacity-20 text-indigo-400" />
@@ -414,9 +421,9 @@ import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 
 function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onDelete: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
-  const finalResolution = ticket.resolutions?.find(r => r.escalated === false) || ticket.resolutions?.[0];
-  const isFullyResolved = ticket.status === 'resolved';
-  const isEscalated = ticket.status === 'escalated';
+  const finalResolution = ticket.resolutions?.find(r => r.escalated === false);
+  const isFullyResolved = ticket.status === 'resolved' || !!finalResolution;
+  const isEscalated = !isFullyResolved && (ticket.status === 'escalated' || ticket.resolutions?.some(r => r.escalated));
   
   let statusColor = '#888888';
   let statusLabel = 'PROCESSING';
