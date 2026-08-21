@@ -96,3 +96,42 @@ export async function DELETE(request: Request) {
   
   return NextResponse.json({ message: 'Deleted and cache invalidated' });
 }
+
+export async function PUT(request: Request) {
+  const body = await request.json();
+  const { id, final_response } = body;
+
+  if (!id || !final_response) {
+    return NextResponse.json({ error: 'Missing id or final_response' }, { status: 400 });
+  }
+
+  // First update status
+  const { error: updateError } = await supabase.from('tickets').update({ status: 'resolved' }).eq('id', id);
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  // Then insert resolution
+  const { error: insertError } = await supabase.from('resolutions').insert({
+    ticket_id: id,
+    final_response,
+    escalated: false,
+    resolved_at: new Date().toISOString()
+  });
+  if (insertError) {
+    return NextResponse.json({ error: insertError.message }, { status: 500 });
+  }
+
+  // Invalidate cache
+  const redis = await getRedisClient();
+  if (redis) {
+    try {
+      await redis.del(CACHE_KEY);
+      await redis.quit();
+    } catch (e) {
+      console.error("Redis del error", e);
+    }
+  }
+  
+  return NextResponse.json({ success: true });
+}

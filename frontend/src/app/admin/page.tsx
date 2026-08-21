@@ -557,10 +557,12 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
 
   const draft = fullData?.ticket_drafts?.[0] || ticket.ticket_drafts?.[0];
   const classification = fullData?.ticket_classifications?.[0] || ticket.ticket_classifications?.[0];
-  const isEscalated = ticket.resolutions?.some(r => r.escalated) || ticket.status === 'escalated';
-  const resolutionMetadata = ticket.resolutions?.find(r => !r.escalated) || ticket.resolutions?.[0];
-  const isResolved = !isEscalated && resolutionMetadata;
-  const resolution = fullData?.resolutions?.find(r => !r.escalated) || resolutionMetadata;
+  const allResolutions = fullData?.resolutions || ticket.resolutions || [];
+  const hasResolvedResolution = allResolutions.some(r => !r.escalated);
+  const isEscalated = !hasResolvedResolution && (allResolutions.some(r => r.escalated) || ticket.status === 'escalated');
+  const resolutionMetadata = allResolutions.find(r => !r.escalated) || allResolutions[0];
+  const isResolved = hasResolvedResolution || ticket.status === 'resolved';
+  const resolution = resolutionMetadata;
   
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -599,13 +601,15 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
     if (!replyText.trim()) return;
     setIsSubmitting(true);
     try {
-      await supabase.from('tickets').update({ status: 'resolved' }).eq('id', ticket.id);
-      await supabase.from('resolutions').insert({
-        ticket_id: ticket.id,
-        final_response: replyText.trim(),
-        escalated: false,
-        resolved_at: new Date().toISOString()
+      const res = await fetch('/api/tickets', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: ticket.id,
+          final_response: replyText.trim()
+        })
       });
+      if (!res.ok) throw new Error("Failed to resolve via API");
       
       try {
         await fetch(`${API_URL}/embed_resolved_ticket`, {
