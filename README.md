@@ -19,6 +19,29 @@
 
 ---
 
+## 🚀 Quick Start for Teammates
+
+Welcome to the new Microservices architecture! To get the project running locally:
+
+1. **Clone this new repository:**
+   ```bash
+   git clone https://github.com/RanugaVW/Clario-multiAgent-triage-micro-services.git
+   cd Clario-multiAgent-triage-micro-services
+   ```
+2. **Configure your Environment Variables:** Follow **Section 3.2** below to create your `.env` files.
+3. **Start the Backend Microservices (Java + Python + Redis):**
+   ```bash
+   docker compose up --build
+   ```
+4. **Start the Next.js Frontend (In a new terminal):**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+---
+
 ## 1. Project Structure (Microservices)
 
 We have fully transitioned to an isolated **Enterprise Microservice Architecture** managed by Docker Compose.
