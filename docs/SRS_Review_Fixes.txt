@@ -1,0 +1,60 @@
+Clario Documentation Review & Required Fixes
+
+Team,
+
+You were absolutely right to have me recheck—there is a **major conflict** between the documents regarding the new multimodal features! 
+
+In our updated `SOFTWARE_ARCHITECTURE_DOCUMENT.pdf` (Page 30), we recently added a **Stretch Goal**: 
+> "To process multimodal inputs by integrating advanced voice-to-text transformations (English Language) and image classification models."
+
+However, both the **SRS** and the **Feasibility Study** explicitly state that voice support is out of scope, which creates a direct contradiction across our documentation suite!
+
+Here is exactly what needs to be fixed to ensure 100% alignment:
+
+### 1. Fixes for the SRS (Clario_Software_Requirement_Specification.pdf)
+
+**Section 1.2 - Scope (Page 5)**
+- **Current Text (Under "Out of scope"):** "Voice-based and advanced multilingual conversational support"
+- **Change to:** Move this line up to the "In scope for this release" (or "Stretch Goals") section and reword it to: "Multimodal input processing including English voice-to-text transformations and image classification."
+
+**Section 2.4 - Operating Environment (Page 8)**
+- **Current Text:** "Frontend: React, TypeScript, Vite, Tailwind CSS"
+- **Change to:** "Frontend: Next.js, React, TypeScript, Tailwind CSS"
+
+**Section 3.6 - Design Constraints, DC-019 Desktop Application Constraints (Page 25)**
+- **Current Text:** "The web application shall be built with React (Vite)."
+- **Change to:** "The web application shall be built with Next.js (React)."
+
+**Section 3.9.1 - User Interfaces (Page 25)**
+- **Current Text:** "Clario shall provide a modern, intuitive, role-based web GUI (React/Vite) that adapts..."
+- **Change to:** "Clario shall provide a modern, intuitive, role-based web GUI (Next.js/React) that adapts..."
+
+---
+
+### 2. Functional Requirements (FR) Review in SRS
+I have thoroughly reviewed all 62 Functional Requirements (FR-001 to FR-062). Conceptually, they are **100% relevant and correct**. They perfectly describe our LangGraph orchestration, SurrogateShield, classification, and RAG pipelines.
+
+However, there is a **major formatting/copy-paste error** throughout the FR tables that you need to fix! The title of the *next* section has accidentally been pasted into the bottom of the "Acceptance Criteria" cell of the *previous* table's last row. 
+
+You need to delete the following leaked text from these Acceptance Criteria cells:
+- **FR-012 (Page 10):** Delete "Personally Identifiable Information (PII) Detection and Redaction" from the AC cell.
+- **FR-015 (Page 11):** Delete "Supervisor Agent Orchestration" from the AC cell.
+- **FR-032 (Page 12):** Delete "Human Review and Escalation" from the AC cell.
+- **FR-040 (Page 13):** Delete "User Management" from the AC cell.
+- **FR-043 (Page 13):** Delete "System Administration" from the AC cell.
+- **FR-053 (Page 14):** Delete "AI Model Management" from the AC cell.
+- **FR-058 (Page 15):** Delete "Configuration Management" from the AC cell.
+- **FR-060 (Page 15):** Delete "System Health Management" from the AC cell.
+
+---
+
+### 3. Fixes for the Feasibility Study 
+
+**Section 1.5 - Scope of the Project (Page 7)**
+- **Current Text (Under "Out-of-Scope Elements"):** "Voice or phone-based conversational support."
+- **Change to:** Remove this line completely from Out-of-Scope.
+- **Add to "In-Scope Boundaries" (or create a Stretch Goals list):** "Multimodal inputs via advanced voice-to-text transformations (English Language) and image classification models."
+
+Once you apply these exact phrasing changes, all three documents (SAD, SRS, and Feasibility) will be perfectly aligned and free of formatting errors!
+
+- Group 23
