@@ -1,0 +1,7 @@
+# Shell scripts must keep LF endings or they break inside Linux containers
+# (a CRLF shebang makes the kernel look for an interpreter named "sh\r").
+*.sh text eol=lf
+mvnw text eol=lf
+Dockerfile text eol=lf
+*.cmd text eol=crlf
+mvnw.cmd text eol=crlf
