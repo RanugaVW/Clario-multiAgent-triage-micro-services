@@ -49,6 +49,7 @@ import { useRouter } from 'next/navigation';
 import MorphButton from '../../components/MorphButton';
 import ShakeButton from '../../components/ShakeButton';
 import RotateButton from '../../components/RotateButton';
+import VoiceRecorder from '../../components/VoiceRecorder';
 
 export default function Home() {
   const [ticketText, setTicketText] = useState('Payment failed but the money was taken from my bank account.');
@@ -328,8 +329,19 @@ export default function Home() {
                 required
                 value={ticketText}
                 onChange={(e) => setTicketText(e.target.value)}
-                placeholder="Describe the issue..."
+                placeholder="Describe the issue, or dictate it with the microphone below..."
                 className="glass-input w-full px-0 py-3 text-sm h-40 resize-y"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-mono tracking-widest text-[#888888] uppercase mb-2">
+                VOICE_INPUT (SPEECH_TO_TEXT)
+              </label>
+              <VoiceRecorder
+                value={ticketText}
+                onValueChange={setTicketText}
+                disabled={isProcessing}
               />
             </div>
             
