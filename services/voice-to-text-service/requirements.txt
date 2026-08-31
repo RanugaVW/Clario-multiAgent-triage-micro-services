@@ -1,0 +1,11 @@
+# Voice-to-Text Service (faster-whisper) runtime dependencies.
+fastapi==0.139.2
+# The [standard] extra brings in the websockets implementation the streaming
+# endpoint needs.
+uvicorn[standard]==0.41.0
+python-multipart==0.0.20
+pydantic==2.12.5
+numpy==2.2.6
+# Pulls in ctranslate2, tokenizers, av (audio decoding) and onnxruntime
+# (Silero VAD) transitively - no system ffmpeg required.
+faster-whisper==1.2.0
