@@ -66,6 +66,26 @@ services:
     env_file:
       - ./clario-ml-sidecar/.env
 
+  voice-to-text-service:
+    build:
+      context: ./services/voice-to-text-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    env_file:
+      - ./clario-ml-sidecar/.env
+    environment:
+      # base decodes ~2.7x faster than small on CPU for the same transcript;
+      # streaming latency is bounded by one decode. Use tiny if it still lags.
+      - WHISPER_MODEL=base
+      - WHISPER_DEVICE=cpu
+      - WHISPER_COMPUTE_TYPE=int8
+      - WHISPER_LANGUAGE=en
+      - WHISPER_CACHE_DIR=/models
+    volumes:
+      # Keeps the downloaded Whisper snapshot across rebuilds.
+      - whisper-models:/models
+
   ai-orchestrator-service:
     build:
       context: ./services/ai-orchestrator-service
@@ -77,6 +97,16 @@ services:
       - REDIS_HOST=redis-broker
       - CLASSIFIER_URL=http://nlp-classifier-service:8000
       - OCR_URL=http://ocr-vision-service:8000
+      - VOICE_URL=http://voice-to-text-service:8000
+      # Absolute path so the index survives rebuilds instead of landing in the
+      # image's own vector_store/, which COPY overwrites every build.
+      - CHROMA_PATH=/chroma_data
+    volumes:
+      - chroma-data:/chroma_data
     depends_on:
       - redis-broker
       - nlp-classifier-service
+
+volumes:
+  whisper-models:
+  chroma-data:
