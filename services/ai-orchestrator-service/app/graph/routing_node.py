@@ -2,8 +2,18 @@
 
 from app.graph.state import TicketState
 
-TECHNICAL_KEYWORDS = {"error": 2, "failed": 1, "crash": 3, "not working": 1, "bug": 2}
+TECHNICAL_KEYWORDS = {
+    "error": 2, "failed": 1, "crash": 3, "not working": 1, "bug": 2,
+    # Authentication wording: the most common technical ticket the scorer used to miss.
+    "login": 3, "log in": 3, "sign in": 3, "signin": 3, "password": 3,
+    "locked out": 3, "authenticate": 3, "2fa": 3, "verification code": 2,
+}
 BILLING_KEYWORDS = {"payment": 3, "charged": 3, "bank": 2, "refund": 3, "billed": 3, "buying": 2, "billing": 3}
+
+# "Account" qualifies both ways: account *access* is authentication (technical),
+# account *billing* is billing. Match on the qualifier rather than the bare noun.
+ACCOUNT_ACCESS_TERMS = ("access", "login", "log in", "sign in", "sign-in", "password", "auth", "credential", "locked")
+ACCOUNT_BILLING_TERMS = ("billing", "payment", "invoice", "subscription", "refund", "charge")
 
 
 def _calculate_score(text: str, weighted_keywords: dict[str, int]) -> int:
@@ -34,9 +44,15 @@ def decide_routing(category: str | None, confidence: float | None, text: str) ->
         cat_lower = category.lower()
         if "technical" in cat_lower or "tech" in cat_lower:
             return "technical"
-        if "billing" in cat_lower or "account" in cat_lower or "payment" in cat_lower:
+        # Access wording wins over billing wording, so "Account Access" is not
+        # swallowed by the billing branch on the bare word "account".
+        if any(term in cat_lower for term in ACCOUNT_ACCESS_TERMS):
+            return "technical"
+        if any(term in cat_lower for term in ACCOUNT_BILLING_TERMS):
             return "billing"
-        
+        # A bare "Account" is genuinely ambiguous: fall through to scoring the
+        # ticket text rather than guessing a domain from the label alone.
+
     # Fallback logic: Compute weighted scores if category is missing or unrecognized
     tech_score = _calculate_score(text, TECHNICAL_KEYWORDS)
     billing_score = _calculate_score(text, BILLING_KEYWORDS)
