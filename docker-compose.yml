@@ -98,9 +98,15 @@ services:
       - CLASSIFIER_URL=http://nlp-classifier-service:8000
       - OCR_URL=http://ocr-vision-service:8000
       - VOICE_URL=http://voice-to-text-service:8000
+      # Absolute path so the index survives rebuilds instead of landing in the
+      # image's own vector_store/, which COPY overwrites every build.
+      - CHROMA_PATH=/chroma_data
+    volumes:
+      - chroma-data:/chroma_data
     depends_on:
       - redis-broker
       - nlp-classifier-service
 
 volumes:
   whisper-models:
+  chroma-data:

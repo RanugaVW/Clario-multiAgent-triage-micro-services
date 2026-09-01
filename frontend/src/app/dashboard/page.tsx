@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle, Trash2, Copy } from 'lucide-react';
 
+import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
 
 function parseCustomerResponse(text: string | null | undefined): string {
@@ -39,8 +41,23 @@ type TicketWithResolution = {
   id: string;
   raw_text: string;
   created_at: string;
+  updated_at?: string | null;
   status: string;
-  resolutions: { final_response: string; resolved_by: string; escalated: boolean }[];
+  subject?: string | null;
+  customer_email?: string | null;
+  resolutions: {
+    final_response: string;
+    resolved_by: string;
+    escalated: boolean;
+    resolved_at?: string | null;
+    total_latency_ms?: number | null;
+  }[];
+  ticket_classifications?: {
+    category: string | null;
+    priority: string | null;
+    sentiment: string | null;
+    confidence: number | null;
+  }[];
 };
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -50,6 +67,7 @@ import MorphButton from '../../components/MorphButton';
 import ShakeButton from '../../components/ShakeButton';
 import RotateButton from '../../components/RotateButton';
 import VoiceRecorder from '../../components/VoiceRecorder';
+import { fetchJson } from '../../lib/fetchJson';
 
 export default function Home() {
   const [ticketText, setTicketText] = useState('Payment failed but the money was taken from my bank account.');
@@ -69,9 +87,7 @@ export default function Home() {
     if (!user) return;
     setDataLoading(true);
     try {
-      const res = await fetch(`/api/user_tickets?userId=${user.id}`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to fetch history');
+      const json = await fetchJson(`/api/user_tickets?userId=${user.id}`);
       setPastTickets(json.data || []);
     } catch (e) {
       console.error('Failed to fetch history:', e);
@@ -443,6 +459,14 @@ function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onD
   else if (isFullyResolved) { statusColor = '#00FF66'; statusLabel = 'COMPLETED'; }
 
   const issueSnippet = ticket.raw_text.substring(0, 80) + (ticket.raw_text.length > 80 ? '...' : '');
+  const classification = ticket.ticket_classifications?.[0];
+  const resolvedAt = finalResolution?.resolved_at || ticket.resolutions?.find(r => r.resolved_at)?.resolved_at || null;
+  // The pipeline never stamps resolved_by, so an escalation that later closed is the
+  // reliable sign a person took the ticket over.
+  const wasEscalatedAtSomePoint = !!ticket.resolutions?.some(r => r.escalated);
+  const handledBy = isFullyResolved
+    ? ((finalResolution?.resolved_by || wasEscalatedAtSomePoint) ? 'Support agent' : 'Clario AI')
+    : (isEscalated ? 'Support agent (in progress)' : 'Clario AI (in progress)');
 
   return (
     <div className="border border-[#222222] bg-[#111111] mb-2 transition-all duration-200 hover:border-[#444444]">
@@ -456,7 +480,10 @@ function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onD
             <span className="w-1.5 h-1.5" style={{ backgroundColor: statusColor }} />
             <span className="text-xs font-mono tracking-widest text-[#888888] truncate">{ticket.id.split('-')[0]}</span>
           </div>
-          <span className="text-[10px] text-[#888888] font-mono w-20 shrink-0">{new Date(ticket.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          <div className="w-28 shrink-0 leading-tight" title={"Submitted " + formatDateTime(ticket.created_at)}>
+            <span className="text-[10px] text-[#ececec] font-mono block">{formatDate(ticket.created_at)}</span>
+            <span className="text-[10px] text-[#888888] font-mono block">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
+          </div>
           <span className="text-sm text-[#ececec] truncate font-sans">{issueSnippet}</span>
         </div>
         
@@ -470,6 +497,41 @@ function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onD
       {/* Expanded Details */}
       {expanded && (
         <div className="border-t border-[#222222] p-6 bg-[#050505] space-y-6">
+
+          {/* Ticket facts, not just the clock time it came in */}
+          <div className="border border-[#222222] bg-[#111111] p-4">
+            <span className="text-[10px] font-mono tracking-widest text-[#555555] uppercase block mb-3">TICKET_DETAILS</span>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
+              <UserMetaItem label="REFERENCE" value={ticket.id.split('-')[0].toUpperCase()} mono title={ticket.id} />
+              <UserMetaItem label="STATUS" value={statusLabel} color={statusColor} />
+              <UserMetaItem label="SUBJECT" value={ticket.subject || 'No subject'} />
+              <UserMetaItem label="SUBMITTED" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
+              <UserMetaItem
+                label="LAST_UPDATE"
+                value={ticket.updated_at ? formatDateTime(ticket.updated_at) : '—'}
+                hint={ticket.updated_at ? formatRelative(ticket.updated_at) : undefined}
+              />
+              <UserMetaItem
+                label={resolvedAt ? 'RESOLVED' : 'RESOLUTION'}
+                value={resolvedAt ? formatDateTime(resolvedAt) : (isEscalated ? 'With a human agent' : 'Being processed')}
+                hint={resolvedAt ? 'Took ' + formatElapsed(ticket.created_at, resolvedAt) : undefined}
+                color={resolvedAt ? '#00FF66' : statusColor}
+              />
+              {classification?.category && (
+                <UserMetaItem label="CATEGORY" value={classification.category.toUpperCase()} mono />
+              )}
+              {classification?.priority && (
+                <UserMetaItem
+                  label="PRIORITY"
+                  value={classification.priority.toUpperCase()}
+                  mono
+                  color={classification.priority.toLowerCase() === 'high' ? '#FFD600' : undefined}
+                />
+              )}
+              <UserMetaItem label="HANDLED_BY" value={handledBy} />
+            </div>
+          </div>
+
           <div>
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[10px] font-mono tracking-widest text-[#555555] uppercase block">ORIGINAL_PAYLOAD</span>
@@ -491,6 +553,25 @@ function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onD
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** One label/value pair in the customer-facing ticket detail grid. */
+function UserMetaItem({ label, value, hint, color, mono, title }: {
+  label: string; value: string; hint?: string; color?: string; mono?: boolean; title?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <span className="text-[9px] font-mono tracking-widest text-[#555555] uppercase block mb-1">{label}</span>
+      <span
+        className={`text-[11px] block truncate ${mono ? 'font-mono' : 'font-sans'}`}
+        style={{ color: color || '#ececec' }}
+        title={title || value}
+      >
+        {value}
+      </span>
+      {hint && <span className="text-[9px] font-mono text-[#555555] block mt-0.5">{hint}</span>}
     </div>
   );
 }
