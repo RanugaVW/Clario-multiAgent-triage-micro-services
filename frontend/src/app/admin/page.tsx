@@ -13,6 +13,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 import ShakeButton from '../../components/ShakeButton';
+import { formatDate, formatDateTime, formatElapsed, formatDuration, formatRelative, formatTime } from '../../lib/datetime';
+import { fetchJson } from '../../lib/fetchJson';
 import RotateButton from '../../components/RotateButton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
@@ -48,6 +50,7 @@ type TicketDraft = {
   domain: string | null;
   retrieved_sources: any[] | null;
   reflection_attempt: number | null;
+  low_relevance?: boolean | null;
 };
 
 type TicketClassification = {
@@ -55,6 +58,7 @@ type TicketClassification = {
   priority: string | null;
   sentiment: string | null;
   confidence: number | null;
+  source?: string | null;
 };
 
 type Resolution = {
@@ -64,6 +68,9 @@ type Resolution = {
   escalation_reasons: string[] | null;
   resolved_at: string;
   total_reflection_count: number | null;
+  total_llm_calls?: number | null;
+  total_latency_ms?: number | null;
+  resolved_by?: string | null;
   ticket_id: string;
 };
 
@@ -74,6 +81,7 @@ type Ticket = {
   customer_email: string | null;
   status: string;
   created_at: string;
+  updated_at?: string | null;
   raw_graph_payload?: any;
   ticket_drafts: TicketDraft[];
   ticket_classifications: TicketClassification[];
@@ -176,19 +184,13 @@ export default function AdminDashboard() {
       }
 
       // 2. Fetch from Next.js API (which checks Redis)
-      const res = await fetch('/api/tickets');
-      const json = await res.json();
-
-      if (!res.ok) {
-        setDebugInfo(`Ticket fetch error: ${json.error}`);
-      } else {
-        setAllTickets(json.data || []);
-        // Save to Client Cache
-        sessionStorage.setItem('tickets:list:metadata', JSON.stringify({
-          timestamp: Date.now(),
-          data: json.data || []
-        }));
-      }
+      const json = await fetchJson('/api/tickets');
+      setAllTickets(json.data || []);
+      // Save to Client Cache
+      sessionStorage.setItem('tickets:list:metadata', JSON.stringify({
+        timestamp: Date.now(),
+        data: json.data || []
+      }));
     } catch (e: any) {
        setDebugInfo(`Fetch error: ${e.message}`);
     } finally {
@@ -563,6 +565,20 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   const resolutionMetadata = allResolutions.find(r => !r.escalated) || allResolutions[0];
   const isResolved = hasResolvedResolution || ticket.status === 'resolved';
   const resolution = resolutionMetadata;
+  const updatedAt = fullData?.updated_at || ticket.updated_at || null;
+  const retrievedSources = Array.isArray(draft?.retrieved_sources) ? draft.retrieved_sources : [];
+  const escalationReasons: string[] = allResolutions
+    .flatMap(r => (Array.isArray(r.escalation_reasons) ? r.escalation_reasons : []))
+    .map(r => String(r));
+
+  // Ticks only on the client so the "open for" clock stays live without an SSR mismatch.
+  const [nowIso, setNowIso] = useState<string | null>(null);
+  useEffect(() => {
+    if (!expanded) return;
+    setNowIso(new Date().toISOString());
+    const timer = setInterval(() => setNowIso(new Date().toISOString()), 30000);
+    return () => clearInterval(timer);
+  }, [expanded]);
   
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -648,7 +664,10 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
             <span className="w-1.5 h-1.5" style={{ backgroundColor: statusColor }} />
             <span className="text-xs font-mono tracking-widest text-[#888888] truncate">{ticket.id.split('-')[0]}</span>
           </div>
-          <span className="text-[10px] text-[#888888] font-mono w-20 shrink-0">{new Date(ticket.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          <div className="w-28 shrink-0 leading-tight" title={"Submitted " + formatDateTime(ticket.created_at)}>
+            <span className="text-[10px] text-[#ececec] font-mono block">{formatDate(ticket.created_at)}</span>
+            <span className="text-[10px] text-[#888888] font-mono block">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
+          </div>
           {ticket.raw_graph_payload?.processing_time_ms && (
              <span className="text-[10px] text-[#00E5FF] font-mono w-20 shrink-0 bg-[#00E5FF]/10 px-1.5 py-0.5 rounded text-center truncate">
                {(ticket.raw_graph_payload.processing_time_ms / 1000).toFixed(2)}s
@@ -669,7 +688,54 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
       {/* Expanded Grid */}
       {expanded && (
         <div className="border-t border-[#222222] p-6 bg-[#050505] grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+
+          {/* Metadata strip: everything about the ticket that is not its body */}
+          <div className="lg:col-span-2 border border-[#222222] bg-[#111111] p-4">
+            <span className="text-[10px] font-mono tracking-widest text-[#888888] uppercase block mb-3">TICKET_METADATA</span>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
+              <MetaItem label="TICKET_ID" value={ticket.id} mono title={ticket.id} />
+              <MetaItem label="SUBJECT" value={ticket.subject || fullData?.subject || 'No subject'} />
+              <MetaItem label="REQUESTER" value={ticket.customer_email || fullData?.customer_email || 'Anonymous'} title={ticket.customer_email || undefined} />
+              <MetaItem label="STATUS" value={statusLabel} color={statusColor} />
+              <MetaItem label="SUBMITTED" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
+              <MetaItem label="LAST_UPDATE" value={formatDateTime(updatedAt)} hint={updatedAt ? formatRelative(updatedAt) : undefined} />
+              <MetaItem
+                label="RESOLVED_AT"
+                value={resolution?.resolved_at ? formatDateTime(resolution.resolved_at) : (isEscalated ? 'Awaiting human review' : 'In progress')}
+                color={resolution?.resolved_at ? '#00FF66' : statusColor}
+              />
+              <MetaItem
+                label={resolution?.resolved_at ? 'TURNAROUND' : 'OPEN_FOR'}
+                value={resolution?.resolved_at ? formatElapsed(ticket.created_at, resolution.resolved_at) : formatElapsed(ticket.created_at, nowIso)}
+              />
+              <MetaItem
+                label="PIPELINE_TIME"
+                value={
+                  ticket.raw_graph_payload?.processing_time_ms != null
+                    ? formatDuration(ticket.raw_graph_payload.processing_time_ms)
+                    : (resolution?.total_latency_ms != null ? formatDuration(resolution.total_latency_ms) : '—')
+                }
+                color="#00E5FF"
+              />
+              <MetaItem label="REFLECTIONS" value={String(resolution?.total_reflection_count ?? draft?.reflection_attempt ?? 0)} />
+              <MetaItem label="LLM_CALLS" value={resolution?.total_llm_calls != null ? String(resolution.total_llm_calls) : '—'} />
+              <MetaItem label="ROUTED_DOMAIN" value={(draft?.domain || classification?.category || 'unrouted').toUpperCase()} mono />
+            </div>
+
+            {escalationReasons.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-[#222222]">
+                <span className="text-[10px] font-mono tracking-widest text-[#FFD600] uppercase block mb-2">ESCALATION_REASONS</span>
+                <div className="flex flex-wrap gap-2">
+                  {escalationReasons.map((reason, i) => (
+                    <span key={i} className="text-[10px] font-mono bg-[#FFD600]/10 border border-[#FFD600]/30 text-[#FFD600] px-2 py-1">
+                      {reason.toUpperCase()}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Left Column: Issue & OCR */}
           <div className="space-y-6">
             <div>
@@ -688,10 +754,6 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
               </div>
             )}
             
-            {ticket.customer_email && (
-              <span className="text-[10px] text-[#888888] font-mono block">USER: {ticket.customer_email}</span>
-            )}
-            
             {/* Signature Element: Telemetry Track */}
             {classification && (
               <div className="mt-6 pt-4 border-t border-[#222222]">
@@ -699,8 +761,23 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                 <div className="flex flex-wrap gap-2">
                   <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#ececec]">CAT: {classification.category?.toUpperCase() || 'UNKNOWN'}</span>
                   <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1" style={{ color: classification.priority?.toLowerCase() === 'high' ? '#FFD600' : '#888888' }}>PRI: {classification.priority?.toUpperCase()}</span>
-                  {classification.confidence && (
+                  {classification.sentiment && (
+                    <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1" style={{ color: classification.sentiment.toLowerCase() === 'negative' ? '#FF3366' : '#888888' }}>SENT: {classification.sentiment.toUpperCase()}</span>
+                  )}
+                  {classification.confidence != null && (
                     <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#00E5FF]">CONF: {(classification.confidence * 100).toFixed(0)}%</span>
+                  )}
+                  {classification.source && (
+                    <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#888888]">SRC: {classification.source.toUpperCase()}</span>
+                  )}
+                  {draft?.rag_top_score != null && (
+                    <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#888888]">RAG: {draft.rag_top_score.toFixed(3)}</span>
+                  )}
+                  {draft?.low_relevance && (
+                    <span className="text-[10px] font-mono bg-[#FF3366]/10 border border-[#FF3366]/30 px-2 py-1 text-[#FF3366]">LOW_RELEVANCE</span>
+                  )}
+                  {retrievedSources.length > 0 && (
+                    <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#888888]">SOURCES: {retrievedSources.length}</span>
                   )}
                 </div>
               </div>
@@ -785,6 +862,25 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
 // HumanReviewCard has been deprecated and merged into TicketRow.
 
 // ─── Helper Components ────────────────────────────────────────────────────────
+
+/** One label/value pair in the expanded ticket metadata grid. */
+function MetaItem({ label, value, hint, color, mono, title }: {
+  label: string; value: string; hint?: string; color?: string; mono?: boolean; title?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <span className="text-[9px] font-mono tracking-widest text-[#555555] uppercase block mb-1">{label}</span>
+      <span
+        className={`text-[11px] block truncate ${mono ? 'font-mono' : 'font-sans'}`}
+        style={{ color: color || '#ececec' }}
+        title={title || value}
+      >
+        {value}
+      </span>
+      {hint && <span className="text-[9px] font-mono text-[#555555] block mt-0.5">{hint}</span>}
+    </div>
+  );
+}
 
 function Chip({ label, color, icon }: { label: string; color: string; icon?: React.ReactNode }) {
   const colors: Record<string, string> = {

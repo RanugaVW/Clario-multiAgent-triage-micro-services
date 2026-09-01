@@ -11,6 +11,10 @@ import re
 
 FALLBACK_PHRASE = "I don't have enough information to resolve this"
 OVERCOMMITMENTS = ("guarantee", "definitely", "promise", "will refund")
+# Drafts are structured with bracketed all-caps section markers such as
+# [INTERNAL TECHNICAL REPORT]. spaCy NER reads those as ORG entities, so scanning
+# them for PII fails every draft on pii_in_draft. Strip the scaffolding first.
+SECTION_MARKER_PATTERN = re.compile(r"\[[A-Z][A-Z0-9 /_-]*\]")
 
 def check_for_technical_leaks(draft: str) -> bool:
     """
@@ -47,7 +51,7 @@ def run_policy_checks(draft: str | None, retrieved_context: list[dict], pii_foun
         failed.append("empty_draft")
     if len(draft) > 2000:
         failed.append("draft_too_long")
-    if mask_pii(draft)[1]:
+    if mask_pii(SECTION_MARKER_PATTERN.sub(" ", draft))[1]:
         failed.append("pii_in_draft")
     context_text = " ".join(item.get("text", "").lower() for item in retrieved_context)
     if any(phrase in draft.lower() and phrase not in context_text for phrase in OVERCOMMITMENTS):
