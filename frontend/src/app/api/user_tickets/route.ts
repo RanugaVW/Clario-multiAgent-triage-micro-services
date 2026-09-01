@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase
     .from('tickets')
-    .select('*, resolutions(*)')
+    .select('*, resolutions(*), ticket_classifications(category, priority, sentiment, confidence)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 

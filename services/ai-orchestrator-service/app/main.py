@@ -121,8 +121,8 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
         async with active_tasks_lock:
             active_tasks.pop(ticket.ticket_id, None)
         
-    is_escalated = True
-    status = "escalated"
+    is_escalated = bool(final_state.get("escalation_triggered"))
+    status = "escalated" if is_escalated else "resolved"
     final_response = final_state.get("final_response")
     handoff = build_handoff_package(final_state) if is_escalated else None
 

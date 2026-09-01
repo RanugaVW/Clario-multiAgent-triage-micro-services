@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 import chromadb
+from chromadb.errors import NotFoundError
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -70,7 +71,7 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
                     "source_file": item.get("source_file", "unknown"),
                     "score": max(0.0, 1.0 - (float(distance) / 2.0)),
                 })
-        except ValueError:
+        except (ValueError, NotFoundError):
             pass
             
         # Query codebase if technical
@@ -91,7 +92,7 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
                         "source_file": item.get("source_file", "unknown"),
                         "score": max(0.0, 1.0 - (float(distance) / 2.0)),
                     })
-            except ValueError:
+            except (ValueError, NotFoundError):
                 pass
                 
     except Exception:
