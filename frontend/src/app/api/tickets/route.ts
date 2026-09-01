@@ -8,8 +8,28 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const CACHE_KEY = 'tickets:list:metadata';
 const CACHE_TTL_SECONDS = 60; // 1 minute cache
 
-// Initialize Supabase with service role key to bypass RLS for Admin route
-const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+// Building the client with an empty key throws while the module loads, which makes
+// Next.js answer with an HTML error page instead of JSON. Build it on first use so a
+// missing key comes back as a JSON 500 the caller can actually read.
+function createServiceClient() {
+  return createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+}
+
+let supabaseClient: ReturnType<typeof createServiceClient> | null = null;
+
+function getSupabase() {
+  if (!SUPABASE_SERVICE_KEY) return null;
+  if (!supabaseClient) {
+    supabaseClient = createServiceClient();
+  }
+  return supabaseClient;
+}
+
+const MISSING_KEY_RESPONSE = () =>
+  NextResponse.json(
+    { error: 'SUPABASE_SERVICE_ROLE_KEY is not set on the server' },
+    { status: 500 }
+  );
 
 // Helper to get connected Redis client gracefully (avoids crashing if Redis is down)
 async function getRedisClient(): Promise<any> {
@@ -18,6 +38,9 @@ async function getRedisClient(): Promise<any> {
 }
 
 export async function GET() {
+  const supabase = getSupabase();
+  if (!supabase) return MISSING_KEY_RESPONSE();
+
   const redis = await getRedisClient();
 
   if (redis) {
@@ -37,10 +60,10 @@ export async function GET() {
   const { data: ticketData, error: ticketError } = await supabase
     .from('tickets')
     .select(`
-      id, raw_text, subject, customer_email, status, created_at, raw_graph_payload,
-      ticket_drafts ( domain ),
-      ticket_classifications ( category, priority, sentiment, confidence ),
-      resolutions ( id, escalated, resolved_at, ticket_id )
+      id, raw_text, subject, customer_email, status, created_at, updated_at, raw_graph_payload,
+      ticket_drafts ( domain, rag_top_score, low_relevance, reflection_attempt ),
+      ticket_classifications ( category, priority, sentiment, confidence, source ),
+      resolutions ( id, escalated, resolved_at, ticket_id, resolved_by, total_reflection_count, total_llm_calls, total_latency_ms )
     `)
     .order('created_at', { ascending: false });
 
@@ -66,6 +89,9 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
+  const supabase = getSupabase();
+  if (!supabase) return MISSING_KEY_RESPONSE();
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 
@@ -98,6 +124,9 @@ export async function DELETE(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const supabase = getSupabase();
+  if (!supabase) return MISSING_KEY_RESPONSE();
+
   const body = await request.json();
   const { id, final_response } = body;
 
