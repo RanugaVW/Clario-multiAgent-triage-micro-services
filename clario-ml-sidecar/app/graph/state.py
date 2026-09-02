@@ -66,3 +66,5 @@ class TicketState(TypedDict):
     final_response: str | None
     # escalation_node writes for human review; handoff_node reads.
     human_review_notes: str | None
+    # response_judge_node writes (Gemini judge, record-only); API layer reads to persist to Supabase.
+    judge_evaluations: dict[str, dict]

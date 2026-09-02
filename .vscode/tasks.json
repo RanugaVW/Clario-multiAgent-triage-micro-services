@@ -54,12 +54,26 @@
       "isBackground": true
     },
     {
+      "label": "Start Voice To Text",
+      "type": "shell",
+      "command": "source .venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload",
+      "options": {
+        "cwd": "${workspaceFolder}/services/voice-to-text-service"
+      },
+      "presentation": {
+        "panel": "new",
+        "clear": true
+      },
+      "isBackground": true
+    },
+    {
       "label": "Start Clario System",
       "dependsOn": [
         "Start Frontend",
         "Start Spring Boot",
         "Start ML Worker",
-        "Start ML API"
+        "Start ML API",
+        "Start Voice To Text"
       ],
       "group": {
         "kind": "build",
