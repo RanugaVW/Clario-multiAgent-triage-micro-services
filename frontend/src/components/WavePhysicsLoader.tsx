@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 
-export function WavePhysicsLoader({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
+export function WavePhysicsLoader() {
   const numBars = 15;
   const barWidth = 12; 
   const barGap = 8; 
@@ -64,26 +64,19 @@ export function WavePhysicsLoader({ theme = 'light' }: { theme?: 'light' | 'dark
         }
         
         const bar_h = baseBarH + wave_val * wavePeakH - indent;
-        barsData[i].heights.push(`${Math.max(4, bar_h)}px`); 
-        
-        // Colors for Light Theme: zinc-200 to zinc-800
-        const isDark = theme === 'dark';
-        let r, g, b;
-        if (isDark) {
-          r = Math.round(39 + wave_val * (228 - 39));
-          g = Math.round(39 + wave_val * (228 - 39));
-          b = Math.round(42 + wave_val * (231 - 42));
-        } else {
-          r = Math.round(228 - wave_val * (228 - 39));
-          g = Math.round(228 - wave_val * (228 - 39));
-          b = Math.round(231 - wave_val * (231 - 42));
-        }
-        barsData[i].colors.push(`rgb(${r}, ${g}, ${b})`);
+        barsData[i].heights.push(`${Math.max(4, bar_h)}px`);
+
+        // Idle bars sit as faint glass; the wave crest lights up gold.
+        const r = Math.round(255 - wave_val * (255 - 232));
+        const g = Math.round(255 - wave_val * (255 - 163));
+        const b = Math.round(255 - wave_val * (255 - 61));
+        const alpha = 0.12 + wave_val * 0.88;
+        barsData[i].colors.push(`rgba(${r}, ${g}, ${b}, ${alpha})`);
       }
     }
-    
+
     return { bars: barsData, ballX: bX, ballY: bY, ballScaleX: bScaleX, ballScaleY: bScaleY, times: tArr };
-  }, [theme]);
+  }, []);
 
   return (
     <div className="relative flex flex-col items-center justify-center w-full scale-[0.6] sm:scale-75 md:scale-100">
@@ -92,7 +85,7 @@ export function WavePhysicsLoader({ theme = 'light' }: { theme?: 'light' | 'dark
           <motion.div
             key={i}
             className="w-3 rounded-full origin-bottom"
-            style={{ height: '16px', backgroundColor: theme === 'dark' ? 'rgb(39, 39, 42)' : 'rgb(228, 228, 231)' }}
+            style={{ height: '16px', backgroundColor: 'rgba(255, 255, 255, 0.12)' }}
             animate={{
               height: bar.heights,
               backgroundColor: bar.colors,
@@ -107,8 +100,14 @@ export function WavePhysicsLoader({ theme = 'light' }: { theme?: 'light' | 'dark
         ))}
         
         <motion.div
-          className="absolute w-3 h-3 bg-zinc-900 dark:bg-white rounded-full z-10 shadow-sm"
-          style={{ bottom: 0, left: 0, transformOrigin: 'bottom center' }}
+          className="absolute w-3 h-3 rounded-full z-10"
+          style={{
+            bottom: 0,
+            left: 0,
+            transformOrigin: 'bottom center',
+            background: 'linear-gradient(135deg, #E8A33D, #F4B856)',
+            boxShadow: '0 0 12px rgba(232, 163, 61, 0.6)',
+          }}
           animate={{
             x: ballX,
             y: ballY,
