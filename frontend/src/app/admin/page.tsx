@@ -818,7 +818,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                         ? parseAdminResponse(draft.draft_text)
                         : (isEscalated
                             ? 'Awaiting human review…'
-                            : <div className="flex justify-center items-center py-8"><WavePhysicsLoader theme="dark" /></div>
+                            : <div className="flex justify-center items-center py-8"><WavePhysicsLoader /></div>
                           )
                       )
                  }
