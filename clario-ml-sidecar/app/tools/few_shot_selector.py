@@ -252,6 +252,52 @@ async def get_validation_collection_stats() -> Dict:
         return {"error": str(e)}
 
 
+def upsert_reference(
+    ticket_id: str,
+    issue_text: str,
+    resolution_text: str,
+    domain: str,
+    priority: str = "Unknown",
+    category: str = "Unknown",
+    doc_id: Optional[str] = None,
+) -> None:
+    """Add or update a ground-truth reference in validation_refs.
+
+    Used by the admin-correction feedback job (app/jobs/sync_judge_references.py)
+    to fold responses admins scored higher than the judge did back into the
+    judge's own few-shot pool. `doc_id` should be deterministic (e.g. derived
+    from the override's id) so re-running the job is a no-op for entries
+    already synced, via upsert, rather than needing a "already synced" flag
+    tracked elsewhere.
+
+    Embeds `issue_text` un-canonicalized to match how `select_few_shots`
+    embeds its query text - mismatched preprocessing between write and read
+    would silently degrade retrieval quality.
+    """
+    if not issue_text or not resolution_text:
+        return
+
+    client = _get_client()
+    collection = client.get_or_create_collection(_COLLECTION_NAME)
+
+    content = f"Ticket Issue:\n{issue_text}\n\nResolution:\n{resolution_text}"
+    embedding = _embedder().encode(issue_text, normalize_embeddings=True).tolist()
+
+    collection.upsert(
+        ids=[doc_id or f"admin_override_{ticket_id}"],
+        embeddings=[embedding],
+        documents=[content],
+        metadatas=[{
+            "domain": domain,
+            "priority": priority,
+            "category": category,
+            "product": "Unknown",
+            "ticket_id": ticket_id,
+            "source": "admin_override",
+        }],
+    )
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # SYNCHRONOUS WRAPPERS
 # ──────────────────────────────────────────────────────────────────────────────
