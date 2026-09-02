@@ -12,9 +12,13 @@ describe('End-to-End Ticket Processing Pipeline', () => {
   let authToken: string;
 
   beforeAll(async () => {
+    // No service key in this environment: leave authToken unset so the test
+    // below takes its own already-handled "skip due to no auth token" path.
+    if (!SUPABASE_SERVICE_KEY) return;
+
     // Initialize Supabase with service role
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    
+
     // Create a mock user or just use service role to bypass auth
     // For API Gateway, we might need a valid token. Let's authenticate a test user
     const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
