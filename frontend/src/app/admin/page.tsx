@@ -26,16 +26,16 @@ function parseAdminResponse(text: string | null | undefined): React.ReactNode {
     const parts = text.split('**[CUSTOMER RESPONSE]**');
     const techReport = parts[0].replace('**[INTERNAL TECHNICAL REPORT]**', '').trim();
     const custResponse = parts[1].trim();
-    
+
     return (
       <div className="space-y-4">
-        <div className="bg-indigo-950/30 border border-indigo-500/20 p-3 rounded-xl">
-          <span className="text-[10px] uppercase tracking-wider text-indigo-400 block mb-1 font-bold">Internal Technical Details</span>
-          <p className="text-indigo-200 text-sm">{techReport}</p>
+        <div className="bg-[#2DD4BF]/10 border border-[#2DD4BF]/20 p-3 rounded-xl">
+          <span className="text-xs uppercase tracking-wider text-[#2DD4BF] block mb-1 font-bold">Internal technical details</span>
+          <p className="text-[#99f6e4] text-sm">{techReport}</p>
         </div>
-        <div className="bg-emerald-950/30 border border-emerald-500/20 p-3 rounded-xl">
-          <span className="text-[10px] uppercase tracking-wider text-emerald-400 block mb-1 font-bold">Customer Facing Output</span>
-          <p className="text-emerald-200 text-sm">{custResponse}</p>
+        <div className="bg-[#E8A33D]/10 border border-[#E8A33D]/20 p-3 rounded-xl">
+          <span className="text-xs uppercase tracking-wider text-[#E8A33D] block mb-1 font-bold">Customer-facing output</span>
+          <p className="text-[#fbd999] text-sm">{custResponse}</p>
         </div>
       </div>
     );
@@ -232,8 +232,8 @@ export default function AdminDashboard() {
   if (!isFullyLoaded) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
-        <p className="text-slate-400 text-sm">Loading admin workspace...</p>
+        <Loader2 className="w-10 h-10 animate-spin text-[#E8A33D]" />
+        <p className="text-[#8A8F98] text-sm">Loading admin workspace...</p>
       </div>
     );
   }
@@ -244,19 +244,19 @@ export default function AdminDashboard() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header className="flex justify-between items-center mb-10 animate-fade-in">
         <div className="flex items-center space-x-3">
-          <div className="bg-sky-500/20 p-2 rounded-xl border border-sky-500/30">
-            <Settings className="text-sky-400 w-6 h-6" />
+          <div className="bg-[#2DD4BF]/15 p-2 rounded-xl border border-[#2DD4BF]/25">
+            <Settings className="text-[#2DD4BF] w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">System Administration</h1>
-            <p className="text-sm text-slate-400">Clario Platform — {user?.email}</p>
+            <h1 className="text-2xl font-bold text-[#ECECEC]">System administration</h1>
+            <p className="text-sm text-[#8A8F98]">Clario Platform — {user?.email}</p>
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <button onClick={() => router.push('/')} className="flex items-center text-sm text-slate-400 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-slate-800">
-            <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Triage
+          <button onClick={() => router.push('/')} className="flex items-center text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors px-3 py-2 rounded-lg hover:bg-white/[0.06]">
+            <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to triage
           </button>
-          <button onClick={handleLogout} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-red-400" title="Sign Out">
+          <button onClick={handleLogout} className="p-2 hover:bg-white/[0.06] rounded-full transition-colors text-[#8A8F98] hover:text-[#FB7185]" title="Sign Out">
             <LogOut className="w-5 h-5" />
           </button>
         </div>
@@ -272,15 +272,15 @@ export default function AdminDashboard() {
 
       {/* ── Stats Bar ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
-        <StatBadge label="Total Tickets" value={allTickets.length} color="indigo" />
-        <StatBadge label="Auto-Resolved" value={resolvedTickets.length} color="emerald" />
-        <StatBadge label="Human Review" value={humanReviewTickets.length} color="amber" />
-        <StatBadge label="AI Agents Active" value={2} color="sky" />
+        <StatBadge label="Total tickets" value={allTickets.length} color="indigo" />
+        <StatBadge label="Auto-resolved" value={resolvedTickets.length} color="emerald" />
+        <StatBadge label="Human review" value={humanReviewTickets.length} color="amber" />
+        <StatBadge label="AI agents active" value={2} color="sky" />
       </div>
 
       {/* ── Debug ───────────────────────────────────────────────────────────── */}
       {debugInfo && (
-        <div className="mb-6 bg-red-950/30 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">
+        <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/30 rounded-xl p-4 text-[#FB7185] text-sm">
           <strong>Debug:</strong> {debugInfo}
         </div>
       )}
@@ -296,29 +296,29 @@ export default function AdminDashboard() {
 
       {/* ── AI Agents Tab ───────────────────────────────────────────────────── */}
       {activeTab === 'agents' && (
-        <section className="glass-panel rounded-3xl overflow-hidden animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <div className="p-6 border-b border-slate-700/50 bg-slate-900/50 flex justify-between items-center">
-            <h2 className="text-lg font-mono tracking-widest uppercase text-white flex items-center">
-              <Bot className="w-5 h-5 mr-2 text-[#00E5FF]" /> AI Agents
+        <section className="glass-panel rounded-[28px] overflow-hidden animate-fade-in" style={{ animationDelay: '0.25s' }}>
+          <div className="p-6 border-b border-white/10 flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-[#ECECEC] flex items-center">
+              <Bot className="w-5 h-5 mr-2 text-[#2DD4BF]" /> AI agents
             </h2>
             <RotateButton onClick={fetchData} isLoading={dataLoading} />
           </div>
 
           {dataLoading ? (
-            <div className="p-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
+            <div className="p-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#E8A33D]" /></div>
           ) : (
-            <div className="divide-y divide-slate-700/30">
+            <div className="divide-y divide-white/10">
               {AI_AGENTS.map((agent) => {
                 const agentTickets = getAgentTickets(agent.domain);
                 const Icon = agent.icon;
                 const colorMap: Record<string, string> = {
                   emerald: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/25',
-                  sky: 'text-sky-400 bg-sky-500/15 border-sky-500/25',
+                  sky: 'text-[#2DD4BF] bg-[#2DD4BF]/15 border-[#2DD4BF]/25',
                 };
                 return (
                   <div key={agent.id} className="flex flex-col">
                     <div
-                      className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition-colors"
+                      className="p-5 flex items-center justify-between cursor-pointer hover:bg-white/[0.04] transition-colors"
                       onClick={() => setExpandedAgentId(prev => prev === agent.id ? null : agent.id)}
                     >
                       <div className="flex items-center space-x-4">
@@ -326,29 +326,29 @@ export default function AdminDashboard() {
                           <Icon className="w-6 h-6" />
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-100 text-base">{agent.name}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{agent.description}</p>
+                          <p className="font-semibold text-[#ECECEC] text-base">{agent.name}</p>
+                          <p className="text-xs text-[#8A8F98] mt-0.5">{agent.description}</p>
                           <p className="text-xs mt-1 flex items-center">
-                            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse ${agent.color === 'emerald' ? 'bg-emerald-400' : 'bg-sky-400'}`} />
-                            <span className={agent.color === 'emerald' ? 'text-emerald-400' : 'text-sky-400'}>Active — RAG domain: <strong>{agent.domain}</strong></span>
+                            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse ${agent.color === 'emerald' ? 'bg-emerald-400' : 'bg-[#2DD4BF]'}`} />
+                            <span className={agent.color === 'emerald' ? 'text-emerald-400' : 'text-[#2DD4BF]'}>Active — RAG domain: <strong>{agent.domain}</strong></span>
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-6">
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-white">{agentTickets.length}</p>
-                          <p className="text-xs text-slate-500">Tickets handled</p>
+                          <p className="text-2xl font-bold text-[#ECECEC]">{agentTickets.length}</p>
+                          <p className="text-xs text-[#8A8F98]">Tickets handled</p>
                         </div>
-                        {expandedAgentId === agent.id ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+                        {expandedAgentId === agent.id ? <ChevronUp className="w-5 h-5 text-[#8A8F98]" /> : <ChevronDown className="w-5 h-5 text-[#8A8F98]" />}
                       </div>
                     </div>
 
                     {expandedAgentId === agent.id && (
-                      <div className="px-5 pb-5 bg-slate-900/20 border-t border-slate-800/50">
+                      <div className="px-5 pb-5 border-t border-white/10">
                         {agentTickets.length === 0 ? (
-                          <p className="text-slate-500 italic text-sm text-center py-8">No tickets handled by this agent yet. Submit a ticket to see it here.</p>
+                          <p className="text-[#8A8F98] italic text-sm text-center py-8">No tickets handled by this agent yet. Submit a ticket to see it here.</p>
                         ) : (
-                          <div className="p-6 bg-slate-900/40">
+                          <div className="p-6">
                           <div className="flex flex-col">
                               {agentTickets.map(t => (
                                 <TicketRow key={t.id} ticket={t} role="agent" onDelete={handleDeleteTicket} />
@@ -369,23 +369,23 @@ export default function AdminDashboard() {
       {/* ── Pipeline Nodes Tab ──────────────────────────────────────────────── */}
       {activeTab === 'pipeline' && (
         <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <div className="glass-panel rounded-3xl p-6 mb-6">
-            <h2 className="text-base font-semibold text-white mb-1 flex items-center">
-              <Layers className="w-4 h-4 mr-2 text-indigo-400" /> LangGraph Pipeline Architecture
+          <div className="glass-panel rounded-[28px] p-6 mb-6">
+            <h2 className="text-base font-semibold text-[#ECECEC] mb-1 flex items-center">
+              <Layers className="w-4 h-4 mr-2 text-[#E8A33D]" /> LangGraph pipeline architecture
             </h2>
-            <p className="text-sm text-slate-500">All nodes run sequentially within the LangGraph state machine. The <code className="bg-slate-800 px-1 rounded text-indigo-300">TicketState</code> blackboard is passed between nodes.</p>
+            <p className="text-sm text-[#8A8F98]">All nodes run sequentially within the LangGraph state machine. The <code className="bg-white/[0.06] px-1 rounded text-[#E8A33D]">TicketState</code> blackboard is passed between nodes.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {PIPELINE_NODES.map((node, i) => {
               const Icon = node.icon;
               return (
-                <div key={node.id} className="glass-panel rounded-2xl p-5 relative overflow-hidden">
-                  <div className="absolute top-3 right-3 text-slate-700 text-xs font-bold">#{i + 1}</div>
-                  <div className="bg-indigo-500/15 border border-indigo-500/25 w-10 h-10 rounded-xl flex items-center justify-center mb-3">
-                    <Icon className="w-5 h-5 text-indigo-400" />
+                <div key={node.id} className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] p-5 relative overflow-hidden">
+                  <div className="absolute top-3 right-3 text-white/20 text-xs font-bold">#{i + 1}</div>
+                  <div className="bg-[#E8A33D]/15 border border-[#E8A33D]/25 w-10 h-10 rounded-xl flex items-center justify-center mb-3">
+                    <Icon className="w-5 h-5 text-[#E8A33D]" />
                   </div>
-                  <p className="font-semibold text-slate-200 text-sm mb-1">{node.name}</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">{node.description}</p>
+                  <p className="font-semibold text-[#ECECEC] text-sm mb-1">{node.name}</p>
+                  <p className="text-xs text-[#8A8F98] leading-relaxed">{node.description}</p>
                   <div className="mt-3 flex items-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
                     <span className="text-xs text-emerald-400">Active</span>
@@ -395,27 +395,27 @@ export default function AdminDashboard() {
             })}
           </div>
           <div className="mt-6 glass-panel rounded-2xl p-5">
-            <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center">
-              <BarChart2 className="w-4 h-4 mr-2 text-sky-400" /> Processing Stats
+            <h3 className="text-sm font-semibold text-[#ECECEC] mb-3 flex items-center">
+              <BarChart2 className="w-4 h-4 mr-2 text-[#2DD4BF]" /> Processing stats
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-slate-900/50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-white">{allTickets.length}</p>
-                <p className="text-xs text-slate-500">Total processed</p>
+              <div className="rounded-2xl bg-white/[0.03] p-3 text-center">
+                <p className="text-xl font-bold text-[#ECECEC]">{allTickets.length}</p>
+                <p className="text-xs text-[#8A8F98]">Total processed</p>
               </div>
-              <div className="bg-slate-900/50 rounded-xl p-3 text-center">
+              <div className="rounded-2xl bg-white/[0.03] p-3 text-center">
                 <p className="text-xl font-bold text-emerald-400">{resolvedTickets.length}</p>
-                <p className="text-xs text-slate-500">Auto-resolved</p>
+                <p className="text-xs text-[#8A8F98]">Auto-resolved</p>
               </div>
-              <div className="bg-slate-900/50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-amber-400">{humanReviewTickets.length}</p>
-                <p className="text-xs text-slate-500">Escalated</p>
+              <div className="rounded-2xl bg-white/[0.03] p-3 text-center">
+                <p className="text-xl font-bold text-[#FB923C]">{humanReviewTickets.length}</p>
+                <p className="text-xs text-[#8A8F98]">Escalated</p>
               </div>
-              <div className="bg-slate-900/50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-sky-400">
+              <div className="rounded-2xl bg-white/[0.03] p-3 text-center">
+                <p className="text-xl font-bold text-[#2DD4BF]">
                   {allTickets.length > 0 ? Math.round((resolvedTickets.length / allTickets.length) * 100) : 0}%
                 </p>
-                <p className="text-xs text-slate-500">Auto-resolve rate</p>
+                <p className="text-xs text-[#8A8F98]">Auto-resolve rate</p>
               </div>
             </div>
           </div>
