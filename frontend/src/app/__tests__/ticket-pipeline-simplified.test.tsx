@@ -88,7 +88,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     const textarea = screen.getByPlaceholderText(/Describe the issue.../i);
     expect(textarea).toBeInTheDocument();
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     expect(submitButton).toBeInTheDocument();
   });
 
@@ -130,7 +130,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Test submission');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -153,7 +153,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Success test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -174,7 +174,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Tracking ID test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -201,7 +201,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Auth test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -233,7 +233,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, testText);
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -266,7 +266,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Error test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -311,7 +311,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Copy test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -347,7 +347,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Full workflow test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     // Step 4: See success
@@ -418,7 +418,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Endpoint test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
