@@ -8,7 +8,7 @@ import {
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Mail, Clock,
   BarChart2, MessageSquare, ShieldAlert, Tag, Zap, ArrowLeft, Bot,
   CreditCard, Wrench, Brain, GitBranch, Eye, RotateCcw, ArrowRightLeft,
-  Shield, Layers, CheckCircle2, Trash2, Image as ImageIcon,
+  Shield, Layers, CheckCircle2, Trash2, Image as ImageIcon, Pencil,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
@@ -75,6 +75,33 @@ type Resolution = {
   ticket_id: string;
 };
 
+type EvaluationScoreOverride = {
+  id: string;
+  evaluation_id: string;
+  admin_id: string | null;
+  overall_score: number | null;
+  override_reason: string;
+  previous_scores: Record<string, unknown>;
+  created_at: string;
+};
+
+type ResponseEvaluation = {
+  id: string;
+  ticket_id: string;
+  draft_id: string | null;
+  domain: string | null;
+  judge_model: string | null;
+  overall_score: number;
+  priority_tone_match_score: number;
+  completeness_score: number;
+  accuracy_score: number;
+  policy_compliance_score: number;
+  groundedness_score: number;
+  judge_reasoning: string | null;
+  created_at: string;
+  evaluation_score_overrides: EvaluationScoreOverride[];
+};
+
 type Ticket = {
   id: string;
   raw_text: string;
@@ -87,6 +114,7 @@ type Ticket = {
   ticket_drafts: TicketDraft[];
   ticket_classifications: TicketClassification[];
   resolutions: Resolution[];
+  response_evaluations: ResponseEvaluation[];
 };
 
 // ─── Virtual AI Agent Definitions (from architecture doc) ─────────────────────
@@ -554,6 +582,7 @@ function HumanReviewTabs({ humanReviewTickets, onDelete }: { humanReviewTickets:
 // ─── TicketRow (Unified Admin View) ──────────────────────────────────────────────────────────
 
 export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'agent' | 'human' | 'all', onDelete?: (id: string) => void }) {
+  const { user: adminUser } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [fullData, setFullData] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -561,6 +590,12 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   const draft = fullData?.ticket_drafts?.[0] || ticket.ticket_drafts?.[0];
   const classification = fullData?.ticket_classifications?.[0] || ticket.ticket_classifications?.[0];
   const allResolutions = fullData?.resolutions || ticket.resolutions || [];
+  const allEvaluations = fullData?.response_evaluations || ticket.response_evaluations || [];
+  const evaluation = allEvaluations.find(e => e.domain === draft?.domain) || allEvaluations[0];
+  const latestOverride = evaluation?.evaluation_score_overrides
+    ?.slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+  const effectiveJudgeScore = latestOverride?.overall_score ?? evaluation?.overall_score ?? null;
   const hasResolvedResolution = allResolutions.some(r => !r.escalated);
   const isEscalated = !hasResolvedResolution && (allResolutions.some(r => r.escalated) || ticket.status === 'escalated');
   const resolutionMetadata = allResolutions.find(r => !r.escalated) || allResolutions[0];
@@ -585,23 +620,29 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   const [replyText, setReplyText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const fetchFullData = useCallback(async () => {
+    const { data } = await supabase.from('tickets').select(`
+      *,
+      ticket_drafts (*),
+      ticket_classifications (*),
+      resolutions (*),
+      response_evaluations (*, evaluation_score_overrides (*))
+    `).eq('id', ticket.id).single();
+    setFullData(data as any);
+    return data;
+  }, [ticket.id]);
+
   useEffect(() => {
     if (expanded && !fullData && !isLoading) {
       setIsLoading(true);
-      supabase.from('tickets').select(`
-        *,
-        ticket_drafts (*),
-        ticket_classifications (*),
-        resolutions (*)
-      `).eq('id', ticket.id).single().then(({ data }) => {
-        setFullData(data as any);
+      fetchFullData().then((data: any) => {
         setIsLoading(false);
         const fetchedDraft = data?.ticket_drafts?.[0];
         const fetchedRes = data?.resolutions?.find((r: any) => !r.escalated);
         setReplyText(fetchedDraft?.draft_text || fetchedRes?.final_response || "");
       });
     }
-  }, [expanded, fullData, isLoading, ticket.id]);
+  }, [expanded, fullData, isLoading, fetchFullData]);
 
   // Status mapping
   let statusColor = '#8A8F98';
@@ -651,6 +692,50 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
     } catch (e) {
       console.error("Failed to resolve", e);
       setIsSubmitting(false);
+    }
+  };
+
+  // Admin override of the judge score (append-only: writes a new
+  // evaluation_score_overrides row, never edits the judge's own row).
+  const [isEditingScore, setIsEditingScore] = useState(false);
+  const [scoreDraft, setScoreDraft] = useState(5);
+  const [scoreReason, setScoreReason] = useState("");
+  const [isSavingScore, setIsSavingScore] = useState(false);
+  const [scoreError, setScoreError] = useState<string | null>(null);
+
+  const openScoreEditor = () => {
+    setScoreDraft(effectiveJudgeScore ?? 5);
+    setScoreReason("");
+    setScoreError(null);
+    setIsEditingScore(true);
+  };
+
+  const handleSaveScore = async () => {
+    if (!evaluation || !scoreReason.trim()) return;
+    setIsSavingScore(true);
+    setScoreError(null);
+    try {
+      const { error } = await supabase.from('evaluation_score_overrides').insert({
+        evaluation_id: evaluation.id,
+        admin_id: adminUser?.id || null,
+        overall_score: scoreDraft,
+        override_reason: scoreReason.trim(),
+        previous_scores: {
+          overall_score: evaluation.overall_score,
+          priority_tone_match_score: evaluation.priority_tone_match_score,
+          completeness_score: evaluation.completeness_score,
+          accuracy_score: evaluation.accuracy_score,
+          policy_compliance_score: evaluation.policy_compliance_score,
+          groundedness_score: evaluation.groundedness_score,
+        },
+      });
+      if (error) throw error;
+      await fetchFullData();
+      setIsEditingScore(false);
+    } catch (e: any) {
+      setScoreError(e?.message || "Failed to save the override.");
+    } finally {
+      setIsSavingScore(false);
     }
   };
 
@@ -806,10 +891,71 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
             <div className="flex-1">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs text-[#34D399]">Resolution</span>
-                {draft?.rag_top_score != null && (
-                  <span className="text-xs text-[#8A8F98]">RAG score: {draft.rag_top_score.toFixed(3)}</span>
-                )}
+                <div className="flex items-center gap-3">
+                  {draft?.rag_top_score != null && (
+                    <span className="text-xs text-[#8A8F98]">RAG score: {draft.rag_top_score.toFixed(3)}</span>
+                  )}
+                  {evaluation && (
+                    <span className="flex items-center gap-1.5 text-xs text-[#E8A33D]">
+                      Judge score: {effectiveJudgeScore}/5
+                      {latestOverride && (
+                        <span className="text-[#8A8F98]" title={`Overridden by admin: ${latestOverride.override_reason}`}>(edited)</span>
+                      )}
+                      <button
+                        onClick={openScoreEditor}
+                        className="text-[#8A8F98] hover:text-[#E8A33D] transition-colors"
+                        aria-label="Edit judge score"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {isEditingScore && (
+                <div className="mb-4 rounded-2xl border border-[#E8A33D]/30 bg-[#E8A33D]/[0.04] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#8A8F98]">Override judge score</span>
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <button
+                          key={n}
+                          onClick={() => setScoreDraft(n)}
+                          className={`w-7 h-7 rounded-lg text-xs font-semibold transition-colors ${scoreDraft === n ? 'bg-[#E8A33D] text-[#08090D]' : 'bg-white/[0.04] text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.08]'}`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <textarea
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl text-[#ECECEC] text-sm p-3 font-sans focus:outline-none focus:border-[#E8A33D] resize-none"
+                    rows={2}
+                    placeholder="Reason for override (required)"
+                    value={scoreReason}
+                    onChange={(e) => setScoreReason(e.target.value)}
+                    disabled={isSavingScore}
+                  />
+                  {scoreError && <p className="text-xs text-[#FB7185]">{scoreError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsEditingScore(false)}
+                      disabled={isSavingScore}
+                      className="flex-1 border border-white/10 bg-transparent text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.06] transition-colors rounded-xl py-2 text-xs font-medium disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveScore}
+                      disabled={!scoreReason.trim() || isSavingScore}
+                      className="flex-1 bg-[#E8A33D] text-[#08090D] hover:bg-[#F4B856] transition-colors rounded-xl py-2 text-xs font-semibold disabled:opacity-50"
+                    >
+                      {isSavingScore ? 'Saving…' : 'Save override'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 min-h-[150px] font-sans text-sm text-[#ECECEC]">
                  {resolution?.final_response
