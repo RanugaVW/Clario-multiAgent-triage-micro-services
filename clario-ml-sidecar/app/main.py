@@ -175,6 +175,7 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
         rag_scores = final_state.get("rag_top_score", {})
         low_relevance = final_state.get("low_relevance_flags", {})
         retrieved = final_state.get("retrieved_context", {})
+        judge_evaluations = final_state.get("judge_evaluations", {})
         for domain, draft_text in agent_drafts.items():
             sources = [
                 {"text": r.get("text", ""), "source_file": r.get("source_file", ""), "score": r.get("score", 0)}
@@ -189,7 +190,34 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "retrieved_sources": sources,
                 "reflection_attempt": final_state.get("reflection_count", 0),
             }
-            supabase_client.table("ticket_drafts").insert(draft_payload).execute()
+            draft_result = supabase_client.table("ticket_drafts").insert(draft_payload).execute()
+
+            judge_eval = judge_evaluations.get(domain)
+            if judge_eval and draft_result.data:
+                try:
+                    eval_payload = {
+                        "ticket_id": ticket.ticket_id,
+                        "draft_id": draft_result.data[0].get("id"),
+                        "domain": domain,
+                        "judge_model": judge_eval.get("judge_model"),
+                        "overall_score": judge_eval.get("overall_score"),
+                        "priority_tone_match_score": judge_eval.get("priority_tone_match_score"),
+                        "completeness_score": judge_eval.get("completeness_score"),
+                        "accuracy_score": judge_eval.get("accuracy_score"),
+                        "policy_compliance_score": judge_eval.get("policy_compliance_score"),
+                        "groundedness_score": judge_eval.get("groundedness_score"),
+                        "judge_reasoning": judge_eval.get("reasoning"),
+                        "improvement_suggestions": judge_eval.get("improvement_suggestions"),
+                        "required_phrases_present": judge_eval.get("required_phrases_present"),
+                        "required_phrases_missing": judge_eval.get("required_phrases_missing"),
+                        "forbidden_phrases_found": judge_eval.get("forbidden_phrases_found"),
+                        "priority_at_evaluation": final_state.get("priority"),
+                        "category_at_evaluation": final_state.get("category"),
+                        "evaluation_latency_ms": judge_eval.get("evaluation_latency_ms"),
+                    }
+                    supabase_client.table("response_evaluations").insert(eval_payload).execute()
+                except Exception as e:
+                    logger.warning(f"Failed to save response evaluation for ticket {ticket.ticket_id} domain {domain}: {e}")
         
         if not is_escalated and final_response:
             resolution_payload = {
