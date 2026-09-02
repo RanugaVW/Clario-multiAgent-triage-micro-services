@@ -537,7 +537,7 @@ function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onD
                 ? parseCustomerResponse(finalResolution.final_response)
                 : (isEscalated
                     ? 'A human agent has taken over this ticket and is currently drafting a resolution.'
-                    : <div className="flex justify-center items-center py-8"><WavePhysicsLoader theme="dark" /></div>
+                    : <div className="flex justify-center items-center py-8"><WavePhysicsLoader /></div>
                   )}
             </div>
           </div>
