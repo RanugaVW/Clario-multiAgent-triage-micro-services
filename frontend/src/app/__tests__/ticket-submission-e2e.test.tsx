@@ -4,6 +4,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DashboardPage from '../dashboard/page';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { useRouter } from 'next/navigation';
 
 // ==================== MOCKS ====================
 
@@ -42,10 +43,13 @@ vi.mock('../../lib/supabase', () => ({
 
 // ==================== HELPER FUNCTIONS ====================
 
+// fetchHistory() goes through fetchJson(), which checks the content-type header
+// before parsing, and the /api/user_tickets route wraps the rows in { data }.
 const mockTicketHistoryResponse = (tickets: any[] = []) => {
   return {
     ok: true,
-    json: vi.fn().mockResolvedValue(tickets),
+    headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
+    json: vi.fn().mockResolvedValue({ data: tickets }),
   };
 };
 
@@ -104,7 +108,7 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Default mock for fetch
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/customer_tickets') && !url.includes('/customer_tickets/')) {
+      if (url.includes('/api/user_tickets')) {
         return Promise.resolve(mockTicketHistoryResponse());
       }
       if (url.includes('/api/tickets')) {
@@ -160,26 +164,23 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Verify success modal appears
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
     });
 
     // Verify tracking ID is displayed
     expect(screen.getByText('ticket-uuid-001')).toBeInTheDocument();
 
     // Verify copy button exists
-    const copyButton = screen.getByTitle('Copy to clipboard');
+    const copyButton = screen.getByRole('button', { name: /copy id/i });
     expect(copyButton).toBeInTheDocument();
   });
 
   // ==================== TEST 2: Text Submission with Tracking ID Copy ====================
   it('should copy tracking ID to clipboard when copy button is clicked', async () => {
     const user = userEvent.setup();
-    const mockNavigator = {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-      },
-    };
-    (global.navigator as any).clipboard = mockNavigator.clipboard;
+    const writeTextSpy = vi
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockResolvedValue(undefined);
 
     render(<DashboardPage />);
 
@@ -198,13 +199,15 @@ describe('E2E Ticket Submission Pipeline', () => {
       expect(screen.getByText('ticket-uuid-001')).toBeInTheDocument();
     });
 
-    const copyButton = screen.getByTitle('Copy to clipboard');
+    const copyButton = screen.getByRole('button', { name: /copy id/i });
     await user.click(copyButton);
 
     await waitFor(() => {
-      expect(mockNavigator.clipboard.writeText).toHaveBeenCalledWith('ticket-uuid-001');
-      expect(screen.getByText('Copied!')).toBeInTheDocument();
+      expect(writeTextSpy).toHaveBeenCalledWith('ticket-uuid-001');
+      expect(screen.getByText(/copied/i)).toBeInTheDocument();
     });
+
+    writeTextSpy.mockRestore();
   });
 
   // ==================== TEST 3: Submission with Image ====================
@@ -220,17 +223,15 @@ describe('E2E Ticket Submission Pipeline', () => {
     const imageFile = new File(['fake-image-data'], 'screenshot.png', { type: 'image/png' });
 
     // Find file input
-    const fileInput = screen.getByRole('button', { name: /Upload Image/i })?.parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
-    
-    if (fileInput) {
-      // Simulate file selection
-      await user.upload(fileInput, imageFile);
+    const fileInput = screen.getByLabelText(/Attach a screenshot/i) as HTMLInputElement;
 
-      await waitFor(() => {
-        expect(fileInput.files).toHaveLength(1);
-        expect(fileInput.files?.[0]).toBe(imageFile);
-      });
-    }
+    // Simulate file selection
+    await user.upload(fileInput, imageFile);
+
+    await waitFor(() => {
+      expect(fileInput.files).toHaveLength(1);
+      expect(fileInput.files?.[0]).toBe(imageFile);
+    });
 
     // Type ticket text
     const textArea = screen.getByPlaceholderText(/Describe the issue.../i);
@@ -258,7 +259,7 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Verify success modal
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
     });
   });
 
@@ -272,7 +273,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     ];
 
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/customer_tickets') && !url.includes('/customer_tickets/')) {
+      if (url.includes('/api/user_tickets')) {
         return Promise.resolve(mockTicketHistoryResponse(mockTickets));
       }
       if (url.includes('/api/tickets')) {
@@ -300,7 +301,7 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Wait for success modal
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
     });
 
     // Click "View My Tickets" button in success modal
@@ -309,7 +310,7 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Verify history is now displayed (modal closed)
     await waitFor(() => {
-      expect(screen.queryByText('Ticket Submitted Successfully!')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Ticket submitted successfully/i)).not.toBeInTheDocument();
     });
   });
 
@@ -322,7 +323,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     ];
 
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/customer_tickets')) {
+      if (url.includes('/api/user_tickets')) {
         return Promise.resolve(mockTicketHistoryResponse(mockTickets));
       }
       return Promise.resolve({
@@ -380,19 +381,11 @@ describe('E2E Ticket Submission Pipeline', () => {
     });
 
     // Verify success modal does NOT appear
-    expect(screen.queryByText('Ticket Submitted Successfully!')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ticket submitted successfully/i)).not.toBeInTheDocument();
   });
 
   // ==================== TEST 7: Unauthenticated User Redirect ====================
   it('should redirect unauthenticated user to login', async () => {
-    const mockPush = vi.fn();
-    vi.mock('next/navigation', () => ({
-      useRouter: vi.fn(() => ({
-        push: mockPush,
-        refresh: vi.fn(),
-      })),
-    }));
-
     (useAuth as any).mockReturnValue({
       user: null,
       role: null,
@@ -402,11 +395,10 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     render(<DashboardPage />);
 
-    // Component should show loading state or redirect
-    await waitFor(() => {
-      // The component handles this internally
-      expect(screen.getByRole('button', { name: /submit ticket/i })).toBeInTheDocument();
-    }, { timeout: 1000 });
+    // Unauthenticated users see only the loading spinner while the
+    // redirect-to-login effect runs; the dashboard content never mounts.
+    expect(screen.queryByRole('button', { name: /submit ticket/i })).not.toBeInTheDocument();
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
   // ==================== TEST 8: Admin User Redirect ====================
@@ -464,9 +456,8 @@ describe('E2E Ticket Submission Pipeline', () => {
           json: () => Promise.resolve({ success: true }),
         });
       }
-      if (url.includes('/customer_tickets')) {
-        // After delete, return empty array
-        return Promise.resolve(mockTicketHistoryResponse([]));
+      if (url.includes('/api/user_tickets')) {
+        return Promise.resolve(mockTicketHistoryResponse(mockTickets));
       }
       return Promise.resolve({
         ok: true,
@@ -498,7 +489,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     const user = userEvent.setup();
 
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/customer_tickets')) {
+      if (url.includes('/api/user_tickets')) {
         return Promise.resolve(mockTicketHistoryResponse());
       }
       return Promise.resolve({
@@ -522,11 +513,11 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // History content should be visible
     await waitFor(() => {
-      expect(screen.getByText(/Your tickets/i)).toBeInTheDocument();
+      expect(screen.getByText(/Ticket history/i)).toBeInTheDocument();
     });
 
     // Click submit tab again
-    const submitTab = screen.getByRole('button', { name: /Submit Ticket/i });
+    const submitTab = screen.getByRole('button', { name: /New ticket/i });
     await user.click(submitTab);
 
     // Submit form should be visible again
@@ -559,14 +550,12 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Wait for success modal
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
     });
 
     // Close modal
-    const closeButton = screen.getByRole('button', { name: '' }).closest('button');
-    if (closeButton && closeButton.title === '') {
-      await user.click(closeButton);
-    }
+    const closeButton = screen.getByRole('button', { name: /close/i });
+    await user.click(closeButton);
 
     // Note: Form clearing happens when closing modal and switching tabs
     // This test verifies the flow works end-to-end
@@ -576,13 +565,7 @@ describe('E2E Ticket Submission Pipeline', () => {
   it('should logout user and refresh page', async () => {
     const user = userEvent.setup();
     const mockRefresh = vi.fn();
-
-    vi.mock('next/navigation', () => ({
-      useRouter: vi.fn(() => ({
-        push: vi.fn(),
-        refresh: mockRefresh,
-      })),
-    }));
+    (useRouter as any).mockReturnValue({ push: vi.fn(), refresh: mockRefresh });
 
     global.fetch = vi.fn().mockResolvedValue(mockTicketHistoryResponse());
 
@@ -592,8 +575,13 @@ describe('E2E Ticket Submission Pipeline', () => {
       expect(screen.getByText(/Clario Triage/i)).toBeInTheDocument();
     });
 
-    // Note: Logout button might be in the UI but implementation may vary
-    // This test structure is ready for when logout is implemented
+    const signOutButton = screen.getByRole('button', { name: /sign out/i });
+    await user.click(signOutButton);
+
+    await waitFor(() => {
+      expect(supabase.auth.signOut).toHaveBeenCalled();
+      expect(mockRefresh).toHaveBeenCalled();
+    });
   });
 
   // ==================== TEST 14: Loading State ====================
@@ -607,10 +595,9 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     render(<DashboardPage />);
 
-    // Should show loading spinner
-    const spinner = screen.getByRole('button', { name: /submit ticket/i })?.parentElement?.querySelector('[class*="animate-spin"]');
-    // or check for the spinner element
-    expect(screen.getByText(/Clario Triage/i)).toBeInTheDocument();
+    // Should show loading spinner, not the dashboard content
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(screen.queryByText(/Clario Triage/i)).not.toBeInTheDocument();
   });
 
   // ==================== TEST 15: Complete End-to-End Flow ====================
@@ -628,7 +615,7 @@ describe('E2E Ticket Submission Pipeline', () => {
       if (url === 'http://localhost:8080/api/tickets') {
         return Promise.resolve(mockTicketSubmissionResponse('ticket-uuid-001'));
       }
-      if (url.includes('/customer_tickets')) {
+      if (url.includes('/api/user_tickets')) {
         return Promise.resolve(mockTicketHistoryResponse(mockTickets));
       }
       return Promise.resolve({
@@ -657,7 +644,7 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Step 4: Success modal appears
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
       expect(screen.getByText('ticket-uuid-001')).toBeInTheDocument();
     });
 

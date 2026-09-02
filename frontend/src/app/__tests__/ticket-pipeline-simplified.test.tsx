@@ -319,7 +319,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     }, { timeout: 3000 });
 
     // Find and click copy button
-    const copyButton = screen.getByTitle('Copy to clipboard');
+    const copyButton = screen.getByRole('button', { name: /copy id/i });
     await user.click(copyButton);
 
     await waitFor(() => {
