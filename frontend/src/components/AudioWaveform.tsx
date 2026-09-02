@@ -20,7 +20,7 @@ interface AudioWaveformProps {
 export default function AudioWaveform({
   analyser,
   active,
-  color = '#00E5FF',
+  color = '#2DD4BF',
   height = 56,
   className = '',
 }: AudioWaveformProps) {
