@@ -56,14 +56,14 @@ describe('Spring Boot API Gateway Integration', () => {
     render(<DashboardPage />);
     
     // Wait for UI to render
-    expect(screen.getByText(/Submit Ticket/i)).toBeInTheDocument();
+    expect(screen.getByText(/New ticket/i)).toBeInTheDocument();
 
     // Fill out the form
-    const issueInput = screen.getByLabelText(/ISSUE_PAYLOAD/i);
+    const issueInput = screen.getByLabelText(/Describe the issue/i);
     fireEvent.change(issueInput, { target: { value: 'My server is down' } });
 
     // Submit the form
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     fireEvent.click(submitBtn);
 
     // Verify the API Gateway is called correctly

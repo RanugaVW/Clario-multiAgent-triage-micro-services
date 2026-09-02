@@ -75,7 +75,7 @@ describe('Dashboard Routing', () => {
     expect(mockPush).not.toHaveBeenCalledWith('/admin');
     
     // Verify dashboard renders
-    expect(screen.getByText(/Submit Ticket/i)).toBeInTheDocument();
+    expect(screen.getByText(/New ticket/i)).toBeInTheDocument();
   });
   
   it('shows loading spinner when auth is loading', () => {

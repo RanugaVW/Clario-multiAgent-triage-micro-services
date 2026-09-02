@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle, Trash2, Copy } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
+import { GlassPanel, GlassButton, GlassTextarea, Modal } from '../../components/ui';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
 
@@ -140,7 +141,7 @@ export default function Home() {
   if (loading || roleLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+        <div className="w-16 h-16 border-4 border-[#E8A33D]/20 border-t-[#E8A33D] rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -169,19 +170,19 @@ export default function Home() {
 
       let ticketUuid = crypto.randomUUID();
       const GATEWAY_URL = 'http://localhost:8080';
-      
+
       if (user) {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
-        
+
         // Send request to Spring Boot API Gateway
         const res = await fetch(`${GATEWAY_URL}/api/tickets`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             rawText: ticketText,
             subject: "Support Ticket",
             imageBase64: base64String || undefined
@@ -215,101 +216,93 @@ export default function Home() {
 
   return (
     <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center">
-      
-      {/* Success Modal */}
-      {successModal.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 animate-fade-in relative">
-            <button 
-              onClick={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4 border border-emerald-500/30">
-                <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Ticket Submitted Successfully!</h3>
-              <p className="text-slate-400 text-sm mb-6">Your issue has been securely logged and is being routed by our LangGraph orchestration.</p>
-              
-              <div className="w-full bg-slate-950 rounded-xl p-4 border border-slate-800 flex flex-col items-center">
-                <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">Tracking ID</span>
-                <div className="flex items-center space-x-3 w-full justify-center">
-                  <span className="font-mono text-emerald-400 text-sm">{successModal.trackingId}</span>
-                  <MorphButton textToCopy={successModal.trackingId} label="Copy ID" />
-                </div>
-              </div>
 
-              <button
-                onClick={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
-                className="mt-6 w-full py-3 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl font-semibold transition-colors"
-              >
-                View My Tickets
-              </button>
+      {/* Success Modal */}
+      <Modal
+        open={successModal.show}
+        onClose={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
+      >
+        <div className="flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-emerald-500/15 rounded-full flex items-center justify-center mb-4 border border-emerald-500/25">
+            <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+          </div>
+          <h3 className="text-xl font-bold text-[#ECECEC] mb-2">Ticket submitted successfully!</h3>
+          <p className="text-[#8A8F98] text-sm mb-6">Your issue has been securely logged and is being routed by our LangGraph orchestration.</p>
+
+          <div className="w-full rounded-2xl bg-white/[0.03] p-4 border border-white/10 flex flex-col items-center">
+            <span className="text-xs text-[#8A8F98] font-semibold mb-2">Tracking ID</span>
+            <div className="flex items-center space-x-3 w-full justify-center">
+              <span className="font-mono text-[#2DD4BF] text-sm">{successModal.trackingId}</span>
+              <MorphButton textToCopy={successModal.trackingId} label="Copy ID" />
             </div>
           </div>
+
+          <GlassButton
+            variant="primary"
+            className="mt-6 w-full"
+            onClick={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
+          >
+            View my tickets
+          </GlassButton>
         </div>
-      )}
+      </Modal>
 
       {/* Header section */}
       <div className="text-center mb-12 animate-fade-in relative w-full">
         {user && (
           <div className="absolute right-0 top-0 flex items-center space-x-4">
-            <div className="text-sm text-slate-400">
-              Logged in as <span className="text-indigo-400">{user.email}</span>
+            <div className="text-sm text-[#8A8F98]">
+              Logged in as <span className="text-[#E8A33D]">{user.email}</span>
             </div>
             {role === 'admin' && (
-              <button 
+              <button
                 onClick={() => router.push('/admin')}
-                className="bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-semibold px-4 py-2 rounded-xl transition-colors border border-indigo-500/30 flex items-center"
+                className="bg-[#E8A33D]/15 hover:bg-[#E8A33D]/25 text-[#E8A33D] text-xs font-semibold px-4 py-2 rounded-xl transition-colors border border-[#E8A33D]/25 flex items-center"
               >
                 <ShieldAlert className="w-3 h-3 mr-2" />
-                Admin Panel
+                Admin panel
               </button>
             )}
             {role === 'agent' && (
-              <button 
+              <button
                 onClick={() => router.push('/agent')}
-                className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold px-4 py-2 rounded-xl transition-colors border border-emerald-500/30"
+                className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-semibold px-4 py-2 rounded-xl transition-colors border border-emerald-500/25"
               >
-                Agent Workspace
+                Agent workspace
               </button>
             )}
           </div>
         )}
 
-        {/* Removed absolute My Tickets button, using tabs below */}
-
         <div className="flex justify-center items-center mb-4 space-x-3">
-          <div className="bg-indigo-500/20 p-3 rounded-2xl border border-indigo-500/30">
-            <Cpu className="text-indigo-400 w-8 h-8" />
+          <div className="bg-[#E8A33D]/15 p-3 rounded-2xl border border-[#E8A33D]/25">
+            <Cpu className="text-[#E8A33D] w-8 h-8" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-sky-400 to-indigo-400">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#E8A33D] via-[#2DD4BF] to-[#E8A33D]">
             Clario Triage
           </h1>
         </div>
-        <p className="text-slate-400 max-w-2xl mx-auto text-lg font-light">
+        <p className="text-[#8A8F98] max-w-2xl mx-auto text-lg font-light">
           Submit a support ticket and watch our LangGraph orchestration securely classify, route, and resolve issues in real-time.
         </p>
       </div>
-      
+
       {/* ─── Tabs ─── */}
       {user && (
         <div className="flex justify-center space-x-4 mb-10 animate-fade-in w-full">
           <button
             onClick={() => setActiveTab('new')}
-            className={`px-8 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center min-w-[180px] ${activeTab === 'new' ? 'bg-gradient-to-r from-indigo-500 to-sky-500 text-white shadow-[0_0_25px_rgba(99,102,241,0.4)] scale-105' : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/80'}`}
+            className={`px-8 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center min-w-[180px] ${activeTab === 'new' ? 'bg-gradient-to-r from-[#E8A33D] to-[#2DD4BF] text-[#08090D] shadow-[0_0_25px_rgba(232,163,61,0.35)] scale-105' : 'bg-white/[0.04] text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.08]'}`}
           >
-            <Ticket className="w-5 h-5 mr-2" /> Submit Ticket
+            <Ticket className="w-5 h-5 mr-2" /> New ticket
           </button>
           <button
             onClick={() => { fetchHistory(); setActiveTab('history'); }}
-            className={`px-8 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center min-w-[180px] ${activeTab === 'history' ? 'bg-gradient-to-r from-indigo-500 to-sky-500 text-white shadow-[0_0_25px_rgba(99,102,241,0.4)] scale-105' : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-700/80'}`}
+            className={`px-8 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center min-w-[180px] ${activeTab === 'history' ? 'bg-gradient-to-r from-[#E8A33D] to-[#2DD4BF] text-[#08090D] shadow-[0_0_25px_rgba(232,163,61,0.35)] scale-105' : 'bg-white/[0.04] text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.08]'}`}
           >
-            <History className="w-5 h-5 mr-2" /> My Tickets
+            <History className="w-5 h-5 mr-2" /> My tickets
             {pastTickets.length > 0 && (
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-indigo-500/30 text-indigo-300 border border-indigo-500/30'}`}>
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'history' ? 'bg-black/20 text-[#08090D]' : 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/30'}`}>
                 {pastTickets.length}
               </span>
             )}
@@ -319,40 +312,40 @@ export default function Home() {
 
       {activeTab === 'new' && (
       <div className="w-full max-w-2xl mx-auto items-start">
-        
-        {/* Form */}
-        <section className="glass-panel p-8 w-full animate-fade-in relative overflow-hidden" style={{ animationDelay: '0.1s' }}>
 
-          <h2 className="text-xl font-mono tracking-widest uppercase mb-8 flex items-center text-white border-b border-[#222222] pb-4">
-            <Ticket className="w-5 h-5 mr-3 text-[#00E5FF]" />
-            INITIALIZE_TICKET
+        {/* Form */}
+        <GlassPanel tier={1} className="p-8 w-full animate-fade-in relative overflow-hidden" style={{ animationDelay: '0.1s' }}>
+
+          <h2 className="text-xl font-semibold mb-8 flex items-center text-[#ECECEC] border-b border-white/10 pb-4">
+            <Ticket className="w-5 h-5 mr-3 text-[#2DD4BF]" />
+            Submit a ticket
           </h2>
-          
+
           {error && (
-            <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded flex items-start text-sm">
+            <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/20 text-[#FB7185] px-4 py-3 rounded-xl flex items-start text-sm">
               <AlertCircle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit} className="space-y-8">
             <div>
-              <label htmlFor="ticket-text" className="block text-[10px] font-mono tracking-widest text-[#888888] uppercase mb-2">
-                ISSUE_PAYLOAD
+              <label htmlFor="ticket-text" className="block text-sm font-medium text-[#8A8F98] mb-2">
+                Describe the issue
               </label>
-              <textarea
+              <GlassTextarea
                 id="ticket-text"
                 required
                 value={ticketText}
                 onChange={(e) => setTicketText(e.target.value)}
                 placeholder="Describe the issue, or dictate it with the microphone below..."
-                className="glass-input w-full px-0 py-3 text-sm h-40 resize-y"
+                className="h-40"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-mono tracking-widest text-[#888888] uppercase mb-2">
-                VOICE_INPUT (SPEECH_TO_TEXT)
+              <label className="block text-sm font-medium text-[#8A8F98] mb-2">
+                Or use voice input
               </label>
               <VoiceRecorder
                 value={ticketText}
@@ -360,10 +353,10 @@ export default function Home() {
                 disabled={isProcessing}
               />
             </div>
-            
+
             <div>
-              <label htmlFor="ticket-image" className="block text-[10px] font-mono tracking-widest text-[#888888] uppercase mb-2">
-                ATTACH_TELEMETRY (IMAGE)
+              <label htmlFor="ticket-image" className="block text-sm font-medium text-[#8A8F98] mb-2">
+                Attach a screenshot (optional)
               </label>
               <input
                 id="ticket-image"
@@ -374,23 +367,19 @@ export default function Home() {
                     setImageFile(e.target.files[0]);
                   }
                 }}
-                className="w-full py-3 file:mr-4 file:py-2 file:px-4 file:border file:border-[#222222] file:bg-[#111111] file:text-[10px] file:font-mono file:tracking-widest file:text-[#ececec] hover:file:bg-[#222222] hover:file:text-white transition-all text-[#888888] text-sm"
+                className="w-full py-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-white/10 file:bg-white/[0.06] file:text-xs file:text-[#ECECEC] hover:file:bg-white/[0.12] transition-all text-[#8A8F98] text-sm"
               />
               {imageFile && (
-                <p className="mt-2 text-[10px] font-mono text-[#00E5FF]">ATTACHED: {imageFile.name}</p>
+                <p className="mt-2 text-xs font-mono text-[#2DD4BF]">Attached: {imageFile.name}</p>
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={isProcessing}
-              className="w-full bg-[#111111] hover:bg-[#00E5FF] text-[#00E5FF] hover:text-[#050505] border border-[#00E5FF] font-mono tracking-widest uppercase text-xs py-4 px-6 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span>{isProcessing ? 'PROCESSING...' : 'PROCESS_TICKET'}</span>
-              {!isProcessing && <Send className="w-4 h-4 ml-2" />}
-            </button>
+            <GlassButton type="submit" variant="primary" disabled={isProcessing} className="w-full">
+              <span>{isProcessing ? 'Submitting…' : 'Submit ticket'}</span>
+              {!isProcessing && <Send className="w-4 h-4" />}
+            </GlassButton>
           </form>
-        </section>
+        </GlassPanel>
       </div>
       )}
 
@@ -398,18 +387,18 @@ export default function Home() {
       {activeTab === 'history' && (
         <div className="w-full max-w-5xl mx-auto animate-fade-in pb-12">
           <div className="flex justify-between items-center mb-6 max-w-4xl mx-auto px-2">
-            <h2 className="text-lg font-mono tracking-widest uppercase text-white flex items-center">
-              <History className="w-5 h-5 mr-3 text-[#00E5FF]" /> Ticket History
+            <h2 className="text-lg font-semibold text-[#ECECEC] flex items-center">
+              <History className="w-5 h-5 mr-3 text-[#2DD4BF]" /> Ticket history
             </h2>
             <RotateButton onClick={fetchHistory} isLoading={dataLoading} />
           </div>
           {pastTickets.length === 0 ? (
-            <div className="text-center py-24 bg-slate-900/30 rounded-3xl border border-slate-800/50 glass-panel">
-              <Ticket className="w-16 h-16 mx-auto mb-4 opacity-20 text-indigo-400" />
-              <p className="text-slate-400 text-lg">You haven't submitted any tickets yet.</p>
-              <button 
+            <div className="text-center py-24 glass-panel rounded-[28px]">
+              <Ticket className="w-16 h-16 mx-auto mb-4 opacity-20 text-[#E8A33D]" />
+              <p className="text-[#8A8F98] text-lg">You haven't submitted any tickets yet.</p>
+              <button
                 onClick={() => setActiveTab('new')}
-                className="mt-6 text-indigo-400 hover:text-indigo-300 font-medium underline-offset-4 hover:underline"
+                className="mt-6 text-[#E8A33D] hover:text-[#F4B856] font-medium underline-offset-4 hover:underline"
               >
                 Submit your first ticket
               </button>
@@ -425,14 +414,14 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="mt-16 w-full flex justify-between items-center border-t border-slate-800/50 pt-6 text-sm text-slate-500 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+      <footer className="mt-16 w-full flex justify-between items-center border-t border-white/10 pt-6 text-sm text-[#8A8F98] animate-fade-in" style={{ animationDelay: '0.4s' }}>
         <p>© 2026 Clario Support Systems</p>
         {user ? (
-          <button onClick={handleLogout} className="hover:text-red-400 transition-colors flex items-center">
+          <button onClick={handleLogout} className="hover:text-[#FB7185] transition-colors flex items-center">
             Sign Out
           </button>
         ) : (
-          <a href="/login" className="hover:text-indigo-400 transition-colors flex items-center">
+          <a href="/login" className="hover:text-[#E8A33D] transition-colors flex items-center">
             <ShieldAlert className="w-4 h-4 mr-1.5" />
             Sign In / Register
           </a>

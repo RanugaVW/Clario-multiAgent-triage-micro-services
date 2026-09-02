@@ -137,7 +137,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.type(textArea, 'Payment failed but money was taken from my account');
 
     // Find and click the submit button
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     // Verify API Gateway was called correctly
@@ -191,7 +191,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.clear(textArea);
     await user.type(textArea, 'Test issue for clipboard');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -238,7 +238,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.type(textArea, 'Issue with error screenshot attached');
 
     // Submit
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     // Verify API call
@@ -295,7 +295,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.clear(textArea);
     await user.type(textArea, 'New test ticket');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     // Wait for success modal
@@ -371,7 +371,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.clear(textArea);
     await user.type(textArea, 'Test error handling');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     // Verify error message appears
@@ -405,7 +405,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     // Component should show loading state or redirect
     await waitFor(() => {
       // The component handles this internally
-      expect(screen.getByRole('button', { name: /PROCESS_TICKET/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /submit ticket/i })).toBeInTheDocument();
     }, { timeout: 1000 });
   });
 
@@ -554,7 +554,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     expect(textArea.value).toBe('Test issue for clearing');
 
     // Submit
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     // Wait for success modal
@@ -608,7 +608,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     render(<DashboardPage />);
 
     // Should show loading spinner
-    const spinner = screen.getByRole('button', { name: /PROCESS_TICKET/i })?.parentElement?.querySelector('[class*="animate-spin"]');
+    const spinner = screen.getByRole('button', { name: /submit ticket/i })?.parentElement?.querySelector('[class*="animate-spin"]');
     // or check for the spinner element
     expect(screen.getByText(/Clario Triage/i)).toBeInTheDocument();
   });
@@ -652,7 +652,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.clear(textArea);
     await user.type(textArea, 'Complete E2E test ticket');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     // Step 4: Success modal appears
