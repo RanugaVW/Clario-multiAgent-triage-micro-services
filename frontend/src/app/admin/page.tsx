@@ -426,10 +426,10 @@ export default function AdminDashboard() {
       {activeTab === 'human_review' && (
         <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
           {humanReviewTickets.length === 0 ? (
-            <div className="glass-panel rounded-3xl p-16 text-center">
+            <div className="glass-panel rounded-[28px] p-16 text-center">
               <CheckCircle className="w-14 h-14 text-emerald-500/50 mx-auto mb-4" />
-              <p className="text-slate-300 font-semibold text-lg">All caught up!</p>
-              <p className="text-slate-500 text-sm mt-1">No tickets need human review right now.</p>
+              <p className="text-[#ECECEC] font-semibold text-lg">All caught up!</p>
+              <p className="text-[#8A8F98] text-sm mt-1">No tickets need human review right now.</p>
             </div>
           ) : (
             <HumanReviewTabs humanReviewTickets={humanReviewTickets} onDelete={handleDeleteTicket} />
@@ -441,10 +441,10 @@ export default function AdminDashboard() {
       {activeTab === 'resolved' && (
         <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
           {resolvedTickets.length === 0 ? (
-            <div className="glass-panel rounded-3xl p-16 text-center">
+            <div className="glass-panel rounded-[28px] p-16 text-center">
               <CheckCircle2 className="w-14 h-14 text-emerald-500/50 mx-auto mb-4" />
-              <p className="text-slate-300 font-semibold text-lg">No resolved tickets yet</p>
-              <p className="text-slate-500 text-sm mt-1">Tickets will appear here once they are resolved.</p>
+              <p className="text-[#ECECEC] font-semibold text-lg">No resolved tickets yet</p>
+              <p className="text-[#8A8F98] text-sm mt-1">Tickets will appear here once they are resolved.</p>
             </div>
           ) : (
             <div className="flex flex-col">
@@ -459,30 +459,30 @@ export default function AdminDashboard() {
       {/* ── All Tickets Tab ──────────────────────────────────────────────────── */}
       {activeTab === 'all_tickets' && (
         <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <div className="glass-panel rounded-3xl overflow-hidden">
-            <div className="p-6 border-b border-slate-700/50 bg-slate-900/50 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-white flex items-center">
-                <MessageSquare className="w-5 h-5 mr-2 text-indigo-400" /> All Tickets & Responses
+          <div className="glass-panel rounded-[28px] overflow-hidden">
+            <div className="p-6 border-b border-white/10 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-[#ECECEC] flex items-center">
+                <MessageSquare className="w-5 h-5 mr-2 text-[#E8A33D]" /> All tickets & responses
               </h2>
               <div className="flex items-center space-x-3">
                 <input
                   type="text"
-                  placeholder="Search by Ticket UUID..."
+                  placeholder="Search by ticket ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-slate-800/50 border border-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg w-64 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="glass-input rounded-xl text-[#ECECEC] text-xs px-3 py-1.5 w-64"
                 />
                 <RotateButton onClick={fetchData} isLoading={dataLoading} />
               </div>
             </div>
 
             {dataLoading ? (
-              <div className="p-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
+              <div className="p-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#E8A33D]" /></div>
             ) : allTickets.length === 0 ? (
               <div className="p-16 text-center">
-                <MessageSquare className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                <p className="text-slate-400 font-medium">No tickets yet</p>
-                <p className="text-slate-600 text-sm mt-1">Submit a ticket from the Triage page to see it here.</p>
+                <MessageSquare className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <p className="text-[#ECECEC] font-medium">No tickets yet</p>
+                <p className="text-[#8A8F98] text-sm mt-1">Submit a ticket from the Triage page to see it here.</p>
               </div>
             ) : (
               <div className="flex flex-col">
@@ -515,31 +515,31 @@ function HumanReviewTabs({ humanReviewTickets, onDelete }: { humanReviewTickets:
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="flex space-x-2 border-b border-[#222222] pb-4">
+      <div className="flex space-x-2 border-b border-white/10 pb-4">
         <button
           onClick={() => setActiveSubTab('billing')}
-          className={`px-4 py-2 text-sm font-mono tracking-widest uppercase transition-colors ${activeSubTab === 'billing' ? 'text-[#00E5FF] border-b-2 border-[#00E5FF]' : 'text-[#888888] hover:text-[#ececec]'}`}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${activeSubTab === 'billing' ? 'text-[#2DD4BF] border-b-2 border-[#2DD4BF]' : 'text-[#8A8F98] hover:text-[#ECECEC]'}`}
         >
           Billing ({billingTickets.length})
         </button>
         <button
           onClick={() => setActiveSubTab('technical')}
-          className={`px-4 py-2 text-sm font-mono tracking-widest uppercase transition-colors ${activeSubTab === 'technical' ? 'text-[#FF3366] border-b-2 border-[#FF3366]' : 'text-[#888888] hover:text-[#ececec]'}`}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${activeSubTab === 'technical' ? 'text-[#FB7185] border-b-2 border-[#FB7185]' : 'text-[#8A8F98] hover:text-[#ECECEC]'}`}
         >
           Technical ({technicalTickets.length})
         </button>
         <button
           onClick={() => setActiveSubTab('other')}
-          className={`px-4 py-2 text-sm font-mono tracking-widest uppercase transition-colors ${activeSubTab === 'other' ? 'text-[#FFD600] border-b-2 border-[#FFD600]' : 'text-[#888888] hover:text-[#ececec]'}`}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${activeSubTab === 'other' ? 'text-[#FB923C] border-b-2 border-[#FB923C]' : 'text-[#8A8F98] hover:text-[#ECECEC]'}`}
         >
-          Other / Uncategorized ({otherTickets.length})
+          Other / uncategorized ({otherTickets.length})
         </button>
       </div>
 
       <div className="flex flex-col">
         {activeTickets.length === 0 ? (
-          <div className="p-8 text-center border border-[#222222] bg-[#111111] text-[#888888] font-mono text-sm">
-            NO TICKETS IN THIS CATEGORY.
+          <div className="rounded-2xl p-8 text-center border border-white/10 bg-white/[0.03] text-[#8A8F98] text-sm">
+            No tickets in this category.
           </div>
         ) : (
           activeTickets.map(ticket => (
