@@ -67,7 +67,7 @@ describe('Dashboard Ticket Submission', () => {
     });
 
     // Submit
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     fireEvent.submit(submitBtn.closest('form')!);
     
     await waitFor(() => {
@@ -83,7 +83,7 @@ describe('Dashboard Ticket Submission', () => {
       expect(payload.rawText).toBe('My test issue description');
       
       // Check success modal appears
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText('Ticket submitted successfully!')).toBeInTheDocument();
       expect(screen.getByText('uuid-1234')).toBeInTheDocument();
     });
   });
@@ -119,7 +119,7 @@ describe('Dashboard Ticket Submission', () => {
       });
     });
 
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {

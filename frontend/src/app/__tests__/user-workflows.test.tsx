@@ -78,12 +78,12 @@ describe('User Workflow Scenarios', () => {
     await user.type(textarea, 'First ticket: My password is not working');
 
     // User submits
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // User sees success confirmation
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText('Ticket submitted successfully!')).toBeInTheDocument();
     });
 
     // User can copy their tracking ID
@@ -118,7 +118,7 @@ describe('User Workflow Scenarios', () => {
     await user.clear(textarea);
     await user.type(textarea, 'First issue');
 
-    let submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    let submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
@@ -138,7 +138,7 @@ describe('User Workflow Scenarios', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Second issue');
 
-    submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
@@ -234,7 +234,7 @@ describe('User Workflow Scenarios', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Test retry');
 
-    let submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    let submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // See error
@@ -246,7 +246,7 @@ describe('User Workflow Scenarios', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Test retry again');
 
-    submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // Success this time
@@ -324,7 +324,7 @@ describe('User Workflow Scenarios', () => {
     }
 
     // User submits
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // Success
@@ -496,7 +496,7 @@ describe('User Workflow Scenarios', () => {
     await user.clear(textarea);
     await user.type(textarea, 'My complete journey test issue');
 
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // Step 3: See success confirmation
@@ -556,7 +556,7 @@ describe('Error Recovery Workflows', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Timeout test');
 
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
@@ -585,7 +585,7 @@ describe('Error Recovery Workflows', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Gateway down test');
 
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
@@ -618,7 +618,7 @@ describe('Error Recovery Workflows', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Auth test');
 
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
