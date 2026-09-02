@@ -10,6 +10,7 @@ import {
   CreditCard, Wrench, Brain, GitBranch, Eye, RotateCcw, ArrowRightLeft,
   Shield, Layers, CheckCircle2, Trash2, Image as ImageIcon,
 } from 'lucide-react';
+import { StatusBadge } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 import ShakeButton from '../../components/ShakeButton';
@@ -579,7 +580,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
     const timer = setInterval(() => setNowIso(new Date().toISOString()), 30000);
     return () => clearInterval(timer);
   }, [expanded]);
-  
+
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -603,10 +604,11 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   }, [expanded, fullData, isLoading, ticket.id]);
 
   // Status mapping
-  let statusColor = '#888888';
-  let statusLabel = 'PENDING';
-  if (isEscalated) { statusColor = '#FFD600'; statusLabel = 'REQUIRES REVIEW'; }
-  else if (isResolved) { statusColor = '#00FF66'; statusLabel = 'COMPLETED'; }
+  let statusColor = '#8A8F98';
+  let statusLabel = 'Pending';
+  let statusTone: 'neutral' | 'warning' | 'success' = 'neutral';
+  if (isEscalated) { statusColor = '#FB923C'; statusLabel = 'Needs review'; statusTone = 'warning'; }
+  else if (isResolved) { statusColor = '#34D399'; statusLabel = 'Resolved'; statusTone = 'success'; }
 
   // Extract snippet
   const textParts = ticket.raw_text.split('[OCR EXTRACTED TEXT FROM ATTACHMENT]');
@@ -626,7 +628,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
         })
       });
       if (!res.ok) throw new Error("Failed to resolve via API");
-      
+
       try {
         await fetch(`${API_URL}/embed_resolved_ticket`, {
           method: 'POST',
@@ -639,12 +641,12 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
           })
         });
       } catch (embedError) {}
-      
+
       try {
         await fetch('/api/tickets', { method: 'DELETE' });
         sessionStorage.removeItem('tickets:list:metadata');
       } catch (e) {}
-      
+
       window.location.reload();
     } catch (e) {
       console.error("Failed to resolve", e);
@@ -653,82 +655,82 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   };
 
   return (
-    <div className="border border-[#222222] bg-[#111111] mb-2 transition-all duration-200 hover:border-[#444444]">
+    <div className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] mb-2 transition-all duration-200 hover:border-white/20 overflow-hidden">
       {/* Unexpanded Row (Clickable) */}
-      <div 
+      <div
         className="flex items-center justify-between p-4 cursor-pointer select-none"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center space-x-6 flex-1 min-w-0">
           <div className="flex items-center space-x-3 w-36 shrink-0">
-            <span className="w-1.5 h-1.5" style={{ backgroundColor: statusColor }} />
-            <span className="text-xs font-mono tracking-widest text-[#888888] truncate">{ticket.id.split('-')[0]}</span>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
+            <span className="text-xs font-mono text-[#8A8F98] truncate">{ticket.id.split('-')[0]}</span>
           </div>
           <div className="w-28 shrink-0 leading-tight" title={"Submitted " + formatDateTime(ticket.created_at)}>
-            <span className="text-[10px] text-[#ececec] font-mono block">{formatDate(ticket.created_at)}</span>
-            <span className="text-[10px] text-[#888888] font-mono block">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
+            <span className="text-[11px] text-[#ECECEC] font-mono block">{formatDate(ticket.created_at)}</span>
+            <span className="text-[11px] text-[#8A8F98] font-mono block">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
           </div>
           {ticket.raw_graph_payload?.processing_time_ms && (
-             <span className="text-[10px] text-[#00E5FF] font-mono w-20 shrink-0 bg-[#00E5FF]/10 px-1.5 py-0.5 rounded text-center truncate">
+             <span className="text-[11px] text-[#2DD4BF] font-mono w-20 shrink-0 bg-[#2DD4BF]/10 px-1.5 py-0.5 rounded-full text-center truncate">
                {(ticket.raw_graph_payload.processing_time_ms / 1000).toFixed(2)}s
              </span>
           )}
-          <span className="text-sm text-[#ececec] truncate font-sans">{issueSnippet}</span>
+          <span className="text-sm text-[#ECECEC] truncate font-sans">{issueSnippet}</span>
         </div>
-        
+
         <div className="flex items-center space-x-6 shrink-0 pl-4">
-          <span className="text-[10px] font-mono tracking-widest" style={{ color: statusColor }}>[{statusLabel}]</span>
+          <StatusBadge label={statusLabel} tone={statusTone} />
           {onDelete && (
             <ShakeButton onDelete={(e) => { e.stopPropagation(); onDelete(ticket.id); }} />
           )}
-          {expanded ? <ChevronUp className="w-4 h-4 text-[#888888]" /> : <ChevronDown className="w-4 h-4 text-[#888888]" />}
+          {expanded ? <ChevronUp className="w-4 h-4 text-[#8A8F98]" /> : <ChevronDown className="w-4 h-4 text-[#8A8F98]" />}
         </div>
       </div>
 
       {/* Expanded Grid */}
       {expanded && (
-        <div className="border-t border-[#222222] p-6 bg-[#050505] grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="border-t border-white/10 p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           {/* Metadata strip: everything about the ticket that is not its body */}
-          <div className="lg:col-span-2 border border-[#222222] bg-[#111111] p-4">
-            <span className="text-[10px] font-mono tracking-widest text-[#888888] uppercase block mb-3">TICKET_METADATA</span>
+          <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <span className="text-xs text-[#8A8F98] block mb-3">Ticket details</span>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
-              <MetaItem label="TICKET_ID" value={ticket.id} mono title={ticket.id} />
-              <MetaItem label="SUBJECT" value={ticket.subject || fullData?.subject || 'No subject'} />
-              <MetaItem label="REQUESTER" value={ticket.customer_email || fullData?.customer_email || 'Anonymous'} title={ticket.customer_email || undefined} />
-              <MetaItem label="STATUS" value={statusLabel} color={statusColor} />
-              <MetaItem label="SUBMITTED" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
-              <MetaItem label="LAST_UPDATE" value={formatDateTime(updatedAt)} hint={updatedAt ? formatRelative(updatedAt) : undefined} />
+              <MetaItem label="Ticket ID" value={ticket.id} mono title={ticket.id} />
+              <MetaItem label="Subject" value={ticket.subject || fullData?.subject || 'No subject'} />
+              <MetaItem label="Requester" value={ticket.customer_email || fullData?.customer_email || 'Anonymous'} title={ticket.customer_email || undefined} />
+              <MetaItem label="Status" value={statusLabel} color={statusColor} />
+              <MetaItem label="Submitted" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
+              <MetaItem label="Last update" value={formatDateTime(updatedAt)} hint={updatedAt ? formatRelative(updatedAt) : undefined} />
               <MetaItem
-                label="RESOLVED_AT"
+                label="Resolved at"
                 value={resolution?.resolved_at ? formatDateTime(resolution.resolved_at) : (isEscalated ? 'Awaiting human review' : 'In progress')}
-                color={resolution?.resolved_at ? '#00FF66' : statusColor}
+                color={resolution?.resolved_at ? '#34D399' : statusColor}
               />
               <MetaItem
-                label={resolution?.resolved_at ? 'TURNAROUND' : 'OPEN_FOR'}
+                label={resolution?.resolved_at ? 'Turnaround' : 'Open for'}
                 value={resolution?.resolved_at ? formatElapsed(ticket.created_at, resolution.resolved_at) : formatElapsed(ticket.created_at, nowIso)}
               />
               <MetaItem
-                label="PIPELINE_TIME"
+                label="Pipeline time"
                 value={
                   ticket.raw_graph_payload?.processing_time_ms != null
                     ? formatDuration(ticket.raw_graph_payload.processing_time_ms)
                     : (resolution?.total_latency_ms != null ? formatDuration(resolution.total_latency_ms) : '—')
                 }
-                color="#00E5FF"
+                color="#2DD4BF"
               />
-              <MetaItem label="REFLECTIONS" value={String(resolution?.total_reflection_count ?? draft?.reflection_attempt ?? 0)} />
-              <MetaItem label="LLM_CALLS" value={resolution?.total_llm_calls != null ? String(resolution.total_llm_calls) : '—'} />
-              <MetaItem label="ROUTED_DOMAIN" value={(draft?.domain || classification?.category || 'unrouted').toUpperCase()} mono />
+              <MetaItem label="Reflections" value={String(resolution?.total_reflection_count ?? draft?.reflection_attempt ?? 0)} />
+              <MetaItem label="LLM calls" value={resolution?.total_llm_calls != null ? String(resolution.total_llm_calls) : '—'} />
+              <MetaItem label="Routed domain" value={(draft?.domain || classification?.category || 'unrouted')} mono />
             </div>
 
             {escalationReasons.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-[#222222]">
-                <span className="text-[10px] font-mono tracking-widest text-[#FFD600] uppercase block mb-2">ESCALATION_REASONS</span>
+              <div className="mt-4 pt-3 border-t border-white/10">
+                <span className="text-xs text-[#FB923C] block mb-2">Escalation reasons</span>
                 <div className="flex flex-wrap gap-2">
                   {escalationReasons.map((reason, i) => (
-                    <span key={i} className="text-[10px] font-mono bg-[#FFD600]/10 border border-[#FFD600]/30 text-[#FFD600] px-2 py-1">
-                      {reason.toUpperCase()}
+                    <span key={i} className="text-xs font-mono bg-[#FB923C]/10 border border-[#FB923C]/30 text-[#FB923C] px-2 py-1 rounded-full">
+                      {reason}
                     </span>
                   ))}
                 </div>
@@ -739,117 +741,117 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
           {/* Left Column: Issue & OCR */}
           <div className="space-y-6">
             <div>
-              <span className="text-[10px] font-mono tracking-widest text-[#00E5FF] uppercase block mb-2">RAW_INPUT</span>
-              <p className="text-sm text-[#ececec] leading-relaxed font-sans whitespace-pre-wrap">"{textParts[0].trim()}"</p>
+              <span className="text-xs text-[#2DD4BF] block mb-2">Original message</span>
+              <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">"{textParts[0].trim()}"</p>
             </div>
-            
+
             {textParts.length > 1 && (
-              <div className="border-l border-[#00E5FF] pl-4 py-1">
-                <span className="text-[10px] font-mono tracking-widest text-[#00E5FF] uppercase block mb-2 flex items-center">
-                  <ImageIcon className="w-3 h-3 mr-1.5" /> OCR_EXTRACTION
+              <div className="border-l border-[#2DD4BF] pl-4 py-1">
+                <span className="text-xs text-[#2DD4BF] block mb-2 flex items-center">
+                  <ImageIcon className="w-3 h-3 mr-1.5" /> Text extracted from image
                 </span>
-                <pre className="text-xs text-[#888888] whitespace-pre-wrap font-mono bg-[#111111] p-3 border border-[#222222]">
+                <pre className="text-xs text-[#8A8F98] whitespace-pre-wrap font-mono bg-white/[0.03] rounded-xl p-3 border border-white/10">
                   {textParts[1].trim()}
                 </pre>
               </div>
             )}
-            
+
             {/* Signature Element: Telemetry Track */}
             {classification && (
-              <div className="mt-6 pt-4 border-t border-[#222222]">
-                <span className="text-[10px] font-mono tracking-widest text-[#888888] block mb-2">PIPELINE_TELEMETRY</span>
+              <div className="mt-6 pt-4 border-t border-white/10">
+                <span className="text-xs text-[#8A8F98] block mb-2">Pipeline telemetry</span>
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#ececec]">CAT: {classification.category?.toUpperCase() || 'UNKNOWN'}</span>
-                  <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1" style={{ color: classification.priority?.toLowerCase() === 'high' ? '#FFD600' : '#888888' }}>PRI: {classification.priority?.toUpperCase()}</span>
+                  <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#ECECEC]">Category: {classification.category || 'unknown'}</span>
+                  <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: classification.priority?.toLowerCase() === 'high' ? '#FB923C' : '#8A8F98' }}>Priority: {classification.priority}</span>
                   {classification.sentiment && (
-                    <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1" style={{ color: classification.sentiment.toLowerCase() === 'negative' ? '#FF3366' : '#888888' }}>SENT: {classification.sentiment.toUpperCase()}</span>
+                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: classification.sentiment.toLowerCase() === 'negative' ? '#FB7185' : '#8A8F98' }}>Sentiment: {classification.sentiment}</span>
                   )}
                   {classification.confidence != null && (
-                    <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#00E5FF]">CONF: {(classification.confidence * 100).toFixed(0)}%</span>
+                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#2DD4BF]">Confidence: {(classification.confidence * 100).toFixed(0)}%</span>
                   )}
                   {classification.source && (
-                    <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#888888]">SRC: {classification.source.toUpperCase()}</span>
+                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#8A8F98]">Source: {classification.source}</span>
                   )}
                   {draft?.rag_top_score != null && (
-                    <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#888888]">RAG: {draft.rag_top_score.toFixed(3)}</span>
+                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#8A8F98]">RAG score: {draft.rag_top_score.toFixed(3)}</span>
                   )}
                   {draft?.low_relevance && (
-                    <span className="text-[10px] font-mono bg-[#FF3366]/10 border border-[#FF3366]/30 px-2 py-1 text-[#FF3366]">LOW_RELEVANCE</span>
+                    <span className="text-xs font-mono bg-[#FB7185]/10 border border-[#FB7185]/30 px-2 py-1 rounded-full text-[#FB7185]">Low relevance</span>
                   )}
                   {retrievedSources.length > 0 && (
-                    <span className="text-[10px] font-mono bg-[#111111] border border-[#222222] px-2 py-1 text-[#888888]">SOURCES: {retrievedSources.length}</span>
+                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#8A8F98]">Sources: {retrievedSources.length}</span>
                   )}
                 </div>
               </div>
             )}
-            
+
             {fullData?.raw_graph_payload && (
-              <div className="mt-4 border border-[#222222] bg-[#111111] p-3">
-                <span className="text-[10px] font-mono tracking-widest text-[#555555] uppercase block mb-2">GRAPH_PAYLOAD</span>
-                <pre className="text-[10px] text-[#555555] overflow-x-auto font-mono max-h-32">
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <span className="text-xs text-[#8A8F98] block mb-2">Raw pipeline payload</span>
+                <pre className="text-[10px] text-[#8A8F98] overflow-x-auto font-mono max-h-32">
                   {JSON.stringify(fullData.raw_graph_payload, null, 2)}
                 </pre>
               </div>
             )}
-            
+
             {isLoading && (
-              <div className="mt-4 flex items-center text-[10px] font-mono text-[#888888]">
-                <Loader2 className="w-3 h-3 animate-spin mr-2 text-[#00E5FF]" /> FETCHING_FULL_PAYLOAD...
+              <div className="mt-4 flex items-center text-xs text-[#8A8F98]">
+                <Loader2 className="w-3 h-3 animate-spin mr-2 text-[#2DD4BF]" /> Loading full details…
               </div>
             )}
           </div>
-          
+
           {/* Right Column: AI Processing / Resolution */}
           <div className="space-y-6 flex flex-col h-full">
             <div className="flex-1">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-mono tracking-widest text-[#00FF66] uppercase">SYS_RESOLUTION</span>
+                <span className="text-xs text-[#34D399]">Resolution</span>
                 {draft?.rag_top_score != null && (
-                  <span className="text-[10px] font-mono tracking-widest text-[#888888]">RAG_SCORE: {draft.rag_top_score.toFixed(3)}</span>
+                  <span className="text-xs text-[#8A8F98]">RAG score: {draft.rag_top_score.toFixed(3)}</span>
                 )}
               </div>
-              
-              <div className="bg-[#111111] border border-[#222222] p-4 min-h-[150px] font-sans text-sm text-[#ececec]">
-                 {resolution?.final_response 
-                    ? parseAdminResponse(resolution.final_response) 
-                    : (draft?.draft_text 
-                        ? parseAdminResponse(draft.draft_text) 
-                        : (isEscalated 
-                            ? 'AWAITING HUMAN REVIEW...' 
+
+              <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 min-h-[150px] font-sans text-sm text-[#ECECEC]">
+                 {resolution?.final_response
+                    ? parseAdminResponse(resolution.final_response)
+                    : (draft?.draft_text
+                        ? parseAdminResponse(draft.draft_text)
+                        : (isEscalated
+                            ? 'Awaiting human review…'
                             : <div className="flex justify-center items-center py-8"><WavePhysicsLoader theme="dark" /></div>
                           )
                       )
                  }
               </div>
             </div>
-            
+
             {/* Human Review Override Actions */}
             {(role === 'human' || (role === 'all' && isEscalated)) && !isReplying && (
-              <button 
+              <button
                 onClick={() => setIsReplying(true)}
-                className="w-full bg-transparent border border-[#00E5FF] text-[#00E5FF] hover:bg-[#00E5FF] hover:text-[#050505] transition-colors py-3 text-xs font-mono tracking-widest uppercase">
-                CLAIM_TICKET_FOR_REVIEW
+                className="w-full bg-transparent border border-[#2DD4BF] text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-[#08090D] transition-colors rounded-2xl py-3 text-sm font-medium">
+                Claim this ticket
               </button>
             )}
-            
+
             {(role === 'human' || (role === 'all' && isEscalated)) && isReplying && (
               <div className="space-y-3">
                 <textarea
-                  className="w-full bg-[#111111] border border-[#FFD600] text-[#ececec] text-sm p-3 font-sans focus:outline-none resize-none"
+                  className="w-full bg-white/[0.03] border border-[#FB923C]/50 rounded-2xl text-[#ECECEC] text-sm p-3 font-sans focus:outline-none focus:border-[#FB923C] resize-none"
                   rows={4}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   disabled={isSubmitting}
                 />
                 <div className="flex gap-2">
-                  <button onClick={() => setIsReplying(false)} className="flex-1 border border-[#222222] bg-transparent text-[#888888] hover:text-[#ececec] hover:bg-[#222222] transition-colors py-3 text-[10px] font-mono tracking-widest">ABORT</button>
-                  <button onClick={handleResolve} disabled={!replyText.trim() || isSubmitting} className="flex-1 bg-[#FFD600] text-[#050505] hover:bg-yellow-400 transition-colors py-3 text-[10px] font-mono tracking-widest font-bold">
-                    {isSubmitting ? 'COMMITTING...' : 'COMMIT_RESOLUTION'}
+                  <button onClick={() => setIsReplying(false)} className="flex-1 border border-white/10 bg-transparent text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.06] transition-colors rounded-2xl py-3 text-sm font-medium">Cancel</button>
+                  <button onClick={handleResolve} disabled={!replyText.trim() || isSubmitting} className="flex-1 bg-[#FB923C] text-[#08090D] hover:bg-[#fdba74] transition-colors rounded-2xl py-3 text-sm font-semibold disabled:opacity-50">
+                    {isSubmitting ? 'Sending…' : 'Send resolution'}
                   </button>
                 </div>
               </div>
             )}
-            
+
           </div>
         </div>
       )}
@@ -869,27 +871,27 @@ function MetaItem({ label, value, hint, color, mono, title }: {
 }) {
   return (
     <div className="min-w-0">
-      <span className="text-[9px] font-mono tracking-widest text-[#555555] uppercase block mb-1">{label}</span>
+      <span className="text-xs text-[#8A8F98] block mb-1">{label}</span>
       <span
-        className={`text-[11px] block truncate ${mono ? 'font-mono' : 'font-sans'}`}
-        style={{ color: color || '#ececec' }}
+        className={`text-sm block truncate ${mono ? 'font-mono' : 'font-sans'}`}
+        style={{ color: color || '#ECECEC' }}
         title={title || value}
       >
         {value}
       </span>
-      {hint && <span className="text-[9px] font-mono text-[#555555] block mt-0.5">{hint}</span>}
+      {hint && <span className="text-xs text-[#8A8F98] block mt-0.5">{hint}</span>}
     </div>
   );
 }
 
 function Chip({ label, color, icon }: { label: string; color: string; icon?: React.ReactNode }) {
   const colors: Record<string, string> = {
-    indigo: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/25',
-    sky: 'bg-sky-500/15 text-sky-300 border-sky-500/25',
-    amber: 'bg-amber-500/15 text-amber-300 border-amber-500/25',
-    red: 'bg-red-500/15 text-red-300 border-red-500/25',
+    indigo: 'bg-[#E8A33D]/15 text-[#E8A33D] border-[#E8A33D]/25',
+    sky: 'bg-[#2DD4BF]/15 text-[#2DD4BF] border-[#2DD4BF]/25',
+    amber: 'bg-[#FB923C]/15 text-[#FB923C] border-[#FB923C]/25',
+    red: 'bg-[#FB7185]/15 text-[#FB7185] border-[#FB7185]/25',
     emerald: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
-    slate: 'bg-slate-700/50 text-slate-400 border-slate-600/30',
+    slate: 'bg-white/[0.06] text-[#8A8F98] border-white/10',
   };
   return (
     <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full border font-medium capitalize ${colors[color] || colors.slate}`}>
@@ -907,11 +909,11 @@ function TabBtn({ active, onClick, icon, label, warn }: {
       onClick={onClick}
       className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
         active
-          ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]'
-          : 'text-slate-400 hover:text-white border border-transparent hover:border-slate-700/50 hover:bg-slate-800/50'
+          ? 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shadow-[0_0_15px_rgba(232,163,61,0.2)]'
+          : 'text-[#8A8F98] hover:text-[#ECECEC] border border-transparent hover:border-white/10 hover:bg-white/[0.04]'
       }`}
     >
-      <span className={warn && !active ? 'text-amber-400' : ''}>{icon}</span>
+      <span className={warn && !active ? 'text-[#FB923C]' : ''}>{icon}</span>
       <span>{label}</span>
     </button>
   );
@@ -919,14 +921,14 @@ function TabBtn({ active, onClick, icon, label, warn }: {
 
 function StatBadge({ label, value, color }: { label: string; value: number; color: string }) {
   const colors: Record<string, string> = {
-    indigo: 'from-indigo-500/10 to-indigo-500/5 border-indigo-500/20 text-indigo-300',
-    amber: 'from-amber-500/10 to-amber-500/5 border-amber-500/20 text-amber-300',
+    indigo: 'from-[#E8A33D]/10 to-[#E8A33D]/5 border-[#E8A33D]/20 text-[#E8A33D]',
+    amber: 'from-[#FB923C]/10 to-[#FB923C]/5 border-[#FB923C]/20 text-[#FB923C]',
     emerald: 'from-emerald-500/10 to-emerald-500/5 border-emerald-500/20 text-emerald-300',
-    sky: 'from-sky-500/10 to-sky-500/5 border-sky-500/20 text-sky-300',
+    sky: 'from-[#2DD4BF]/10 to-[#2DD4BF]/5 border-[#2DD4BF]/20 text-[#2DD4BF]',
   };
   return (
     <div className={`bg-gradient-to-br ${colors[color]} border rounded-2xl p-4`}>
-      <p className="text-3xl font-bold text-white">{value}</p>
+      <p className="text-3xl font-bold text-[#ECECEC]">{value}</p>
       <p className={`text-xs font-medium mt-1`}>{label}</p>
     </div>
   );
@@ -937,17 +939,17 @@ function SystemCard({ icon, label, status, uptime, color }: {
 }) {
   const colorMap: Record<string, string> = {
     emerald: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/25',
-    amber: 'text-amber-400 bg-amber-500/15 border-amber-500/25',
-    sky: 'text-sky-400 bg-sky-500/15 border-sky-500/25',
+    amber: 'text-[#FB923C] bg-[#FB923C]/15 border-[#FB923C]/25',
+    sky: 'text-[#2DD4BF] bg-[#2DD4BF]/15 border-[#2DD4BF]/25',
   };
   return (
-    <div className="glass-panel p-5 rounded-2xl">
+    <div className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] p-5">
       <div className="flex justify-between items-start mb-3">
         <div className={`p-2.5 rounded-xl border ${colorMap[color]}`}>{icon}</div>
         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${colorMap[color]}`}>{status}</span>
       </div>
-      <h3 className="font-semibold text-slate-200 text-sm">{label}</h3>
-      <p className="text-xs text-slate-500 mt-0.5">Uptime: {uptime}</p>
+      <h3 className="font-semibold text-[#ECECEC] text-sm">{label}</h3>
+      <p className="text-xs text-[#8A8F98] mt-0.5">Uptime: {uptime}</p>
     </div>
   );
 }
