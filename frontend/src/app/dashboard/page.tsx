@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle, Trash2, Copy } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
-import { GlassPanel, GlassButton, GlassTextarea, Modal } from '../../components/ui';
+import { GlassPanel, GlassButton, GlassTextarea, Modal, StatusBadge } from '../../components/ui';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
 
@@ -441,11 +441,12 @@ function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onD
   const finalResolution = ticket.resolutions?.find(r => r.escalated === false);
   const isFullyResolved = ticket.status === 'resolved' || !!finalResolution;
   const isEscalated = !isFullyResolved && (ticket.status === 'escalated' || ticket.resolutions?.some(r => r.escalated));
-  
-  let statusColor = '#888888';
-  let statusLabel = 'PROCESSING';
-  if (isEscalated) { statusColor = '#FFD600'; statusLabel = 'REQUIRES REVIEW'; }
-  else if (isFullyResolved) { statusColor = '#00FF66'; statusLabel = 'COMPLETED'; }
+
+  let statusColor = '#8A8F98';
+  let statusLabel = 'In progress';
+  let statusTone: 'neutral' | 'warning' | 'success' = 'neutral';
+  if (isEscalated) { statusColor = '#FB923C'; statusLabel = 'Needs review'; statusTone = 'warning'; }
+  else if (isFullyResolved) { statusColor = '#34D399'; statusLabel = 'Resolved'; statusTone = 'success'; }
 
   const issueSnippet = ticket.raw_text.substring(0, 80) + (ticket.raw_text.length > 80 ? '...' : '');
   const classification = ticket.ticket_classifications?.[0];
@@ -458,83 +459,83 @@ function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onD
     : (isEscalated ? 'Support agent (in progress)' : 'Clario AI (in progress)');
 
   return (
-    <div className="border border-[#222222] bg-[#111111] mb-2 transition-all duration-200 hover:border-[#444444]">
+    <div className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] mb-2 transition-all duration-200 hover:border-white/20 overflow-hidden">
       {/* Unexpanded Row */}
-      <div 
+      <div
         className="flex items-center justify-between p-4 cursor-pointer select-none"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center space-x-6 flex-1 min-w-0">
           <div className="flex items-center space-x-3 w-36 shrink-0">
-            <span className="w-1.5 h-1.5" style={{ backgroundColor: statusColor }} />
-            <span className="text-xs font-mono tracking-widest text-[#888888] truncate">{ticket.id.split('-')[0]}</span>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
+            <span className="text-xs font-mono text-[#8A8F98] truncate">{ticket.id.split('-')[0]}</span>
           </div>
           <div className="w-28 shrink-0 leading-tight" title={"Submitted " + formatDateTime(ticket.created_at)}>
-            <span className="text-[10px] text-[#ececec] font-mono block">{formatDate(ticket.created_at)}</span>
-            <span className="text-[10px] text-[#888888] font-mono block">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
+            <span className="text-[11px] text-[#ECECEC] font-mono block">{formatDate(ticket.created_at)}</span>
+            <span className="text-[11px] text-[#8A8F98] font-mono block">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
           </div>
-          <span className="text-sm text-[#ececec] truncate font-sans">{issueSnippet}</span>
+          <span className="text-sm text-[#ECECEC] truncate font-sans">{issueSnippet}</span>
         </div>
-        
+
         <div className="flex items-center space-x-6 shrink-0 pl-4">
-          <span className="text-[10px] font-mono tracking-widest" style={{ color: statusColor }}>[{statusLabel}]</span>
+          <StatusBadge label={statusLabel} tone={statusTone} />
           <ShakeButton onDelete={(e) => { e.stopPropagation(); onDelete(ticket.id); }} />
-          {expanded ? <ChevronUp className="w-4 h-4 text-[#888888]" /> : <ChevronDown className="w-4 h-4 text-[#888888]" />}
+          {expanded ? <ChevronUp className="w-4 h-4 text-[#8A8F98]" /> : <ChevronDown className="w-4 h-4 text-[#8A8F98]" />}
         </div>
       </div>
 
       {/* Expanded Details */}
       {expanded && (
-        <div className="border-t border-[#222222] p-6 bg-[#050505] space-y-6">
+        <div className="border-t border-white/10 p-6 space-y-6">
 
           {/* Ticket facts, not just the clock time it came in */}
-          <div className="border border-[#222222] bg-[#111111] p-4">
-            <span className="text-[10px] font-mono tracking-widest text-[#555555] uppercase block mb-3">TICKET_DETAILS</span>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <span className="text-xs text-[#8A8F98] block mb-3">Ticket details</span>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
-              <UserMetaItem label="REFERENCE" value={ticket.id.split('-')[0].toUpperCase()} mono title={ticket.id} />
-              <UserMetaItem label="STATUS" value={statusLabel} color={statusColor} />
-              <UserMetaItem label="SUBJECT" value={ticket.subject || 'No subject'} />
-              <UserMetaItem label="SUBMITTED" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
+              <UserMetaItem label="Reference" value={ticket.id.split('-')[0].toUpperCase()} mono title={ticket.id} />
+              <UserMetaItem label="Status" value={statusLabel} color={statusColor} />
+              <UserMetaItem label="Subject" value={ticket.subject || 'No subject'} />
+              <UserMetaItem label="Submitted" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
               <UserMetaItem
-                label="LAST_UPDATE"
+                label="Last update"
                 value={ticket.updated_at ? formatDateTime(ticket.updated_at) : '—'}
                 hint={ticket.updated_at ? formatRelative(ticket.updated_at) : undefined}
               />
               <UserMetaItem
-                label={resolvedAt ? 'RESOLVED' : 'RESOLUTION'}
+                label={resolvedAt ? 'Resolved' : 'Resolution'}
                 value={resolvedAt ? formatDateTime(resolvedAt) : (isEscalated ? 'With a human agent' : 'Being processed')}
                 hint={resolvedAt ? 'Took ' + formatElapsed(ticket.created_at, resolvedAt) : undefined}
-                color={resolvedAt ? '#00FF66' : statusColor}
+                color={resolvedAt ? '#34D399' : statusColor}
               />
               {classification?.category && (
-                <UserMetaItem label="CATEGORY" value={classification.category.toUpperCase()} mono />
+                <UserMetaItem label="Category" value={classification.category} mono />
               )}
               {classification?.priority && (
                 <UserMetaItem
-                  label="PRIORITY"
-                  value={classification.priority.toUpperCase()}
+                  label="Priority"
+                  value={classification.priority}
                   mono
-                  color={classification.priority.toLowerCase() === 'high' ? '#FFD600' : undefined}
+                  color={classification.priority.toLowerCase() === 'high' ? '#FB923C' : undefined}
                 />
               )}
-              <UserMetaItem label="HANDLED_BY" value={handledBy} />
+              <UserMetaItem label="Handled by" value={handledBy} />
             </div>
           </div>
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[10px] font-mono tracking-widest text-[#555555] uppercase block">ORIGINAL_PAYLOAD</span>
+              <span className="text-xs text-[#8A8F98] block">Your message</span>
               <MorphButton textToCopy={ticket.id} label="Copy ID" />
             </div>
-            <p className="text-sm text-[#ececec] leading-relaxed font-sans whitespace-pre-wrap">"{ticket.raw_text}"</p>
+            <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">"{ticket.raw_text}"</p>
           </div>
-          
-          <div className="border-t border-[#222222] pt-4">
-            <span className="text-[10px] font-mono tracking-widest uppercase block mb-2" style={{ color: statusColor }}>SYS_RESOLUTION</span>
-            <div className="bg-[#111111] border border-[#222222] p-4 min-h-[100px] font-sans text-sm text-[#ececec]">
-              {(isFullyResolved && finalResolution?.final_response) 
-                ? parseCustomerResponse(finalResolution.final_response) 
-                : (isEscalated 
+
+          <div className="border-t border-white/10 pt-4">
+            <span className="text-xs block mb-2" style={{ color: statusColor }}>Resolution</span>
+            <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 min-h-[100px] font-sans text-sm text-[#ECECEC]">
+              {(isFullyResolved && finalResolution?.final_response)
+                ? parseCustomerResponse(finalResolution.final_response)
+                : (isEscalated
                     ? 'A human agent has taken over this ticket and is currently drafting a resolution.'
                     : <div className="flex justify-center items-center py-8"><WavePhysicsLoader theme="dark" /></div>
                   )}
@@ -552,15 +553,15 @@ function UserMetaItem({ label, value, hint, color, mono, title }: {
 }) {
   return (
     <div className="min-w-0">
-      <span className="text-[9px] font-mono tracking-widest text-[#555555] uppercase block mb-1">{label}</span>
+      <span className="text-xs text-[#8A8F98] block mb-1">{label}</span>
       <span
-        className={`text-[11px] block truncate ${mono ? 'font-mono' : 'font-sans'}`}
-        style={{ color: color || '#ececec' }}
+        className={`text-sm block truncate ${mono ? 'font-mono' : 'font-sans'}`}
+        style={{ color: color || '#ECECEC' }}
         title={title || value}
       >
         {value}
       </span>
-      {hint && <span className="text-[9px] font-mono text-[#555555] block mt-0.5">{hint}</span>}
+      {hint && <span className="text-xs text-[#8A8F98] block mt-0.5">{hint}</span>}
     </div>
   );
 }
