@@ -23,7 +23,9 @@ async def lifespan(app: FastAPI):
     import threading
     from app.tools.local_llm import _load_model as load_llm
     from app.tools.local_ocr import _load_model_singleton as load_ocr
-    
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from app.jobs.sync_judge_references import sync_judge_references
+
     def preload_models():
         try:
             logger.info("Preloading ML Models at startup...")
@@ -32,13 +34,20 @@ async def lifespan(app: FastAPI):
             logger.info("ML Models preloaded successfully.")
         except Exception as e:
             logger.error(f"Failed to preload models: {e}")
-            
+
     # Run in background thread so it doesn't block Uvicorn from starting up and binding the port
     threading.Thread(target=preload_models, daemon=True).start()
-    
+
+    # Feeds admin-corrected judge scores back into the judge's reference pool
+    # every 24h. Upsert-based, so a duplicate run (e.g. worker.py also holds
+    # this lifespan) or a restart mid-cycle is harmless.
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(sync_judge_references, "interval", hours=24, id="sync_judge_references")
+    scheduler.start()
+
     yield
-    # Cleanup on shutdown (if any)
-    
+    scheduler.shutdown(wait=False)
+
 app = FastAPI(title="Clario Agent Orchestration", lifespan=lifespan)
 
 app.add_middleware(
