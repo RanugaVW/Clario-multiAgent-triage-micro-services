@@ -50,6 +50,7 @@ def fetch(category: str, keywords: list[str], limit: int) -> list[RawExample]:
         return []
 
     examples: list[RawExample] = []
+    seen: set[tuple[str, int]] = set()
 
     for host in _HOSTS:
         for keyword in keywords:
@@ -67,6 +68,10 @@ def fetch(category: str, keywords: list[str], limit: int) -> list[RawExample]:
                     return examples
 
                 topic_id = topic["id"]
+                if (host, topic_id) in seen:
+                    continue
+                seen.add((host, topic_id))
+
                 time.sleep(_REQUEST_DELAY_SECONDS)
                 try:
                     thread = _fetch_thread(host, topic_id)
