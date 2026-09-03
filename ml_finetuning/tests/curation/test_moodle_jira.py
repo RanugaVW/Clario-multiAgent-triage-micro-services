@@ -90,3 +90,39 @@ def test_fetch_returns_empty_list_on_search_error(monkeypatch):
     monkeypatch.setattr(moodle_jira, "_search_issues", _raise)
 
     assert moodle_jira.fetch("Login Issue", ["login"], limit=5) == []
+
+
+class _FakeResponse:
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return {"issues": []}
+
+
+def test_search_issues_follows_redirects(monkeypatch):
+    captured = {}
+
+    def _fake_get(url, **kwargs):
+        captured.update(kwargs)
+        return _FakeResponse()
+
+    monkeypatch.setattr(moodle_jira.httpx, "get", _fake_get)
+
+    moodle_jira._search_issues("project = MDL", max_results=5)
+
+    assert captured.get("follow_redirects") is True
+
+
+def test_fetch_comments_follows_redirects(monkeypatch):
+    captured = {}
+
+    def _fake_get(url, **kwargs):
+        captured.update(kwargs)
+        return _FakeResponse()
+
+    monkeypatch.setattr(moodle_jira.httpx, "get", _fake_get)
+
+    moodle_jira._fetch_comments("MDL-1001")
+
+    assert captured.get("follow_redirects") is True
