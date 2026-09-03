@@ -1,6 +1,7 @@
 # 02 — Integration Testing
 
-**Status:** Complete (first pass). See [`INTEGRATION_TEST_REPORT.md`](INTEGRATION_TEST_REPORT.md).
+**Status:** Complete — 4/4 scenarios passing on the final run, two real
+findings fixed along the way. See [`INTEGRATION_TEST_REPORT.md`](INTEGRATION_TEST_REPORT.md).
 
 **Sample-plan equivalent:** §3.1.1 Data and Database Integrity Testing,
 §3.1.2 Function Testing (multi-component flows).

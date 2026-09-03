@@ -175,18 +175,22 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
             "raw_graph_payload": final_state
         }).eq("id", ticket.ticket_id).execute()
         
-        classification_payload = {
-            "ticket_id": ticket.ticket_id,
-            "category": final_state.get("category"),
-            "priority": final_state.get("priority"),
-            "sentiment": final_state.get("sentiment"),
-            "confidence": final_state.get("classification_confidence"),
-            # Was hardcoded to "gemini" regardless of what actually classified
-            # the ticket - classify_ticket_local runs the local fine-tuned
-            # adapter (source "gemma3_lora"), never Gemini directly.
-            "source": final_state.get("classification_source"),
-        }
-        supabase_client.table("ticket_classifications").insert(classification_payload).execute()
+        # cache_check_node short-circuits straight to response_judge on a hit,
+        # so classification_node never ran - final_state has no classification
+        # fields to insert (they'd all be NULL).
+        if not final_state.get("cache_hit"):
+            classification_payload = {
+                "ticket_id": ticket.ticket_id,
+                "category": final_state.get("category"),
+                "priority": final_state.get("priority"),
+                "sentiment": final_state.get("sentiment"),
+                "confidence": final_state.get("classification_confidence"),
+                # Was hardcoded to "gemini" regardless of what actually classified
+                # the ticket - classify_ticket_local runs the local fine-tuned
+                # adapter (source "gemma3_lora"), never Gemini directly.
+                "source": final_state.get("classification_source"),
+            }
+            supabase_client.table("ticket_classifications").insert(classification_payload).execute()
         
         agent_drafts = final_state.get("agent_drafts", {})
         rag_scores = final_state.get("rag_top_score", {})
