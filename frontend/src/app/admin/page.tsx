@@ -115,6 +115,7 @@ type Ticket = {
   raw_text: string;
   subject: string | null;
   customer_email: string | null;
+  user_id?: string | null;
   status: string;
   created_at: string;
   updated_at?: string | null;
@@ -124,6 +125,9 @@ type Ticket = {
   resolutions: Resolution[];
   response_evaluations: ResponseEvaluation[];
   customer_feedback: CustomerFeedback[];
+  // tickets.customer_email is never populated at ticket-creation time; this
+  // is the real fallback, fetched via the user_id FK (see fetchFullData).
+  users?: { email: string | null } | null;
 };
 
 // ─── Virtual AI Agent Definitions (from architecture doc) ─────────────────────
@@ -714,7 +718,8 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
       ticket_classifications (*),
       resolutions (*),
       response_evaluations (*, evaluation_score_overrides (*)),
-      customer_feedback (*)
+      customer_feedback (*),
+      users:user_id ( email )
     `).eq('id', ticket.id).single();
     setFullData(data as any);
     return data;
@@ -870,7 +875,11 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-x-6 gap-y-4">
               <MetaItem label="Ticket ID" value={ticket.id} mono title={ticket.id} />
               <MetaItem label="Subject" value={ticket.subject || fullData?.subject || 'No subject'} />
-              <MetaItem label="Requester" value={ticket.customer_email || fullData?.customer_email || 'Anonymous'} title={ticket.customer_email || undefined} />
+              <MetaItem
+                label="Requester"
+                value={ticket.customer_email || fullData?.customer_email || fullData?.users?.email || 'Anonymous'}
+                title={ticket.customer_email || fullData?.customer_email || fullData?.users?.email || undefined}
+              />
               <MetaItem label="Status" value={statusLabel} color={statusColor} />
               <MetaItem label="Submitted" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
               <MetaItem label="Last update" value={formatDateTime(updatedAt)} hint={updatedAt ? formatRelative(updatedAt) : undefined} />
@@ -886,8 +895,11 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
               <MetaItem
                 label="Pipeline time"
                 value={
-                  ticket.raw_graph_payload?.processing_time_ms != null
-                    ? formatDuration(ticket.raw_graph_payload.processing_time_ms)
+                  // fullData is fetched fresh on expand; ticket is the list
+                  // snapshot, cached client-side for up to 30s - prefer
+                  // fullData like every other field in this block does.
+                  (fullData?.raw_graph_payload?.processing_time_ms ?? ticket.raw_graph_payload?.processing_time_ms) != null
+                    ? formatDuration(fullData?.raw_graph_payload?.processing_time_ms ?? ticket.raw_graph_payload?.processing_time_ms)
                     : (resolution?.total_latency_ms != null ? formatDuration(resolution.total_latency_ms) : '—')
                 }
                 color="#2DD4BF"
