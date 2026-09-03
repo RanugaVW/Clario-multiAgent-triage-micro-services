@@ -246,7 +246,12 @@ class ResponseJudge:
     def __init__(self, config: Optional[JudgeConfig] = None):
         self.config = config or JudgeConfig(
             provider=os.getenv("RESPONSE_JUDGE_PROVIDER", "gemini"),
-            model_name=os.getenv("RESPONSE_JUDGE_MODEL", "gemini-2.5-pro"),
+            # GEMINI_JUDGE_MODEL matches the naming convention GEMINI_DRAFT_MODEL
+            # already uses in local_llm.py.
+            # gemini-flash-latest (not a pinned version) so this default can't
+            # go stale the way gemini-2.5-pro did - it was deprecated by Google
+            # ("no longer available to new users") while still hardcoded here.
+            model_name=os.getenv("GEMINI_JUDGE_MODEL", "gemini-flash-latest"),
             min_score_threshold=int(os.getenv("MIN_JUDGE_SCORE", "3")),
         )
 
@@ -323,14 +328,27 @@ class ResponseJudge:
         few_shots: Optional[List[Dict]] = None,
         rag_context: Optional[List[Dict]] = None,
     ) -> JudgeScore:
-        """Evaluate a draft response and return structured scores."""
+        """Evaluate a draft response and return structured scores.
+
+        Raises once every retry is exhausted, rather than returning a fake
+        low score - a judge outage is not the same thing as "this response
+        is unacceptable," and disguising one as the other both misleads
+        anyone reading response_evaluations and corrupts the admin-override
+        feedback loop (app/jobs/sync_judge_references.py). The caller
+        (response_judge_node) already catches and logs failures per domain
+        rather than storing anything for it - this just lets that existing
+        handling actually see failures instead of a fake "successful" score.
+
+        An empty draft is a genuine 1/5, not a failure, so that case alone
+        still returns a real score.
+        """
 
         if not draft or not draft.strip():
             return self._empty_score("Empty draft provided")
 
         prompt = self._build_prompt(draft, priority, category, ticket_issue, few_shots or [], rag_context or [])
 
-        last_error = None
+        last_error: Exception | None = None
         for attempt in range(self.config.max_retries + 1):
             try:
                 start = time.time()
@@ -348,12 +366,19 @@ class ResponseJudge:
                 if attempt < self.config.max_retries:
                     await self._backoff(attempt)
 
-        # All retries failed - return minimum scores (fail-safe)
         logger.error(f"Judge evaluation failed after {self.config.max_retries + 1} attempts: {last_error}")
-        return self._empty_score(f"Judge evaluation failed: {last_error}")
+        raise RuntimeError(
+            f"Judge evaluation failed after {self.config.max_retries + 1} attempts"
+        ) from last_error
 
     async def _call_gemini(self, prompt: str) -> str:
-        response = await self.client.models.generate_content(
+        # client.models.generate_content is synchronous - every other Gemini
+        # call site in this codebase (local_llm.py, local_ocr.py) calls it
+        # directly for that reason. This function is async, so it needs the
+        # real async accessor (client.aio.models...) instead; awaiting the
+        # sync one raised "GenerateContentResponse can't be used in 'await'
+        # expression" on every call that would otherwise have succeeded.
+        response = await self.client.aio.models.generate_content(
             model=self.config.model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -383,12 +408,17 @@ class ResponseJudge:
         await asyncio.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s...
 
     def _parse_response(self, text: str, latency_ms: int = 0) -> JudgeScore:
-        """Parse and validate judge JSON response."""
+        """Parse and validate judge JSON response.
+
+        Raises on malformed JSON instead of returning a fake score, so the
+        caller's retry loop in evaluate() treats it as a failed attempt
+        (worth retrying) rather than a silent, immediate "success."
+        """
         try:
             data = json.loads(text)
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse judge JSON: {e}, text: {text[:500]}")
-            return self._empty_score(f"Invalid JSON from judge: {e}")
+            raise ValueError(f"Invalid JSON from judge: {e}") from e
 
         # Validate and clamp all scores to 1-5
         score_fields = [
