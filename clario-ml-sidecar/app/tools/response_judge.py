@@ -4,7 +4,8 @@ This module provides a configurable judge LLM that evaluates customer support
 draft responses against priority-conditioned tone requirements, ground truth
 references, and policy compliance.
 
-Supported providers: Gemini (current), OpenAI (for GPT-5.6 Luna when available).
+Supported providers: OpenAI (GPT-5.6 Luna, default) and Gemini (fallback,
+set RESPONSE_JUDGE_PROVIDER=gemini).
 """
 
 from __future__ import annotations
@@ -170,8 +171,8 @@ class JudgeScore:
 @dataclass
 class JudgeConfig:
     """Configuration for the judge LLM."""
-    provider: str = "gemini"  # "gemini" | "openai"
-    model_name: str = "gemini-2.5-pro"
+    provider: str = "openai"  # "openai" | "gemini"
+    model_name: str = "gpt-5.6-luna"
     temperature: float = 0.1
     min_score_threshold: int = 3
     max_retries: int = 2
@@ -244,27 +245,28 @@ class ResponseJudge:
     """Scores draft responses using a configurable judge LLM."""
 
     def __init__(self, config: Optional[JudgeConfig] = None):
-        self.config = config or JudgeConfig(
-            provider=os.getenv("RESPONSE_JUDGE_PROVIDER", "gemini"),
-            # GEMINI_JUDGE_MODEL matches the naming convention GEMINI_DRAFT_MODEL
-            # already uses in local_llm.py.
+        provider = os.getenv("RESPONSE_JUDGE_PROVIDER", "openai")
+        # Model env var is provider-specific so switching RESPONSE_JUDGE_PROVIDER
+        # can't accidentally hand one provider's model string to the other's API.
+        if provider == "openai":
+            model_name = os.getenv("OPENAI_JUDGE_MODEL", "gpt-5.6-luna")
+        else:
             # gemini-flash-latest (not a pinned version) so this default can't
             # go stale the way gemini-2.5-pro did - it was deprecated by Google
             # ("no longer available to new users") while still hardcoded here.
-            model_name=os.getenv("GEMINI_JUDGE_MODEL", "gemini-flash-latest"),
+            model_name = os.getenv("GEMINI_JUDGE_MODEL", "gemini-flash-latest")
+
+        self.config = config or JudgeConfig(
+            provider=provider,
+            model_name=model_name,
             min_score_threshold=int(os.getenv("MIN_JUDGE_SCORE", "3")),
         )
 
         if self.config.provider == "gemini":
             self.client = genai.Client()
         elif self.config.provider == "openai":
-            # TODO: Implement when GPT-5.6 Luna is available
-            # from openai import AsyncOpenAI
-            # self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-            raise NotImplementedError(
-                "OpenAI provider not yet implemented. "
-                "Set RESPONSE_JUDGE_PROVIDER=gemini or implement OpenAI client."
-            )
+            from openai import AsyncOpenAI
+            self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         else:
             raise ValueError(f"Unknown judge provider: {self.config.provider}")
 
@@ -390,18 +392,16 @@ class ResponseJudge:
         return response.text
 
     async def _call_openai(self, prompt: str) -> str:
-        # Placeholder for GPT-5.6 Luna integration
-        # response = await self.client.chat.completions.create(
-        #     model=self.config.model_name,
-        #     messages=[
-        #         {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
-        #         {"role": "user", "content": prompt},
-        #     ],
-        #     response_format={"type": "json_object"},
-        #     temperature=self.config.temperature,
-        # )
-        # return response.choices[0].message.content
-        raise NotImplementedError("OpenAI provider not implemented")
+        response = await self.client.chat.completions.create(
+            model=self.config.model_name,
+            messages=[
+                {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=self.config.temperature,
+        )
+        return response.choices[0].message.content
 
     async def _backoff(self, attempt: int) -> None:
         import asyncio
