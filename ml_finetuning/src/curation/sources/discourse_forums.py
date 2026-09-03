@@ -4,12 +4,15 @@ forums, across all 7 categories on a best-effort basis.
 Uses each forum's public Discourse JSON API (search.json + t/<id>.json).
 No authentication required.
 
-community.udemy.com's platform is unverified as of writing this (it was
-hedged as "Discourse or Vanilla" during research, with a Vanilla-style
-example URL) - if it isn't actually Discourse, requests against it will
-404, get logged, and be skipped (see fetch()'s per-host error handling)
-rather than crash, but that host will silently contribute 0 examples.
-discuss.openedx.org is confirmed Discourse.
+community.udemy.com is confirmed Discourse (verified against the live API):
+it 302-redirects unlocalized paths like /search.json to a locale-prefixed
+path (/en/search.json), which is standard Discourse i18n routing - hence
+follow_redirects=True on every request in this module. discuss.openedx.org
+is Discourse too and doesn't redirect. If a host ever turns out not to be
+Discourse after all, requests against it will fail some other way (404,
+non-JSON body), get logged, and be skipped (see fetch()'s per-host error
+handling) rather than crash - that host would just silently contribute 0
+examples.
 """
 
 from __future__ import annotations
@@ -29,13 +32,15 @@ _REQUEST_DELAY_SECONDS = 1.0
 
 
 def _search_topics(host: str, keyword: str) -> list[dict]:
-    response = httpx.get(f"https://{host}/search.json", params={"q": keyword}, timeout=30.0)
+    response = httpx.get(
+        f"https://{host}/search.json", params={"q": keyword}, timeout=30.0, follow_redirects=True
+    )
     response.raise_for_status()
     return response.json().get("topics", [])
 
 
 def _fetch_thread(host: str, topic_id: int) -> dict:
-    response = httpx.get(f"https://{host}/t/{topic_id}.json", timeout=30.0)
+    response = httpx.get(f"https://{host}/t/{topic_id}.json", timeout=30.0, follow_redirects=True)
     response.raise_for_status()
     return response.json()
 
