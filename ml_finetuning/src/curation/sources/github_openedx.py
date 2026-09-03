@@ -38,12 +38,12 @@ def _headers() -> dict:
 
 
 def _get_json(url: str, params: dict | None = None):
-    response = httpx.get(url, params=params, headers=_headers(), timeout=30.0)
+    response = httpx.get(url, params=params, headers=_headers(), timeout=30.0, follow_redirects=True)
     if response.status_code in (403, 429):
         retry_after = int(response.headers.get("Retry-After", _DEFAULT_RETRY_AFTER_SECONDS))
         logger.warning(f"GitHub rate limited on {url}; waiting {retry_after}s and retrying once.")
         time.sleep(retry_after)
-        response = httpx.get(url, params=params, headers=_headers(), timeout=30.0)
+        response = httpx.get(url, params=params, headers=_headers(), timeout=30.0, follow_redirects=True)
     response.raise_for_status()
     return response.json()
 

@@ -27,13 +27,14 @@ def _search_issues(jql: str, max_results: int) -> list[dict]:
         _SEARCH_URL,
         params={"jql": jql, "fields": "summary,description,reporter", "maxResults": max_results},
         timeout=30.0,
+        follow_redirects=True,
     )
     response.raise_for_status()
     return response.json().get("issues", [])
 
 
 def _fetch_comments(key: str) -> dict:
-    response = httpx.get(_COMMENT_URL.format(key=key), timeout=30.0)
+    response = httpx.get(_COMMENT_URL.format(key=key), timeout=30.0, follow_redirects=True)
     response.raise_for_status()
     return response.json()
 

@@ -101,3 +101,39 @@ def test_fetch_continues_past_search_error(monkeypatch):
     monkeypatch.setattr(discourse_forums, "_search_topics", _raise)
 
     assert discourse_forums.fetch("Account Suspension", ["suspended"], limit=5) == []
+
+
+class _FakeResponse:
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return {"topics": [], "post_stream": {"posts": []}}
+
+
+def test_search_topics_follows_redirects(monkeypatch):
+    captured = {}
+
+    def _fake_get(url, **kwargs):
+        captured.update(kwargs)
+        return _FakeResponse()
+
+    monkeypatch.setattr(discourse_forums.httpx, "get", _fake_get)
+
+    discourse_forums._search_topics("community.udemy.com", "login")
+
+    assert captured.get("follow_redirects") is True
+
+
+def test_fetch_thread_follows_redirects(monkeypatch):
+    captured = {}
+
+    def _fake_get(url, **kwargs):
+        captured.update(kwargs)
+        return _FakeResponse()
+
+    monkeypatch.setattr(discourse_forums.httpx, "get", _fake_get)
+
+    discourse_forums._fetch_thread("community.udemy.com", 555)
+
+    assert captured.get("follow_redirects") is True

@@ -101,7 +101,7 @@ class _FakeResponse:
 def test_get_json_retries_once_after_403_with_retry_after(monkeypatch):
     calls = {"n": 0}
 
-    def _fake_get(url, params=None, headers=None, timeout=None):
+    def _fake_get(url, **kwargs):
         calls["n"] += 1
         if calls["n"] == 1:
             return _FakeResponse(403, headers={"Retry-After": "1"})
@@ -124,3 +124,17 @@ def test_get_json_retries_once_after_403_with_retry_after(monkeypatch):
 
     assert len(results) == 1
     assert calls["n"] == 2
+
+
+def test_get_json_follows_redirects(monkeypatch):
+    captured = {}
+
+    def _fake_get(url, **kwargs):
+        captured.update(kwargs)
+        return _FakeResponse(200, json_data={"items": []})
+
+    monkeypatch.setattr(github_openedx.httpx, "get", _fake_get)
+
+    github_openedx._get_json("https://api.github.com/search/issues", params={"q": "x"})
+
+    assert captured.get("follow_redirects") is True
