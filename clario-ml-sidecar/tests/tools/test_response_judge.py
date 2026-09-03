@@ -85,7 +85,7 @@ def test_evaluate_still_returns_a_real_score_for_an_empty_draft() -> None:
 def test_openai_is_the_default_provider() -> None:
     config = JudgeConfig()
     assert config.provider == "openai"
-    assert config.model_name == "gpt-5.6-luna"
+    assert config.model_name == "gpt-5.4-mini"
 
 
 class _FakeMessage:
@@ -124,15 +124,15 @@ class _FakeOpenAIClient:
 
 
 def test_evaluate_scores_a_draft_via_the_openai_path() -> None:
-    judge = _judge(provider="openai", model_name="gpt-5.6-luna")
+    judge = _judge(provider="openai", model_name="gpt-5.4-mini")
     judge.client = _FakeOpenAIClient(VALID_JSON)
 
     score = asyncio.run(judge.evaluate("Some draft.", "High", "Technical", "issue"))
 
     assert score.overall_score == 4
-    assert score.judge_model == "gpt-5.6-luna"
+    assert score.judge_model == "gpt-5.4-mini"
     call = judge.client.chat.completions.calls[0]
-    assert call["model"] == "gpt-5.6-luna"
+    assert call["model"] == "gpt-5.4-mini"
     assert call["response_format"] == {"type": "json_object"}
     assert call["messages"][0]["role"] == "system"
     assert call["messages"][1]["role"] == "user"

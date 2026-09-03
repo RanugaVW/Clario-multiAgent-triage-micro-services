@@ -4,7 +4,7 @@ This module provides a configurable judge LLM that evaluates customer support
 draft responses against priority-conditioned tone requirements, ground truth
 references, and policy compliance.
 
-Supported providers: OpenAI (GPT-5.6 Luna, default) and Gemini (fallback,
+Supported providers: OpenAI (GPT-5.4 Mini, default) and Gemini (fallback,
 set RESPONSE_JUDGE_PROVIDER=gemini).
 """
 
@@ -172,7 +172,7 @@ class JudgeScore:
 class JudgeConfig:
     """Configuration for the judge LLM."""
     provider: str = "openai"  # "openai" | "gemini"
-    model_name: str = "gpt-5.6-luna"
+    model_name: str = "gpt-5.4-mini"
     temperature: float = 0.1
     min_score_threshold: int = 3
     max_retries: int = 2
@@ -249,7 +249,7 @@ class ResponseJudge:
         # Model env var is provider-specific so switching RESPONSE_JUDGE_PROVIDER
         # can't accidentally hand one provider's model string to the other's API.
         if provider == "openai":
-            model_name = os.getenv("OPENAI_JUDGE_MODEL", "gpt-5.6-luna")
+            model_name = os.getenv("OPENAI_JUDGE_MODEL", "gpt-5.4-mini")
         else:
             # gemini-flash-latest (not a pinned version) so this default can't
             # go stale the way gemini-2.5-pro did - it was deprecated by Google
