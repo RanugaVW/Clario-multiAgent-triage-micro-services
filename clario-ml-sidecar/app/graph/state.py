@@ -18,6 +18,10 @@ class TicketState(TypedDict):
     redacted_text: str
     # surrogate_node writes; validation_node reads for outgoing PII checks.
     pii_found: list[dict]
+    # surrogate_node writes ({fake_value: real_value} for PERSON/EMAIL only);
+    # validation_node reads to exempt these from the pii_in_draft check,
+    # resolve_node reads to restore real values into the final draft.
+    pii_shadow_map: dict[str, str]
     # classification_node writes; routing_node, escalation_node, and handoff_node read.
     category: str | None
     # classification_node writes; escalation_node and handoff_node read.
