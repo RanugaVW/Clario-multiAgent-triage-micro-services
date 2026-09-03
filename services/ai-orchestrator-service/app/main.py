@@ -80,15 +80,11 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
     try:
         import time
         if ticket.image_base64:
-            import httpx
-            ocr_url = os.environ.get("OCR_URL", "http://ocr-vision-service:8000")
+            from app.tools.local_ocr import process_image_async
             try:
-                async with httpx.AsyncClient() as client:
-                    resp = await client.post(f"{ocr_url}/ocr", json={"image_base64": ticket.image_base64}, timeout=60.0)
-                    resp.raise_for_status()
-                    ocr_text = resp.json().get("text", "")
+                ocr_text = await process_image_async(ticket.image_base64)
             except Exception as e:
-                logger.error(f"Failed to reach OCR Service: {e}")
+                logger.error(f"OCR extraction failed: {e}")
                 ocr_text = "[OCR FAILED]"
                 
             # Sync the extracted text back to the database so the Admin can see it
