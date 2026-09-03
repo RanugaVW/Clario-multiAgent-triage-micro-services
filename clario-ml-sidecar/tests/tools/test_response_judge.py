@@ -150,3 +150,84 @@ def test_evaluate_raises_after_every_retry_is_exhausted_on_openai_too(monkeypatc
 
     with pytest.raises(RuntimeError):
         asyncio.run(judge.evaluate("Some draft.", "High", "Technical", "issue"))
+
+
+def test_compare_draft_to_reference_agrees_across_both_passes() -> None:
+    judge = _judge()
+    call_count = {"n": 0}
+
+    async def fake_call_gemini(prompt, system_prompt=None):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return '{"winner": "A", "reasoning": "More complete."}'
+        return '{"winner": "B", "reasoning": "More complete (order 2)."}'
+
+    judge._call_gemini = fake_call_gemini
+
+    verdict = asyncio.run(judge.compare_draft_to_reference(
+        ticket_issue="Cannot log in",
+        priority="Medium",
+        category="Login Issue",
+        draft="Try resetting your password.",
+        reference="Please clear your cache.",
+    ))
+
+    assert verdict.winner_pass1 == "draft"
+    assert verdict.winner_pass2 == "draft"
+    assert verdict.final_winner == "draft"
+    assert verdict.reasoning_pass1 == "More complete."
+    assert verdict.reasoning_pass2 == "More complete (order 2)."
+    assert call_count["n"] == 2
+
+
+def test_compare_draft_to_reference_reconciles_disagreement_to_tie() -> None:
+    judge = _judge()
+    call_count = {"n": 0}
+
+    async def fake_call_gemini(prompt, system_prompt=None):
+        call_count["n"] += 1
+        # pass1: draft in slot A -> "A" wins -> winner_pass1 = "draft"
+        # pass2: reference in slot A, draft in slot B -> "A" wins -> winner_pass2 = "reference"
+        return '{"winner": "A", "reasoning": "A wins this round."}'
+
+    judge._call_gemini = fake_call_gemini
+
+    verdict = asyncio.run(judge.compare_draft_to_reference(
+        ticket_issue="x", priority="Medium", category="Bug Report", draft="d", reference="r",
+    ))
+
+    assert verdict.winner_pass1 == "draft"
+    assert verdict.winner_pass2 == "reference"
+    assert verdict.final_winner == "tie"
+
+
+def test_parse_pairwise_response_raises_on_malformed_json() -> None:
+    judge = _judge()
+    with pytest.raises(ValueError):
+        judge._parse_pairwise_response("not json at all")
+
+
+def test_parse_pairwise_response_defaults_unrecognized_winner_to_tie() -> None:
+    judge = _judge()
+    result = judge._parse_pairwise_response('{"winner": "C", "reasoning": "weird"}')
+    assert result["winner"] == "tie"
+
+
+def test_parse_pairwise_response_defaults_missing_reasoning() -> None:
+    judge = _judge()
+    result = judge._parse_pairwise_response('{"winner": "A"}')
+    assert result["reasoning"] == "No reasoning provided by judge."
+
+
+def test_compare_draft_to_reference_raises_after_retries_exhausted() -> None:
+    judge = _judge(max_retries=0)
+
+    async def fake_call_gemini(prompt, system_prompt=None):
+        raise RuntimeError("boom")
+
+    judge._call_gemini = fake_call_gemini
+
+    with pytest.raises(RuntimeError):
+        asyncio.run(judge.compare_draft_to_reference(
+            ticket_issue="x", priority="Medium", category="Bug Report", draft="d", reference="r",
+        ))
