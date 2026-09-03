@@ -163,6 +163,8 @@ export default function AdminDashboard() {
   const [dataLoading, setDataLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
 
   const isFullyLoaded = !loading && !roleLoading;
 
@@ -251,6 +253,20 @@ export default function AdminDashboard() {
     if (isResolved) return false;
     return t.resolutions?.some(r => r.escalated) || (!t.resolutions?.length && t.status === 'escalated');
   });
+
+  // Distinct categories actually present in the data, most common first —
+  // derived rather than hardcoded so it stays in sync with the taxonomy.
+  const categoryCounts = allTickets.reduce<Record<string, number>>((acc, t) => {
+    const category = t.ticket_classifications?.[0]?.category;
+    if (category) acc[category] = (acc[category] || 0) + 1;
+    return acc;
+  }, {});
+  const ticketCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
+
+  const filteredAllTickets = allTickets
+    .filter(t => !searchQuery || t.id.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(t => categoryFilter === 'all' || t.ticket_classifications?.[0]?.category === categoryFilter)
+    .filter(t => priorityFilter === 'all' || t.ticket_classifications?.[0]?.priority?.toLowerCase() === priorityFilter);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -526,7 +542,7 @@ export default function AdminDashboard() {
       {activeTab === 'all_tickets' && (
         <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
           <div className="glass-panel rounded-[28px] overflow-hidden">
-            <div className="p-6 border-b border-white/10 flex justify-between items-center">
+            <div className="p-6 border-b border-white/10 flex flex-wrap justify-between items-center gap-4">
               <h2 className="text-lg font-semibold text-[#ECECEC] flex items-center">
                 <MessageSquare className="w-5 h-5 mr-2 text-[#E8A33D]" /> All tickets & responses
               </h2>
@@ -542,6 +558,24 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* Category tabs — derived from whatever categories are actually present */}
+            {ticketCategories.length > 0 && (
+              <div className="px-6 pt-4 flex flex-wrap gap-2 border-b border-white/10 pb-4">
+                <CategoryPill active={categoryFilter === 'all'} onClick={() => setCategoryFilter('all')} label="All" count={allTickets.length} />
+                {ticketCategories.map(([category, count]) => (
+                  <CategoryPill key={category} active={categoryFilter === category} onClick={() => setCategoryFilter(category)} label={category} count={count} />
+                ))}
+              </div>
+            )}
+
+            {/* Priority filter */}
+            <div className="px-6 pt-4 flex items-center gap-2">
+              <span className="text-xs text-[#8A8F98] mr-1">Priority:</span>
+              {(['all', 'high', 'medium', 'low'] as const).map(p => (
+                <PriorityPill key={p} active={priorityFilter === p} onClick={() => setPriorityFilter(p)} priority={p} />
+              ))}
+            </div>
+
             {dataLoading ? (
               <div className="p-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#E8A33D]" /></div>
             ) : allTickets.length === 0 ? (
@@ -550,12 +584,16 @@ export default function AdminDashboard() {
                 <p className="text-[#ECECEC] font-medium">No tickets yet</p>
                 <p className="text-[#8A8F98] text-sm mt-1">Submit a ticket from the Triage page to see it here.</p>
               </div>
+            ) : filteredAllTickets.length === 0 ? (
+              <div className="p-16 text-center">
+                <MessageSquare className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <p className="text-[#ECECEC] font-medium">No tickets match these filters</p>
+                <p className="text-[#8A8F98] text-sm mt-1">Try a different category, priority, or search term.</p>
+              </div>
             ) : (
-              <div className="flex flex-col">
-                {allTickets
-                  .filter(ticket => !searchQuery || ticket.id.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map(ticket => (
-                    <TicketRow key={ticket.id} ticket={ticket} role="all" onDelete={handleDeleteTicket} />
+              <div className="flex flex-col p-6 pt-4">
+                {filteredAllTickets.map(ticket => (
+                  <TicketRow key={ticket.id} ticket={ticket} role="all" onDelete={handleDeleteTicket} />
                 ))}
               </div>
             )}
@@ -1080,6 +1118,51 @@ function Chip({ label, color, icon }: { label: string; color: string; icon?: Rea
       {icon && <span className="mr-1">{icon}</span>}
       {label}
     </span>
+  );
+}
+
+/** One category tab in the All Tickets filter row. */
+function CategoryPill({ active, onClick, label, count }: {
+  active: boolean; onClick: () => void; label: string; count: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+        active
+          ? 'bg-[#2DD4BF]/20 text-[#2DD4BF] border-[#2DD4BF]/40'
+          : 'bg-white/[0.03] text-[#8A8F98] border-white/10 hover:text-[#ECECEC] hover:bg-white/[0.06]'
+      }`}
+    >
+      <span className="capitalize">{label}</span>
+      <span className={active ? 'text-[#2DD4BF]/70' : 'text-[#8A8F98]/70'}>{count}</span>
+    </button>
+  );
+}
+
+const PRIORITY_COLORS: Record<string, string> = {
+  high: '#FB7185',
+  medium: '#FB923C',
+  low: '#8A8F98',
+};
+
+/** One priority pill in the All Tickets filter row. */
+function PriorityPill({ active, onClick, priority }: {
+  active: boolean; onClick: () => void; priority: 'all' | 'low' | 'medium' | 'high';
+}) {
+  const color = PRIORITY_COLORS[priority];
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors border ${
+        active
+          ? 'border-current'
+          : 'bg-white/[0.03] text-[#8A8F98] border-white/10 hover:text-[#ECECEC] hover:bg-white/[0.06]'
+      }`}
+      style={active ? { color: color || '#E8A33D', backgroundColor: `${color || '#E8A33D'}20` } : undefined}
+    >
+      {priority}
+    </button>
   );
 }
 

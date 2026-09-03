@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle, Trash2, Copy } from 'lucide-react';
+import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle, Trash2, Copy, LogOut } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
 import { GlassPanel, GlassButton, GlassTextarea, Modal, StatusBadge } from '../../components/ui';
@@ -214,8 +214,13 @@ export default function Home() {
     }
   };
 
+  const dashboardNavItems: { id: 'new' | 'history'; icon: React.ReactNode; label: string }[] = [
+    { id: 'new', icon: <Ticket className="w-4 h-4" />, label: 'New ticket' },
+    { id: 'history', icon: <History className="w-4 h-4" />, label: `My tickets${pastTickets.length > 0 ? ` (${pastTickets.length})` : ''}` },
+  ];
+
   return (
-    <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center">
+    <div className="min-h-screen flex flex-col lg:flex-row">
 
       {/* Success Modal */}
       <Modal
@@ -247,68 +252,62 @@ export default function Home() {
         </div>
       </Modal>
 
-      {/* Header section */}
-      <div className="text-center mb-12 animate-fade-in relative w-full">
-        {user && (
-          <div className="absolute right-0 top-0 flex items-center space-x-4">
-            <div className="text-sm text-[#8A8F98]">
-              Logged in as <span className="text-[#E8A33D]">{user.email}</span>
-            </div>
+      {/* ── Sidebar on desktop, top bar on mobile — one set of nodes, laid out
+           responsively, so nothing (nav, user info) is duplicated in the DOM ── */}
+      <aside className="flex flex-col lg:w-64 lg:shrink-0 lg:h-screen lg:sticky lg:top-0 border-b lg:border-b-0 lg:border-r border-white/10 bg-white/[0.02] backdrop-blur-xl">
+        <div className="p-4 lg:p-6 border-b border-white/10 flex items-center space-x-3">
+          <div className="bg-[#E8A33D]/15 p-2 rounded-xl border border-[#E8A33D]/25 shrink-0">
+            <Cpu className="text-[#E8A33D] w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#E8A33D] via-[#2DD4BF] to-[#E8A33D] leading-tight">Clario Triage</h1>
+            <p className="text-xs text-[#8A8F98] truncate hidden lg:block">Support ticket portal</p>
+          </div>
+        </div>
+
+        <nav className="flex flex-row lg:flex-col gap-1 p-3 lg:p-4 overflow-x-auto lg:overflow-y-auto lg:flex-1">
+          {dashboardNavItems.map(item => (
+            <DashboardNavItem
+              key={item.id}
+              active={activeTab === item.id}
+              onClick={() => { if (item.id === 'history') fetchHistory(); setActiveTab(item.id); }}
+              icon={item.icon}
+              label={item.label}
+            />
+          ))}
+        </nav>
+
+        <div className="p-3 lg:p-4 border-t border-white/10 flex flex-row lg:flex-col items-center lg:items-stretch justify-between lg:justify-start gap-3 lg:gap-1">
+          <p className="text-xs text-[#8A8F98] truncate lg:pb-2" title={user?.email || undefined}>
+            Logged in as <span className="text-[#E8A33D]">{user?.email}</span>
+          </p>
+          <div className="flex items-center lg:flex-col lg:items-stretch gap-2 lg:gap-1 shrink-0 overflow-x-auto">
             {role === 'admin' && (
-              <button
-                onClick={() => router.push('/admin')}
-                className="bg-[#E8A33D]/15 hover:bg-[#E8A33D]/25 text-[#E8A33D] text-xs font-semibold px-4 py-2 rounded-xl transition-colors border border-[#E8A33D]/25 flex items-center"
-              >
-                <ShieldAlert className="w-3 h-3 mr-2" />
-                Admin panel
+              <button onClick={() => router.push('/admin')} className="flex items-center text-sm text-[#E8A33D] hover:text-[#F4B856] transition-colors px-3 lg:px-3.5 py-2 rounded-lg hover:bg-white/[0.06] whitespace-nowrap">
+                <ShieldAlert className="w-4 h-4 mr-2" /> Admin panel
               </button>
             )}
             {role === 'agent' && (
-              <button
-                onClick={() => router.push('/agent')}
-                className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-semibold px-4 py-2 rounded-xl transition-colors border border-emerald-500/25"
-              >
-                Agent workspace
+              <button onClick={() => router.push('/agent')} className="flex items-center text-sm text-emerald-300 hover:text-emerald-200 transition-colors px-3 lg:px-3.5 py-2 rounded-lg hover:bg-white/[0.06] whitespace-nowrap">
+                <Bot className="w-4 h-4 mr-2" /> Agent workspace
               </button>
             )}
+            <button onClick={handleLogout} className="flex items-center text-sm text-[#8A8F98] hover:text-[#FB7185] transition-colors px-3 lg:px-3.5 py-2 rounded-lg hover:bg-white/[0.06] whitespace-nowrap">
+              <LogOut className="w-4 h-4 mr-2" /> Sign out
+            </button>
           </div>
-        )}
-
-        <div className="flex justify-center items-center mb-4 space-x-3">
-          <div className="bg-[#E8A33D]/15 p-3 rounded-2xl border border-[#E8A33D]/25">
-            <Cpu className="text-[#E8A33D] w-8 h-8" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#E8A33D] via-[#2DD4BF] to-[#E8A33D]">
-            Clario Triage
-          </h1>
         </div>
-        <p className="text-[#8A8F98] max-w-2xl mx-auto text-lg font-light">
-          Submit a support ticket and watch our LangGraph orchestration securely classify, route, and resolve issues in real-time.
-        </p>
-      </div>
+      </aside>
 
-      {/* ─── Tabs ─── */}
-      {user && (
-        <div className="flex justify-center space-x-4 mb-10 animate-fade-in w-full">
-          <button
-            onClick={() => setActiveTab('new')}
-            className={`px-8 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center min-w-[180px] ${activeTab === 'new' ? 'bg-gradient-to-r from-[#E8A33D] to-[#2DD4BF] text-[#08090D] shadow-[0_0_25px_rgba(232,163,61,0.35)] scale-105' : 'bg-white/[0.04] text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.08]'}`}
-          >
-            <Ticket className="w-5 h-5 mr-2" /> New ticket
-          </button>
-          <button
-            onClick={() => { fetchHistory(); setActiveTab('history'); }}
-            className={`px-8 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center min-w-[180px] ${activeTab === 'history' ? 'bg-gradient-to-r from-[#E8A33D] to-[#2DD4BF] text-[#08090D] shadow-[0_0_25px_rgba(232,163,61,0.35)] scale-105' : 'bg-white/[0.04] text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.08]'}`}
-          >
-            <History className="w-5 h-5 mr-2" /> My tickets
-            {pastTickets.length > 0 && (
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'history' ? 'bg-black/20 text-[#08090D]' : 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/30'}`}>
-                {pastTickets.length}
-              </span>
-            )}
-          </button>
+      {/* ── Main content ──────────────────────────────────────────────────────── */}
+      <main className="flex-1 min-w-0 py-8 lg:py-12 px-4 sm:px-6 lg:px-10 max-w-[1800px] flex flex-col items-center">
+
+        {/* Header section */}
+        <div className="text-center mb-12 animate-fade-in w-full">
+          <p className="text-[#8A8F98] max-w-2xl mx-auto text-lg font-light">
+            Submit a support ticket and watch our LangGraph orchestration securely classify, route, and resolve issues in real-time.
+          </p>
         </div>
-      )}
 
       {activeTab === 'new' && (
       <div className="w-full max-w-2xl mx-auto items-start">
@@ -385,8 +384,8 @@ export default function Home() {
 
       {/* ─── Ticket History Full View ─── */}
       {activeTab === 'history' && (
-        <div className="w-full max-w-5xl mx-auto animate-fade-in pb-12">
-          <div className="flex justify-between items-center mb-6 max-w-4xl mx-auto px-2">
+        <div className="w-full max-w-6xl mx-auto animate-fade-in pb-12">
+          <div className="flex justify-between items-center mb-6 max-w-6xl mx-auto px-2">
             <h2 className="text-lg font-semibold text-[#ECECEC] flex items-center">
               <History className="w-5 h-5 mr-3 text-[#2DD4BF]" /> Ticket history
             </h2>
@@ -404,7 +403,7 @@ export default function Home() {
               </button>
             </div>
           ) : (
-            <div className="flex flex-col w-full max-w-4xl mx-auto">
+            <div className="flex flex-col w-full max-w-6xl mx-auto">
               {pastTickets.map(t => (
                 <UserTicketRow key={t.id} ticket={t} onDelete={handleDeleteTicket} />
               ))}
@@ -414,20 +413,30 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="mt-16 w-full flex justify-between items-center border-t border-white/10 pt-6 text-sm text-[#8A8F98] animate-fade-in" style={{ animationDelay: '0.4s' }}>
+      <footer className="mt-16 w-full flex justify-center items-center border-t border-white/10 pt-6 text-sm text-[#8A8F98] animate-fade-in" style={{ animationDelay: '0.4s' }}>
         <p>© 2026 Clario Support Systems</p>
-        {user ? (
-          <button onClick={handleLogout} className="hover:text-[#FB7185] transition-colors flex items-center">
-            Sign Out
-          </button>
-        ) : (
-          <a href="/login" className="hover:text-[#E8A33D] transition-colors flex items-center">
-            <ShieldAlert className="w-4 h-4 mr-1.5" />
-            Sign In / Register
-          </a>
-        )}
       </footer>
-    </main>
+      </main>
+    </div>
+  );
+}
+
+/** One nav button in the dashboard's vertical sidebar rail. */
+function DashboardNavItem({ active, onClick, icon, label }: {
+  active: boolean; onClick: () => void; icon: React.ReactNode; label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-200 ${
+        active
+          ? 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shadow-[0_0_15px_rgba(232,163,61,0.15)]'
+          : 'text-[#8A8F98] hover:text-[#ECECEC] border border-transparent hover:bg-white/[0.04]'
+      }`}
+    >
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
+    </button>
   );
 }
 
@@ -491,7 +500,7 @@ function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onD
           {/* Ticket facts, not just the clock time it came in */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <span className="text-xs text-[#8A8F98] block mb-3">Ticket details</span>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
               <UserMetaItem label="Reference" value={ticket.id.split('-')[0].toUpperCase()} mono title={ticket.id} />
               <UserMetaItem label="Status" value={statusLabel} color={statusColor} />
               <UserMetaItem label="Subject" value={ticket.subject || 'No subject'} />

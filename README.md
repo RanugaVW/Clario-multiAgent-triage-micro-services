@@ -1,7 +1,7 @@
 # Clario — Multi-Agent Customer Support Triage System
 ### CS3501 Data Science and Engineering Project | Group 23
 
-> **Clario** is an end-to-end AI-powered support triage platform. It classifies, routes, drafts, validates, and escalates customer support tickets using a **LangGraph multi-agent pipeline**, **ChromaDB RAG**, **SurrogateShield PII redaction**, **Gemma-3 1B LoRA fine-tuned models**, **Qwen2-VL OCR**, a **Spring Boot API Gateway**, and a **Next.js + Supabase** frontend.
+> **Clario** is an end-to-end AI-powered support triage platform. It classifies, routes, drafts, validates, and escalates customer support tickets using a **LangGraph multi-agent pipeline**, **ChromaDB RAG**, **SurrogateShield PII redaction**, **Gemma-3 1B LoRA fine-tuned models**, **Gemini-powered OCR**, a **Spring Boot API Gateway**, and a **Next.js + Supabase** frontend.
 
 ---
 
@@ -54,9 +54,8 @@ clario/
 │   ├── ticket-core-service/         # Spring Boot (Handles Ticket DB + pushes to Redis)
 │   ├── agent-review-service/        # Spring Boot (Handles Human Agent Review queues)
 │   ├── nlp-classifier-service/      # Python FastAPI (Hosts Gemma-3-1b-it LoRA model)
-│   ├── ocr-vision-service/          # Python FastAPI (Hosts Qwen2-VL 2B or Gemini Fallback)
-│   └── ai-orchestrator-service/     # Python Background Worker (Consumes Redis, runs LangGraph)
-├── docker-compose.yml               # Orchestrates all 6 microservices + Redis Broker
+│   └── ai-orchestrator-service/     # Python Background Worker (Consumes Redis, runs LangGraph; OCR via Gemini)
+├── docker-compose.yml               # Orchestrates all 5 microservices + Redis Broker
 └── supabase_schema.sql              # Supabase DB Schema
 ```
 
@@ -125,7 +124,7 @@ CHROMA_PATH=./vector_store/chroma_data
 
 The entire backend is orchestrated into 6 isolated Docker containers. Due to Docker networking limitations with IPv6-only Supabase databases, we run a transparent TCP proxy on the host machine to bridge the connection.
 
-To start the backend infrastructure (Gateway, Ticket Core, Agent Review, NLP Classifier, OCR Vision, AI Orchestrator, Redis, and Proxy):
+To start the backend infrastructure (Gateway, Ticket Core, Agent Review, NLP Classifier, AI Orchestrator, Redis, and Proxy):
 
 1. Open a terminal at the root of the project.
 2. Start the proxy script in the background:
@@ -172,7 +171,7 @@ Customer submits ticket (Text + Optional Image)
         ↓
 [AI Orchestrator] pops ticket from Redis & triggers LangGraph
         ↓
-[ocr_node] — Calls http://ocr-vision-service:8000 for image extraction
+[ocr_node] — Calls the Gemini API directly for image extraction
         ↓
 [cache_check_node] — Checks ChromaDB precedent memory
         ↓
@@ -218,9 +217,9 @@ Customer submits ticket (Text + Optional Image)
 | **API Gateway** | Spring Cloud Gateway MVC (Port 8080) |
 | **Java Microservices**| Spring Boot 3.x (Ticket Core: 8081, Agent Review: 8082) |
 | **Queue Broker** | Redis Alpine (Port 6380) |
-| **Python Microservices**| FastAPI + Uvicorn (NLP Classifier: 8000, OCR Vision: 8001) |
+| **Python Microservices**| FastAPI + Uvicorn (NLP Classifier: 8000) |
 | **AI Orchestrator** | Python 3.12 Background Worker consuming Redis via `app.worker` |
-| **Local Models** | `Gemma-3-1b-it` (Classification), `Qwen2-VL-2B-Instruct` (OCR), `spaCy` (Redaction) |
+| **Local Models** | `Gemma-3-1b-it` (Classification), `spaCy` (Redaction) |
 | **Cloud Fallback** | Gemini API (`gemini-3.1-flash`) |
 | **Database** | Supabase (PostgreSQL + Auth) |
 

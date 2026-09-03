@@ -57,15 +57,6 @@ services:
     env_file:
       - ./clario-ml-sidecar/.env
 
-  ocr-vision-service:
-    build:
-      context: ./services/ocr-vision-service
-      dockerfile: Dockerfile
-    ports:
-      - "8001:8000"
-    env_file:
-      - ./clario-ml-sidecar/.env
-
   voice-to-text-service:
     build:
       context: ./services/voice-to-text-service
@@ -96,7 +87,6 @@ services:
       - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
       - REDIS_HOST=redis-broker
       - CLASSIFIER_URL=http://nlp-classifier-service:8000
-      - OCR_URL=http://ocr-vision-service:8000
       - VOICE_URL=http://voice-to-text-service:8000
       # Absolute path so the index survives rebuilds instead of landing in the
       # image's own vector_store/, which COPY overwrites every build.
