@@ -138,6 +138,7 @@ def test_run_continues_past_a_failing_row(monkeypatch, tmp_path):
         calls["n"] += 1
         if calls["n"] == 1:
             raise RuntimeError("judge outage")
+        return True
 
     monkeypatch.setattr(rpe, "build_graph", lambda: object())
     monkeypatch.setattr(rpe, "get_judge", lambda: object())
@@ -147,3 +148,56 @@ def test_run_continues_past_a_failing_row(monkeypatch, tmp_path):
     summary = asyncio.run(rpe.run(_args(csv=str(csv_path))))
 
     assert summary == {"processed": 1, "skipped": 0, "failed": 1}
+
+
+def test_run_reports_skipped_not_processed_when_no_draft_produced(monkeypatch, tmp_path):
+    csv_path = tmp_path / "rysera.csv"
+    csv_path.write_text(
+        "ticket_text,source,response\n"
+        "no draft row,https://example.com/1,resp1\n",
+        encoding="utf-8",
+    )
+
+    final_state = {
+        "agent_drafts": {},
+        "redacted_text": "x",
+        "category": "Bug Report",
+        "priority": "Low",
+        "judge_evaluations": {},
+    }
+    graph = _FakeGraph(final_state)
+    judge = _FakeJudge(_Verdict())
+    supabase = _FakeSupabase()
+
+    monkeypatch.setattr(rpe, "build_graph", lambda: graph)
+    monkeypatch.setattr(rpe, "get_judge", lambda: judge)
+    monkeypatch.setattr(rpe, "_get_supabase", lambda: supabase)
+    monkeypatch.setattr(rpe, "mask_pii", lambda text: (text, []))
+
+    summary = asyncio.run(rpe.run(_args(csv=str(csv_path))))
+
+    assert summary == {"processed": 0, "skipped": 1, "failed": 0}
+    assert supabase.pairwise_table.inserted == []
+    assert judge.calls == []
+
+
+def test_run_counts_mixed_skip_and_processed_rows(monkeypatch, tmp_path):
+    csv_path = tmp_path / "rysera.csv"
+    csv_path.write_text(
+        "ticket_text,source,response\n"
+        "skip row,https://example.com/1,resp1\n"
+        "good row,https://example.com/2,resp2\n",
+        encoding="utf-8",
+    )
+
+    async def _fake_evaluate(graph, judge, supabase, eval_run_id, row, args):
+        return row[args.ticket_col] != "skip row"
+
+    monkeypatch.setattr(rpe, "build_graph", lambda: object())
+    monkeypatch.setattr(rpe, "get_judge", lambda: object())
+    monkeypatch.setattr(rpe, "_get_supabase", lambda: object())
+    monkeypatch.setattr(rpe, "_evaluate_one_ticket", _fake_evaluate)
+
+    summary = asyncio.run(rpe.run(_args(csv=str(csv_path))))
+
+    assert summary == {"processed": 1, "skipped": 1, "failed": 0}
