@@ -64,10 +64,19 @@ def _get_supabase():
     return create_client(url, key)
 
 
-async def _evaluate_one_ticket(graph, judge, supabase, eval_run_id: str, row: dict, args) -> bool:
+async def _evaluate_one_ticket(
+    graph, judge, supabase, eval_run_id: str, row: dict, args, results: list | None = None
+) -> bool:
     """Returns True if at least one domain's draft was evaluated and
     inserted into pairwise_evaluations, False if the row was skipped
-    entirely (no draft produced, or every domain's draft was empty)."""
+    entirely (no draft produced, every domain's draft was empty, or the
+    ticket was served from the precedent cache).
+
+    If `results` is given, one dict mirroring each inserted row's
+    category/final_winner/absolute_overall_score is appended to it, so
+    callers can aggregate a summary without drifting from what was
+    actually stored.
+    """
     source_doc_id = row["_source_doc_id"]
     raw_text = row[args.ticket_col]
     reference_raw = row[args.response_col]
@@ -75,6 +84,10 @@ async def _evaluate_one_ticket(graph, judge, supabase, eval_run_id: str, row: di
 
     initial_state = _build_initial_state(source_doc_id, raw_text)
     final_state = await graph.ainvoke(initial_state)
+
+    if final_state.get("cache_hit"):
+        logger.warning(f"{source_doc_id}: cache hit, skipping (eval measures fresh generation, not cache reuse)")
+        return False
 
     agent_drafts = final_state.get("agent_drafts") or {}
     if not agent_drafts:
@@ -103,7 +116,7 @@ async def _evaluate_one_ticket(graph, judge, supabase, eval_run_id: str, row: di
 
         absolute_score = (judge_evaluations.get(domain) or {}).get("overall_score")
 
-        supabase.table("pairwise_evaluations").insert({
+        payload = {
             "eval_run_id": eval_run_id,
             "source_doc_id": source_doc_id,
             "category": category,
@@ -121,10 +134,54 @@ async def _evaluate_one_ticket(graph, judge, supabase, eval_run_id: str, row: di
             "absolute_overall_score": absolute_score,
             "judge_model": verdict.judge_model,
             "evaluation_latency_ms": verdict.evaluation_latency_ms,
-        }).execute()
+        }
+        supabase.table("pairwise_evaluations").insert(payload).execute()
         inserted_any = True
 
+        if results is not None:
+            results.append({
+                "category": payload["category"],
+                "final_winner": payload["final_winner"],
+                "absolute_overall_score": payload["absolute_overall_score"],
+            })
+
     return inserted_any
+
+
+def _summarize(rows: list[dict]) -> dict:
+    """Aggregate inserted pairwise_evaluations rows into win/lose/tie counts
+    (overall and per category) plus mean absolute_overall_score per category.
+
+    Mirrors the exact fields inserted into pairwise_evaluations, so the
+    printed summary can never drift from what was actually stored.
+    """
+    overall_counts: dict[str, int] = {}
+    per_category_counts: dict[str, dict[str, int]] = {}
+    per_category_scores: dict[str, list[float]] = {}
+
+    for row in rows:
+        winner = row.get("final_winner")
+        category = row.get("category") or "Unknown"
+
+        overall_counts[winner] = overall_counts.get(winner, 0) + 1
+
+        cat_counts = per_category_counts.setdefault(category, {})
+        cat_counts[winner] = cat_counts.get(winner, 0) + 1
+
+        score = row.get("absolute_overall_score")
+        if score is not None:
+            per_category_scores.setdefault(category, []).append(score)
+
+    per_category_mean_score: dict[str, float | str] = {}
+    for category in per_category_counts:
+        scores = per_category_scores.get(category) or []
+        per_category_mean_score[category] = (sum(scores) / len(scores)) if scores else "no score data"
+
+    return {
+        "overall_counts": overall_counts,
+        "per_category_counts": per_category_counts,
+        "per_category_mean_score": per_category_mean_score,
+    }
 
 
 async def run(args) -> dict:
@@ -134,13 +191,14 @@ async def run(args) -> dict:
     eval_run_id = datetime.now(timezone.utc).isoformat()
 
     summary = {"processed": 0, "skipped": 0, "failed": 0}
+    results: list[dict] = []
 
     with open(args.csv, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for i, row in enumerate(reader):
             row["_source_doc_id"] = f"rysera_row_{i}"
             try:
-                processed = await _evaluate_one_ticket(graph, judge, supabase, eval_run_id, row, args)
+                processed = await _evaluate_one_ticket(graph, judge, supabase, eval_run_id, row, args, results)
                 if processed:
                     summary["processed"] += 1
                 else:
@@ -150,6 +208,12 @@ async def run(args) -> dict:
                 summary["failed"] += 1
 
     logger.info(f"Pairwise evaluation run {eval_run_id}: {summary}")
+
+    stats = _summarize(results)
+    logger.info(f"Overall win/lose/tie counts: {stats['overall_counts']}")
+    logger.info(f"Per-category win/lose/tie counts: {stats['per_category_counts']}")
+    logger.info(f"Per-category mean absolute_overall_score: {stats['per_category_mean_score']}")
+
     return summary
 
 
