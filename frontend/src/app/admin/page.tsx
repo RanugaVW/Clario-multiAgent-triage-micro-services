@@ -854,9 +854,6 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                   {classification.confidence != null && (
                     <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#2DD4BF]">Confidence: {(classification.confidence * 100).toFixed(0)}%</span>
                   )}
-                  {classification.source && (
-                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#8A8F98]">Source: {classification.source}</span>
-                  )}
                   {draft?.rag_top_score != null && (
                     <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#8A8F98]">RAG score: {draft.rag_top_score.toFixed(3)}</span>
                   )}
