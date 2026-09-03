@@ -62,7 +62,7 @@ def fetch(category: str, keywords: list[str], limit: int) -> list[RawExample]:
     if limit <= 0 or not keywords:
         return []
 
-    query = f"{_REPO_QUERY} {' OR '.join(keywords)}"
+    query = f"{_REPO_QUERY} ({' OR '.join(keywords)})"
 
     try:
         issues = _search_issues(query, per_page=min(limit * 3, 100))

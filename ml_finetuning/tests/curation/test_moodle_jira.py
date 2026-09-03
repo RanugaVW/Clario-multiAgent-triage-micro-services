@@ -126,3 +126,19 @@ def test_fetch_comments_follows_redirects(monkeypatch):
     moodle_jira._fetch_comments("MDL-1001")
 
     assert captured.get("follow_redirects") is True
+
+
+def test_search_issues_uses_the_non_deprecated_search_endpoint(monkeypatch):
+    captured = {}
+
+    def _fake_get(url, **kwargs):
+        captured["url"] = url
+        return _FakeResponse()
+
+    monkeypatch.setattr(moodle_jira.httpx, "get", _fake_get)
+
+    moodle_jira._search_issues("project = MDL", max_results=5)
+
+    # GET /rest/api/2/search was deprecated by Atlassian (returns 410 Gone);
+    # /rest/api/2/search/jql is the documented replacement.
+    assert captured["url"] == "https://moodle.atlassian.net/rest/api/2/search/jql"

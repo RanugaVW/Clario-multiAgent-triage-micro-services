@@ -81,7 +81,10 @@ def test_fetch_builds_query_with_repo_and_keywords(monkeypatch):
     github_openedx.fetch("Bug Report", ["crash", "error"], limit=5)
 
     assert "repo:openedx/edx-platform" in captured["query"]
-    assert "crash OR error" in captured["query"]
+    # Keywords must be grouped in parentheses - GitHub's search API returns
+    # 422 Unprocessable Entity for a bare "qualifier qualifier term OR term"
+    # query; explicit grouping is the documented way to combine terms with OR.
+    assert "(crash OR error)" in captured["query"]
 
 
 class _FakeResponse:
