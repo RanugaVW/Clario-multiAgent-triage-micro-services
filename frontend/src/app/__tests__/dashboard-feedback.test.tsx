@@ -61,13 +61,29 @@ describe('FeedbackStars', () => {
     });
   });
 
-  it('does not submit again after a successful rating', async () => {
+  it('allows changing the rating after a successful submit', async () => {
     render(<FeedbackStars ticketId="t1" userId="u1" />);
 
     fireEvent.click(screen.getByLabelText('Rate 4 stars'));
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByLabelText('Rate 5 stars'));
-    expect(fetch).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(fetch).toHaveBeenLastCalledWith(
+      '/api/customer_feedback',
+      expect.objectContaining({
+        body: JSON.stringify({ ticketId: 't1', userId: 'u1', score: 5 }),
+      })
+    );
+  });
+
+  it('renders a previously-submitted score as filled stars on mount', () => {
+    render(<FeedbackStars ticketId="t1" userId="u1" existingScore={3} />);
+
+    const stars = screen.getAllByLabelText(/Rate \d stars/);
+    const fills = stars.map((btn) => btn.querySelector('svg')?.getAttribute('fill'));
+
+    expect(fills).toEqual(['#E8A33D', '#E8A33D', '#E8A33D', 'none', 'none']);
+    expect(screen.getByText(/you rated this 3\/5/i)).toBeInTheDocument();
   });
 });

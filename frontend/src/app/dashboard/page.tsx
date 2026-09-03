@@ -59,6 +59,7 @@ type TicketWithResolution = {
     sentiment: string | null;
     confidence: number | null;
   }[];
+  customer_feedback?: { score: number }[];
 };
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -550,7 +551,7 @@ function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolut
                   )}
             </div>
             {isFullyResolved && finalResolution?.final_response && (
-              <FeedbackStars ticketId={ticket.id} userId={userId} />
+              <FeedbackStars ticketId={ticket.id} userId={userId} existingScore={ticket.customer_feedback?.[0]?.score ?? null} />
             )}
           </div>
         </div>
@@ -559,27 +560,40 @@ function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolut
   );
 }
 
-export function FeedbackStars({ ticketId, userId }: { ticketId: string; userId: string }) {
+export function FeedbackStars({
+  ticketId,
+  userId,
+  existingScore = null,
+}: {
+  ticketId: string;
+  userId: string;
+  existingScore?: number | null;
+}) {
   const [hovered, setHovered] = useState<number | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  // The actual given rating (from a prior visit, or just submitted) - not
+  // just a submitted flag, so the stars can stay colored to show it rather
+  // than reverting to blank outlines once the mouse leaves.
+  const [score, setScore] = useState<number | null>(existingScore);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleRate = async (score: number) => {
-    if (submitted || isSubmitting) return;
+  const handleRate = async (n: number) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/customer_feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticketId, userId, score }),
+        body: JSON.stringify({ ticketId, userId, score: n }),
       });
-      if (res.ok) setSubmitted(true);
+      if (res.ok) setScore(n);
     } catch (e) {
       console.error('Failed to submit feedback', e);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const displayed = hovered ?? score ?? 0;
 
   return (
     <div className="mt-3">
@@ -593,18 +607,22 @@ export function FeedbackStars({ ticketId, userId }: { ticketId: string; userId: 
             onMouseEnter={() => setHovered(n)}
             onMouseLeave={() => setHovered(null)}
             onClick={() => handleRate(n)}
-            disabled={isSubmitting || submitted}
+            disabled={isSubmitting}
             className="disabled:opacity-50"
           >
             <Star
               className="w-4 h-4"
-              fill={(hovered ?? 0) >= n ? '#E8A33D' : 'none'}
+              fill={displayed >= n ? '#E8A33D' : 'none'}
               stroke="#E8A33D"
             />
           </button>
         ))}
       </div>
-      {submitted && <p className="text-xs text-[#2DD4BF] mt-1">Thanks for your feedback!</p>}
+      {score != null && (
+        <p className="text-xs text-[#2DD4BF] mt-1">
+          Thanks for your feedback! You rated this {score}/5 - click a star to change it.
+        </p>
+      )}
     </div>
   );
 }
