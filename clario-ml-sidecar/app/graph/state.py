@@ -72,3 +72,7 @@ class TicketState(TypedDict):
     human_review_notes: str | None
     # response_judge_node writes (Gemini judge, record-only); API layer reads to persist to Supabase.
     judge_evaluations: dict[str, dict]
+    # classification_node, technical/billing agent nodes, and response_judge_node
+    # each add their real model-call attempts (including failed retries) here;
+    # main.py persists the running total into resolutions.total_llm_calls.
+    llm_call_count: int

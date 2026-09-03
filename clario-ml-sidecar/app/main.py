@@ -246,6 +246,7 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "final_response": final_response,
                 "escalated": False,
                 "total_reflection_count": final_state.get("reflection_count", 0),
+                "total_llm_calls": final_state.get("llm_call_count", 0),
             }
             supabase_client.table("resolutions").insert(resolution_payload).execute()
         elif final_response:
@@ -254,6 +255,7 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "final_response": final_response,
                 "escalated": True,
                 "total_reflection_count": final_state.get("reflection_count", 0),
+                "total_llm_calls": final_state.get("llm_call_count", 0),
             }
             supabase_client.table("resolutions").insert(resolution_payload).execute()
         
@@ -275,6 +277,7 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "escalated": True,
                 "escalation_reasons": escalation_reasons,
                 "total_reflection_count": final_state.get("reflection_count", 0),
+                "total_llm_calls": final_state.get("llm_call_count", 0),
             }).execute()
             
     except Exception as e:
@@ -298,6 +301,7 @@ async def process_ticket(ticket: TicketRequest, background_tasks: BackgroundTask
         "rag_top_score": {},
         "low_relevance_flags": {},
         "validation_result": {},
+        "llm_call_count": 0,
     }
     
     # Fire and forget the background orchestration properly

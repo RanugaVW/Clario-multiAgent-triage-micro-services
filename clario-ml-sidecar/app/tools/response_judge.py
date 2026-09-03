@@ -160,6 +160,9 @@ class JudgeScore:
     forbidden_phrases_found: List[str]
     judge_model: str = "unknown"
     evaluation_latency_ms: int = 0
+    # Real API-call attempts this evaluation took (retries included), for
+    # accurate LLM-call telemetry - not the same as "1 evaluation = 1 call".
+    attempts_used: int = 1
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -421,7 +424,7 @@ class ResponseJudge:
                     response_text = await self._call_openai(prompt)
                 latency_ms = int((time.time() - start) * 1000)
 
-                return self._parse_response(response_text, latency_ms)
+                return self._parse_response(response_text, latency_ms, attempts_used=attempt + 1)
 
             except Exception as e:
                 last_error = e
@@ -430,9 +433,11 @@ class ResponseJudge:
                     await self._backoff(attempt)
 
         logger.error(f"Judge evaluation failed after {self.config.max_retries + 1} attempts: {last_error}")
-        raise RuntimeError(
+        failure = RuntimeError(
             f"Judge evaluation failed after {self.config.max_retries + 1} attempts"
-        ) from last_error
+        )
+        failure.attempts = self.config.max_retries + 1
+        raise failure from last_error
 
     async def _call_gemini(self, prompt: str, system_prompt: str = JUDGE_SYSTEM_PROMPT) -> str:
         # client.models.generate_content is synchronous - every other Gemini
@@ -468,7 +473,7 @@ class ResponseJudge:
         import asyncio
         await asyncio.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s...
 
-    def _parse_response(self, text: str, latency_ms: int = 0) -> JudgeScore:
+    def _parse_response(self, text: str, latency_ms: int = 0, attempts_used: int = 1) -> JudgeScore:
         """Parse and validate judge JSON response.
 
         Raises on malformed JSON instead of returning a fake score, so the
@@ -514,6 +519,7 @@ class ResponseJudge:
 
         data["judge_model"] = self.config.model_name
         data["evaluation_latency_ms"] = latency_ms
+        data["attempts_used"] = attempts_used
 
         return JudgeScore(**data)
 
@@ -532,6 +538,7 @@ class ResponseJudge:
             required_phrases_missing=[],
             forbidden_phrases_found=[],
             judge_model=self.config.model_name,
+            attempts_used=0,  # empty draft never reaches a real API call
         )
 
     def _parse_pairwise_response(self, text: str) -> Dict[str, str]:
