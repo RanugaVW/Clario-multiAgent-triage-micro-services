@@ -4,8 +4,9 @@ This module provides a configurable judge LLM that evaluates customer support
 draft responses against priority-conditioned tone requirements, ground truth
 references, and policy compliance.
 
-Supported providers: OpenAI (GPT-5.4 Mini, default) and Gemini (fallback,
-set RESPONSE_JUDGE_PROVIDER=gemini).
+Supported providers: Gemini (gemini-flash-latest, default - runs on the
+configured key's free tier) and OpenAI (GPT-5.4 Mini, needs paid credits;
+set RESPONSE_JUDGE_PROVIDER=openai).
 """
 
 from __future__ import annotations
@@ -171,8 +172,12 @@ class JudgeScore:
 @dataclass
 class JudgeConfig:
     """Configuration for the judge LLM."""
-    provider: str = "openai"  # "openai" | "gemini"
-    model_name: str = "gpt-5.4-mini"
+    # gemini: the configured GEMINI_API_KEY runs on Google's free (rate-limited,
+    # not billed) tier, confirmed by real judge calls succeeding end-to-end.
+    # openai: implemented and available (RESPONSE_JUDGE_PROVIDER=openai), but
+    # every OpenAI model requires paid credits - not a fit for "free" here.
+    provider: str = "gemini"  # "gemini" | "openai"
+    model_name: str = "gemini-flash-latest"
     temperature: float = 0.1
     min_score_threshold: int = 3
     max_retries: int = 2
@@ -245,7 +250,7 @@ class ResponseJudge:
     """Scores draft responses using a configurable judge LLM."""
 
     def __init__(self, config: Optional[JudgeConfig] = None):
-        provider = os.getenv("RESPONSE_JUDGE_PROVIDER", "openai")
+        provider = os.getenv("RESPONSE_JUDGE_PROVIDER", "gemini")
         # Model env var is provider-specific so switching RESPONSE_JUDGE_PROVIDER
         # can't accidentally hand one provider's model string to the other's API.
         if provider == "openai":

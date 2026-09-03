@@ -82,10 +82,12 @@ def test_evaluate_still_returns_a_real_score_for_an_empty_draft() -> None:
     assert "Empty draft" in score.reasoning
 
 
-def test_openai_is_the_default_provider() -> None:
+def test_gemini_is_the_default_provider() -> None:
+    """Gemini, not OpenAI, because the configured GEMINI_API_KEY runs on a
+    free tier - every OpenAI model requires paid credits regardless of tier."""
     config = JudgeConfig()
-    assert config.provider == "openai"
-    assert config.model_name == "gpt-5.4-mini"
+    assert config.provider == "gemini"
+    assert config.model_name == "gemini-flash-latest"
 
 
 class _FakeMessage:
