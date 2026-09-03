@@ -1,4 +1,4 @@
-"""Gemini judge scoring; record-only quality signal, does not affect failure_type."""
+"""LLM judge scoring; record-only quality signal, does not affect failure_type."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 async def response_judge_node(state: TicketState) -> TicketState:
-    """Score every drafted domain with the Gemini judge and few-shot references.
+    """Score every drafted domain with the configured judge LLM and few-shot references.
 
     Runs for both cache-hit and freshly-drafted resolutions, right before
     escalation, so every final draft gets a stored evaluation regardless of
