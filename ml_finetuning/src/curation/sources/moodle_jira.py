@@ -16,7 +16,7 @@ from .common import RawExample
 
 logger = logging.getLogger(__name__)
 
-_SEARCH_URL = "https://moodle.atlassian.net/rest/api/2/search"
+_SEARCH_URL = "https://moodle.atlassian.net/rest/api/2/search/jql"
 _COMMENT_URL = "https://moodle.atlassian.net/rest/api/2/issue/{key}/comment"
 _MIN_COMMENT_LEN = 40
 _REQUEST_DELAY_SECONDS = 0.5
