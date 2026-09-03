@@ -181,7 +181,10 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
             "priority": final_state.get("priority"),
             "sentiment": final_state.get("sentiment"),
             "confidence": final_state.get("classification_confidence"),
-            "source": "gemini"
+            # Was hardcoded to "gemini" regardless of what actually classified
+            # the ticket - classify_ticket_local runs the local fine-tuned
+            # adapter (source "gemma3_lora"), never Gemini directly.
+            "source": final_state.get("classification_source"),
         }
         supabase_client.table("ticket_classifications").insert(classification_payload).execute()
         
