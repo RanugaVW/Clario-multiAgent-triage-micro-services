@@ -64,7 +64,10 @@ def _get_supabase():
     return create_client(url, key)
 
 
-async def _evaluate_one_ticket(graph, judge, supabase, eval_run_id: str, row: dict, args) -> None:
+async def _evaluate_one_ticket(graph, judge, supabase, eval_run_id: str, row: dict, args) -> bool:
+    """Returns True if at least one domain's draft was evaluated and
+    inserted into pairwise_evaluations, False if the row was skipped
+    entirely (no draft produced, or every domain's draft was empty)."""
     source_doc_id = row["_source_doc_id"]
     raw_text = row[args.ticket_col]
     reference_raw = row[args.response_col]
@@ -76,7 +79,7 @@ async def _evaluate_one_ticket(graph, judge, supabase, eval_run_id: str, row: di
     agent_drafts = final_state.get("agent_drafts") or {}
     if not agent_drafts:
         logger.warning(f"{source_doc_id}: no draft produced, skipping")
-        return
+        return False
 
     reference_redacted, _ = mask_pii(reference_raw)
     ticket_text = final_state.get("redacted_text") or raw_text
@@ -84,6 +87,7 @@ async def _evaluate_one_ticket(graph, judge, supabase, eval_run_id: str, row: di
     priority = final_state.get("priority") or "Medium"
     judge_evaluations = final_state.get("judge_evaluations") or {}
 
+    inserted_any = False
     for domain, draft in agent_drafts.items():
         if not draft:
             logger.warning(f"{source_doc_id}: empty draft for domain={domain}, skipping")
@@ -118,6 +122,9 @@ async def _evaluate_one_ticket(graph, judge, supabase, eval_run_id: str, row: di
             "judge_model": verdict.judge_model,
             "evaluation_latency_ms": verdict.evaluation_latency_ms,
         }).execute()
+        inserted_any = True
+
+    return inserted_any
 
 
 async def run(args) -> dict:
@@ -133,8 +140,11 @@ async def run(args) -> dict:
         for i, row in enumerate(reader):
             row["_source_doc_id"] = f"rysera_row_{i}"
             try:
-                await _evaluate_one_ticket(graph, judge, supabase, eval_run_id, row, args)
-                summary["processed"] += 1
+                processed = await _evaluate_one_ticket(graph, judge, supabase, eval_run_id, row, args)
+                if processed:
+                    summary["processed"] += 1
+                else:
+                    summary["skipped"] += 1
             except Exception as e:
                 logger.error(f"Row {i} failed: {e}")
                 summary["failed"] += 1
