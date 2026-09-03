@@ -184,6 +184,26 @@ class JudgeConfig:
     timeout_seconds: int = 30
 
 
+@dataclass
+class PairwiseVerdict:
+    """Result of comparing a generated draft against a real reference
+    response, with both position-bias check passes preserved for storage.
+    See docs/superpowers/specs/2026-09-03-pairwise-judge-and-customer-
+    feedback-design.md §A.4 for why both passes are kept rather than only
+    the reconciled winner.
+    """
+    winner_pass1: str  # "draft" | "reference" | "tie" - draft was in slot A
+    winner_pass2: str  # "draft" | "reference" | "tie" - draft was in slot B (swapped)
+    reasoning_pass1: str
+    reasoning_pass2: str
+    final_winner: str  # winner_pass1 if it agrees with winner_pass2, else "tie"
+    judge_model: str = "unknown"
+    evaluation_latency_ms: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # JUDGE PROMPT TEMPLATE
 # ──────────────────────────────────────────────────────────────────────────────
@@ -241,6 +261,31 @@ DIMENSION DEFINITIONS:
 - accuracy: Are the technical/billing details correct? No hallucinations?
 - policy_compliance: No overcommitments, no PII leaks, appropriate fallback for low context?
 - groundedness: Does the draft reference or align with retrieved KB context?"""
+
+PAIRWISE_SYSTEM_PROMPT = """You are a Senior QA Engineer comparing two customer support responses to
+the same ticket. Judge only on which better serves the customer - do not
+assume either response is a "correct answer" to match against; evaluate
+each on its own merits and compare directly."""
+
+PAIRWISE_USER_PROMPT_TEMPLATE = """TICKET PRIORITY: {priority}
+TICKET CATEGORY: {category}
+TICKET ISSUE: {ticket_issue}
+
+RESPONSE A:
+{response_a}
+
+RESPONSE B:
+{response_b}
+
+Which response better serves the customer - is more accurate, complete,
+appropriately toned for the priority, and helpful? If they are genuinely
+equivalent in quality, say so.
+
+OUTPUT JSON ONLY with this exact structure:
+{{
+  "winner": "A" | "B" | "tie",
+  "reasoning": "Specific comparison explaining the verdict, referencing concrete differences between the two responses"
+}}"""
 
 # ──────────────────────────────────────────────────────────────────────────────
 # RESPONSE JUDGE CLASS
@@ -378,7 +423,7 @@ class ResponseJudge:
             f"Judge evaluation failed after {self.config.max_retries + 1} attempts"
         ) from last_error
 
-    async def _call_gemini(self, prompt: str) -> str:
+    async def _call_gemini(self, prompt: str, system_prompt: str = JUDGE_SYSTEM_PROMPT) -> str:
         # client.models.generate_content is synchronous - every other Gemini
         # call site in this codebase (local_llm.py, local_ocr.py) calls it
         # directly for that reason. This function is async, so it needs the
@@ -389,18 +434,18 @@ class ResponseJudge:
             model=self.config.model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
-                system_instruction=JUDGE_SYSTEM_PROMPT,
+                system_instruction=system_prompt,
                 temperature=self.config.temperature,
                 response_mime_type="application/json",
             ),
         )
         return response.text
 
-    async def _call_openai(self, prompt: str) -> str:
+    async def _call_openai(self, prompt: str, system_prompt: str = JUDGE_SYSTEM_PROMPT) -> str:
         response = await self.client.chat.completions.create(
             model=self.config.model_name,
             messages=[
-                {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
             response_format={"type": "json_object"},
@@ -476,6 +521,106 @@ class ResponseJudge:
             required_phrases_missing=[],
             forbidden_phrases_found=[],
             judge_model=self.config.model_name,
+        )
+
+    def _parse_pairwise_response(self, text: str) -> Dict[str, str]:
+        """Parse and validate a pairwise-comparison judge response.
+
+        Raises on malformed JSON, matching _parse_response's contract - a
+        failed parse is a failed attempt (retryable by the caller's loop),
+        not a silent "tie".
+        """
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse pairwise judge JSON: {e}, text: {text[:500]}")
+            raise ValueError(f"Invalid JSON from pairwise judge: {e}") from e
+
+        winner = data.get("winner")
+        if winner not in ("A", "B", "tie"):
+            winner = "tie"
+
+        reasoning = data.get("reasoning") or "No reasoning provided by judge."
+
+        return {"winner": winner, "reasoning": reasoning}
+
+    def _slot_to_role(self, slot_winner: str, *, a_is_draft: bool) -> str:
+        """Map a raw "A"/"B"/"tie" verdict to "draft"/"reference"/"tie",
+        given which slot the draft was placed in for that call."""
+        if slot_winner == "tie":
+            return "tie"
+        is_a = slot_winner == "A"
+        return "draft" if is_a == a_is_draft else "reference"
+
+    async def _compare_once(
+        self, ticket_issue: str, priority: str, category: str, response_a: str, response_b: str
+    ) -> tuple[Dict[str, str], int]:
+        prompt = PAIRWISE_USER_PROMPT_TEMPLATE.format(
+            priority=priority,
+            category=category,
+            ticket_issue=ticket_issue,
+            response_a=response_a,
+            response_b=response_b,
+        )
+
+        last_error: Exception | None = None
+        for attempt in range(self.config.max_retries + 1):
+            try:
+                start = time.time()
+                if self.config.provider == "gemini":
+                    response_text = await self._call_gemini(prompt, system_prompt=PAIRWISE_SYSTEM_PROMPT)
+                else:
+                    response_text = await self._call_openai(prompt, system_prompt=PAIRWISE_SYSTEM_PROMPT)
+                latency_ms = int((time.time() - start) * 1000)
+                return self._parse_pairwise_response(response_text), latency_ms
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Pairwise judge attempt {attempt + 1} failed: {e}")
+                if attempt < self.config.max_retries:
+                    await self._backoff(attempt)
+
+        logger.error(f"Pairwise judge failed after {self.config.max_retries + 1} attempts: {last_error}")
+        raise RuntimeError(
+            f"Pairwise judge failed after {self.config.max_retries + 1} attempts"
+        ) from last_error
+
+    async def compare_draft_to_reference(
+        self,
+        ticket_issue: str,
+        priority: str,
+        category: str,
+        draft: str,
+        reference: str,
+    ) -> PairwiseVerdict:
+        """Compare a generated draft against a real reference response.
+
+        Makes two judge calls with draft/reference slots swapped, to guard
+        against position bias (LLM judges tending to favor whichever
+        response is presented first). If the two calls disagree on the
+        winner (after accounting for the swap), the reconciled
+        `final_winner` is "tie" rather than arbitrarily trusting one
+        ordering - see docs/superpowers/specs/2026-09-03-pairwise-judge-
+        and-customer-feedback-design.md §A.4.
+        """
+        result1, latency1 = await self._compare_once(
+            ticket_issue, priority, category, response_a=draft, response_b=reference
+        )
+        result2, latency2 = await self._compare_once(
+            ticket_issue, priority, category, response_a=reference, response_b=draft
+        )
+
+        winner_pass1 = self._slot_to_role(result1["winner"], a_is_draft=True)
+        winner_pass2 = self._slot_to_role(result2["winner"], a_is_draft=False)
+        final_winner = winner_pass1 if winner_pass1 == winner_pass2 else "tie"
+
+        return PairwiseVerdict(
+            winner_pass1=winner_pass1,
+            winner_pass2=winner_pass2,
+            reasoning_pass1=result1["reasoning"],
+            reasoning_pass2=result2["reasoning"],
+            final_winner=final_winner,
+            judge_model=self.config.model_name,
+            evaluation_latency_ms=latency1 + latency2,
         )
 
 
