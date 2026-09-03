@@ -22,6 +22,10 @@ def test_strip_html_removes_tags_and_collapses_whitespace():
     assert strip_html(html) == "Please clear your cache."
 
 
+def test_strip_html_unescapes_entities():
+    assert strip_html("<p>Terms &amp; Conditions</p>") == "Terms & Conditions"
+
+
 def test_raw_example_is_a_plain_dataclass():
     example = RawExample(
         issue_text="I can't log in",

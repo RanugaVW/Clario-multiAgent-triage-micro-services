@@ -60,6 +60,39 @@ def test_fetch_returns_empty_list_for_empty_keywords():
     assert discourse_forums.fetch("Account Suspension", [], limit=5) == []
 
 
+def test_fetch_deduplicates_topic_matched_by_multiple_keywords(monkeypatch):
+    fetch_calls = {"n": 0}
+
+    def _fetch_thread(host, topic_id):
+        fetch_calls["n"] += 1
+        return _thread_with_staff_reply()
+
+    monkeypatch.setattr(discourse_forums, "_HOSTS", ("community.udemy.com",))
+    monkeypatch.setattr(discourse_forums, "_search_topics", lambda host, keyword: [_topic()])
+    monkeypatch.setattr(discourse_forums, "_fetch_thread", _fetch_thread)
+
+    results = discourse_forums.fetch("Login Issue", ["login", "sign in", "password"], limit=5)
+
+    assert len(results) == 1
+    assert fetch_calls["n"] == 1
+
+
+def test_fetch_calls_search_topics_with_each_keyword(monkeypatch):
+    captured_calls = []
+
+    def _capture_search(host, keyword):
+        captured_calls.append((host, keyword))
+        return []
+
+    monkeypatch.setattr(discourse_forums, "_HOSTS", ("community.udemy.com",))
+    monkeypatch.setattr(discourse_forums, "_search_topics", _capture_search)
+
+    discourse_forums.fetch("Login Issue", ["login", "sign in", "password"], limit=5)
+
+    called_keywords = {keyword for _host, keyword in captured_calls}
+    assert called_keywords == {"login", "sign in", "password"}
+
+
 def test_fetch_continues_past_search_error(monkeypatch):
     def _raise(*_args, **_kwargs):
         raise discourse_forums.httpx.HTTPError("boom")

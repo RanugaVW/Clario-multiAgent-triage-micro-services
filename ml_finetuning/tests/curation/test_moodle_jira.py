@@ -67,6 +67,22 @@ def test_fetch_returns_empty_list_for_empty_keywords():
     assert moodle_jira.fetch("Login Issue", [], limit=5) == []
 
 
+def test_fetch_builds_jql_with_project_and_keywords(monkeypatch):
+    captured = {}
+
+    def _capture_search(jql, max_results):
+        captured["jql"] = jql
+        return []
+
+    monkeypatch.setattr(moodle_jira, "_search_issues", _capture_search)
+
+    moodle_jira.fetch("Login Issue", ["login", "sign in"], limit=5)
+
+    assert "project = MDL" in captured["jql"]
+    assert 'text ~ "login"' in captured["jql"]
+    assert 'text ~ "sign in"' in captured["jql"]
+
+
 def test_fetch_returns_empty_list_on_search_error(monkeypatch):
     def _raise(*_args, **_kwargs):
         raise moodle_jira.httpx.HTTPError("boom")

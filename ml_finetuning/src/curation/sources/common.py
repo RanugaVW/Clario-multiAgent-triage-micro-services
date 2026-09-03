@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import re
 from dataclasses import dataclass
 
@@ -27,7 +28,8 @@ def has_pii(*texts: str) -> bool:
     return any(EMAIL_PATTERN.search(text) or PHONE_PATTERN.search(text) for text in texts)
 
 
-def strip_html(html: str) -> str:
-    """Strip HTML tags and collapse whitespace, for Discourse's `cooked` field."""
-    text = _HTML_TAG_PATTERN.sub(" ", html)
-    return _WHITESPACE_PATTERN.sub(" ", text).strip()
+def strip_html(raw_html: str) -> str:
+    """Strip HTML tags, unescape entities, and collapse whitespace, for
+    Discourse's `cooked` field."""
+    text = _HTML_TAG_PATTERN.sub(" ", raw_html)
+    return _WHITESPACE_PATTERN.sub(" ", html.unescape(text)).strip()
