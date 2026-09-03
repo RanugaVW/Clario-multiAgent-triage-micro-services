@@ -140,6 +140,38 @@ def test_evaluate_scores_a_draft_via_the_openai_path() -> None:
     assert call["messages"][1]["role"] == "user"
 
 
+def test_evaluate_scores_a_draft_via_the_deepseek_path() -> None:
+    """DeepSeek is OpenAI-API-compatible, so it shares _call_openai - this
+    proves the shared path also carries the deepseek model name through."""
+    judge = _judge(provider="deepseek", model_name="deepseek-v4-flash")
+    judge.client = _FakeOpenAIClient(VALID_JSON)
+
+    score = asyncio.run(judge.evaluate("Some draft.", "High", "Technical", "issue"))
+
+    assert score.overall_score == 4
+    assert score.judge_model == "deepseek-v4-flash"
+    call = judge.client.chat.completions.calls[0]
+    assert call["model"] == "deepseek-v4-flash"
+    assert call["response_format"] == {"type": "json_object"}
+
+
+def test_deepseek_provider_builds_an_openai_compatible_client_at_deepseeks_base_url(
+    monkeypatch,
+) -> None:
+    """The only deepseek-specific code is in __init__ (model default + base_url) -
+    the _judge() test helper bypasses __init__ entirely, so this exercises it for real."""
+    monkeypatch.setenv("RESPONSE_JUDGE_PROVIDER", "deepseek")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-deepseek-key")
+    monkeypatch.delenv("DEEPSEEK_JUDGE_MODEL", raising=False)
+
+    judge = ResponseJudge()
+
+    assert judge.config.provider == "deepseek"
+    assert judge.config.model_name == "deepseek-v4-flash"
+    assert str(judge.client.base_url) == "https://api.deepseek.com"
+    assert judge.client.api_key == "test-deepseek-key"
+
+
 def test_evaluate_raises_after_every_retry_is_exhausted_on_openai_too(monkeypatch) -> None:
     judge = _judge(provider="openai")
 

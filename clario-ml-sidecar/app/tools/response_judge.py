@@ -174,9 +174,12 @@ class JudgeConfig:
     """Configuration for the judge LLM."""
     # gemini: the configured GEMINI_API_KEY runs on Google's free (rate-limited,
     # not billed) tier, confirmed by real judge calls succeeding end-to-end.
+    # deepseek: also a free (rate-limited) tier via DEEPSEEK_API_KEY, using
+    # DeepSeek's OpenAI-compatible chat completions API - reuses _call_openai
+    # with a different base_url rather than a separate call path.
     # openai: implemented and available (RESPONSE_JUDGE_PROVIDER=openai), but
     # every OpenAI model requires paid credits - not a fit for "free" here.
-    provider: str = "gemini"  # "gemini" | "openai"
+    provider: str = "gemini"  # "gemini" | "deepseek" | "openai"
     model_name: str = "gemini-flash-latest"
     temperature: float = 0.1
     min_score_threshold: int = 3
@@ -300,6 +303,8 @@ class ResponseJudge:
         # can't accidentally hand one provider's model string to the other's API.
         if provider == "openai":
             model_name = os.getenv("OPENAI_JUDGE_MODEL", "gpt-5.4-mini")
+        elif provider == "deepseek":
+            model_name = os.getenv("DEEPSEEK_JUDGE_MODEL", "deepseek-v4-flash")
         else:
             # gemini-flash-latest (not a pinned version) so this default can't
             # go stale the way gemini-2.5-pro did - it was deprecated by Google
@@ -317,6 +322,12 @@ class ResponseJudge:
         elif self.config.provider == "openai":
             from openai import AsyncOpenAI
             self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        elif self.config.provider == "deepseek":
+            from openai import AsyncOpenAI
+            self.client = AsyncOpenAI(
+                api_key=os.getenv("DEEPSEEK_API_KEY"),
+                base_url="https://api.deepseek.com",
+            )
         else:
             raise ValueError(f"Unknown judge provider: {self.config.provider}")
 
