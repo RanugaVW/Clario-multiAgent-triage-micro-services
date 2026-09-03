@@ -24,6 +24,8 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 _ML_FINETUNING_ROOT = Path(__file__).resolve().parents[2]
 if str(_ML_FINETUNING_ROOT) not in sys.path:
     sys.path.insert(0, str(_ML_FINETUNING_ROOT))
@@ -31,9 +33,12 @@ if str(_ML_FINETUNING_ROOT) not in sys.path:
 from src.curation.sources.common import RawExample, has_pii  # noqa: E402
 from src.curation.sources import discourse_forums, github_openedx, moodle_jira  # noqa: E402
 
+load_dotenv(_ML_FINETUNING_ROOT / ".env")
+
 logger = logging.getLogger(__name__)
 
 TARGET_PER_CATEGORY = 20
+MAX_FIELD_LENGTH = 4000
 
 CATEGORY_CONFIG = {
     "Login Issue": {
@@ -99,6 +104,13 @@ def _source_name(source_module) -> str:
     return source_module.__name__.rsplit(".", 1)[-1]
 
 
+def _csv_safe(value: str) -> str:
+    """Prefix values that would be interpreted as spreadsheet formulas."""
+    if value and value[0] in ("=", "+", "-", "@"):
+        return f"'{value}"
+    return value
+
+
 def _cache_path(category: str, source_name: str) -> Path:
     safe_category = category.lower().replace(" ", "_")
     return CACHE_DIR / f"{safe_category}__{source_name}.json"
@@ -113,8 +125,9 @@ def _fetch_with_cache(category: str, source_module, keywords: list[str], limit: 
         return [RawExample(**item) for item in cached]
 
     examples = source_module.fetch(category, keywords, limit)
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_file.write_text(json.dumps([asdict(example) for example in examples], indent=2))
+    if examples:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(json.dumps([asdict(example) for example in examples], indent=2))
     return examples
 
 
@@ -123,6 +136,7 @@ def collect() -> dict:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     manifest: dict = {"target_per_category": TARGET_PER_CATEGORY, "categories": {}}
     rows = []
+    seen_doc_ids: set[str] = set()
 
     for category, config in CATEGORY_CONFIG.items():
         domain = config["domain"]
@@ -142,12 +156,16 @@ def collect() -> dict:
         category_counts: dict = {}
         for example, source_name in collected[:TARGET_PER_CATEGORY]:
             doc_id = f"real_{source_name}_{example.original_id}".replace(" ", "_")
+            if doc_id in seen_doc_ids:
+                logger.warning(f"Duplicate doc_id {doc_id!r} — keeping first occurrence")
+                continue
+            seen_doc_ids.add(doc_id)
             rows.append({
                 "doc_id": doc_id,
                 "category": category,
                 "domain": domain,
-                "issue_text": example.issue_text,
-                "resolution_text": example.resolution_text,
+                "issue_text": _csv_safe(example.issue_text[:MAX_FIELD_LENGTH]),
+                "resolution_text": _csv_safe(example.resolution_text[:MAX_FIELD_LENGTH]),
                 "source": source_name,
                 "source_url": example.source_url,
                 "responder_role": example.responder_role,

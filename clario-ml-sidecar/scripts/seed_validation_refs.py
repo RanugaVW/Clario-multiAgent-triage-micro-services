@@ -3,12 +3,25 @@
 Reads ml_finetuning/data/real_responses/real_responses.csv (produced by
 ml_finetuning/src/curation/collect_real_responses.py and manually
 reviewed by a human before this runs) and upserts each row into the
-validation_refs collection that both the judge LLM and the drafting
-agents pull few-shot examples from (see app/tools/few_shot_selector.py).
+validation_refs collection (see app/tools/few_shot_selector.py). As of
+writing, only the judge LLM (app/graph/response_judge_node.py, via
+select_few_shots) actually queries this collection; the drafting agents
+under app/agents/ do not. few_shot_selector.py also exposes
+select_few_shots_by_category for other/future callers, but nothing
+currently calls it.
 
 Manual, one-off run - deliberately not wired into the scheduled
 admin-override sync job (app/jobs/sync_judge_references.py). Safe to
 re-run after editing the CSV: upsert_reference() upserts by doc_id.
+
+Identifying/rolling back what this script seeded: every row it writes
+gets a doc_id of the form real_<source>_<original_id> (e.g.
+real_moodle_jira_MDL-1001). upsert_reference() hardcodes
+metadata.source = "admin_override" for every caller (existing behavior
+in few_shot_selector.py, unrelated to this script), so seeded entries
+are NOT distinguishable from real admin corrections by that metadata
+field - the only reliable way to find or remove them is by the
+"real_" prefix on their Chroma doc id.
 
 Run from anywhere, with clario-ml-sidecar's dependencies installed:
     python clario-ml-sidecar/scripts/seed_validation_refs.py
