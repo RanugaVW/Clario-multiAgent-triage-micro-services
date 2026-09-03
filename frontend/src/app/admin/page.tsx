@@ -257,6 +257,14 @@ export default function AdminDashboard() {
     router.push('/login');
   };
 
+  const navItems: { id: typeof activeTab; icon: React.ReactNode; label: string; warn?: boolean }[] = [
+    { id: 'agents', icon: <Bot className="w-4 h-4" />, label: `AI Agents (${AI_AGENTS.length})` },
+    { id: 'pipeline', icon: <Layers className="w-4 h-4" />, label: 'Pipeline Nodes' },
+    { id: 'human_review', icon: <AlertTriangle className="w-4 h-4" />, label: `Human Review Queue (${humanReviewTickets.length})`, warn: humanReviewTickets.length > 0 },
+    { id: 'resolved', icon: <CheckCircle2 className="w-4 h-4" />, label: `Resolved (${resolvedTickets.length})` },
+    { id: 'all_tickets', icon: <MessageSquare className="w-4 h-4" />, label: `All Tickets (${allTickets.length})` },
+  ];
+
   if (!isFullyLoaded) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
@@ -267,62 +275,92 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="min-h-screen flex">
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="flex justify-between items-center mb-10 animate-fade-in">
-        <div className="flex items-center space-x-3">
-          <div className="bg-[#2DD4BF]/15 p-2 rounded-xl border border-[#2DD4BF]/25">
-            <Settings className="text-[#2DD4BF] w-6 h-6" />
+      {/* ── Sidebar (desktop) ─────────────────────────────────────────────────── */}
+      <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-white/10 bg-white/[0.02] backdrop-blur-xl">
+        <div className="p-6 border-b border-white/10 flex items-center space-x-3">
+          <div className="bg-[#2DD4BF]/15 p-2 rounded-xl border border-[#2DD4BF]/25 shrink-0">
+            <Settings className="text-[#2DD4BF] w-5 h-5" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#ECECEC]">System administration</h1>
-            <p className="text-sm text-[#8A8F98]">Clario Platform — {user?.email}</p>
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-[#ECECEC] leading-tight">System administration</h1>
+            <p className="text-xs text-[#8A8F98] truncate">Clario Platform</p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
-          <button onClick={() => router.push('/')} className="flex items-center text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors px-3 py-2 rounded-lg hover:bg-white/[0.06]">
-            <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to triage
+
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {navItems.map(item => (
+            <SidebarNavItem key={item.id} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} icon={item.icon} label={item.label} warn={item.warn} />
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-white/10 space-y-1">
+          <p className="px-3.5 pb-2 text-xs text-[#8A8F98] truncate" title={user?.email || undefined}>{user?.email}</p>
+          <button onClick={() => router.push('/')} className="w-full flex items-center text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors px-3.5 py-2 rounded-lg hover:bg-white/[0.06]">
+            <ArrowLeft className="w-4 h-4 mr-2.5" /> Back to triage
           </button>
-          <button onClick={handleLogout} className="p-2 hover:bg-white/[0.06] rounded-full transition-colors text-[#8A8F98] hover:text-[#FB7185]" title="Sign Out">
-            <LogOut className="w-5 h-5" />
+          <button onClick={handleLogout} className="w-full flex items-center text-sm text-[#8A8F98] hover:text-[#FB7185] transition-colors px-3.5 py-2 rounded-lg hover:bg-white/[0.06]">
+            <LogOut className="w-4 h-4 mr-2.5" /> Sign out
           </button>
         </div>
-      </header>
+      </aside>
 
-      {/* ── System Status ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-        <SystemCard icon={<Server />} label="Spring Boot Gateway" status="Healthy" uptime="99.9%" color="emerald" />
-        <SystemCard icon={<Cpu />} label="ML Sidecar (FastAPI)" status="Healthy" uptime="99.8%" color="emerald" />
-        <SystemCard icon={<Database />} label="PostgreSQL (Supabase)" status="Healthy" uptime="99.9%" color="emerald" />
-        <SystemCard icon={<Database />} label="ChromaDB (50 docs)" status="Active" uptime="98.5%" color="sky" />
-      </div>
+      {/* ── Main content ──────────────────────────────────────────────────────── */}
+      <main className="flex-1 min-w-0 py-8 px-4 sm:px-6 lg:px-10 max-w-[1800px]">
 
-      {/* ── Stats Bar ───────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
-        <StatBadge label="Total tickets" value={allTickets.length} color="indigo" />
-        <StatBadge label="Auto-resolved" value={resolvedTickets.length} color="emerald" />
-        <StatBadge label="Human review" value={humanReviewTickets.length} color="amber" />
-        <StatBadge label="AI agents active" value={2} color="sky" />
-      </div>
+        {/* ── Header (mobile/tablet only — sidebar covers this from lg up) ────── */}
+        <header className="lg:hidden flex justify-between items-center mb-8 animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <div className="bg-[#2DD4BF]/15 p-2 rounded-xl border border-[#2DD4BF]/25">
+              <Settings className="text-[#2DD4BF] w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-[#ECECEC]">System administration</h1>
+              <p className="text-sm text-[#8A8F98]">Clario Platform — {user?.email}</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button onClick={() => router.push('/')} className="flex items-center text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors px-3 py-2 rounded-lg hover:bg-white/[0.06]">
+              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to triage
+            </button>
+            <button onClick={handleLogout} className="p-2 hover:bg-white/[0.06] rounded-full transition-colors text-[#8A8F98] hover:text-[#FB7185]" title="Sign Out">
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </header>
 
-      {/* ── Debug ───────────────────────────────────────────────────────────── */}
-      {debugInfo && (
-        <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/30 rounded-xl p-4 text-[#FB7185] text-sm">
-          <strong>Debug:</strong> {debugInfo}
+        {/* ── Tabs (mobile/tablet only) ─────────────────────────────────────── */}
+        <div className="lg:hidden flex flex-wrap gap-2 mb-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          {navItems.map(item => (
+            <TabBtn key={item.id} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} icon={item.icon} label={item.label} warn={item.warn} />
+          ))}
         </div>
-      )}
 
-      {/* ── Tabs ────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-2 mb-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-        <TabBtn active={activeTab === 'agents'} onClick={() => setActiveTab('agents')} icon={<Bot className="w-4 h-4" />} label={`AI Agents (${AI_AGENTS.length})`} />
-        <TabBtn active={activeTab === 'pipeline'} onClick={() => setActiveTab('pipeline')} icon={<Layers className="w-4 h-4" />} label="Pipeline Nodes" />
-        <TabBtn active={activeTab === 'human_review'} onClick={() => setActiveTab('human_review')} icon={<AlertTriangle className="w-4 h-4" />} label={`Human Review Queue (${humanReviewTickets.length})`} warn={humanReviewTickets.length > 0} />
-        <TabBtn active={activeTab === 'resolved'} onClick={() => setActiveTab('resolved')} icon={<CheckCircle2 className="w-4 h-4" />} label={`Resolved (${resolvedTickets.length})`} />
-        <TabBtn active={activeTab === 'all_tickets'} onClick={() => setActiveTab('all_tickets')} icon={<MessageSquare className="w-4 h-4" />} label={`All Tickets (${allTickets.length})`} />
-      </div>
+        {/* ── System Status ─────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <SystemCard icon={<Server />} label="Spring Boot Gateway" status="Healthy" uptime="99.9%" color="emerald" />
+          <SystemCard icon={<Cpu />} label="ML Sidecar (FastAPI)" status="Healthy" uptime="99.8%" color="emerald" />
+          <SystemCard icon={<Database />} label="PostgreSQL (Supabase)" status="Healthy" uptime="99.9%" color="emerald" />
+          <SystemCard icon={<Database />} label="ChromaDB (50 docs)" status="Active" uptime="98.5%" color="sky" />
+        </div>
 
-      {/* ── AI Agents Tab ───────────────────────────────────────────────────── */}
+        {/* ── Stats Bar ──────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
+          <StatBadge label="Total tickets" value={allTickets.length} color="indigo" />
+          <StatBadge label="Auto-resolved" value={resolvedTickets.length} color="emerald" />
+          <StatBadge label="Human review" value={humanReviewTickets.length} color="amber" />
+          <StatBadge label="AI agents active" value={2} color="sky" />
+        </div>
+
+        {/* ── Debug ──────────────────────────────────────────────────────────── */}
+        {debugInfo && (
+          <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/30 rounded-xl p-4 text-[#FB7185] text-sm">
+            <strong>Debug:</strong> {debugInfo}
+          </div>
+        )}
+
+        {/* ── AI Agents Tab ──────────────────────────────────────────────────── */}
       {activeTab === 'agents' && (
         <section className="glass-panel rounded-[28px] overflow-hidden animate-fade-in" style={{ animationDelay: '0.25s' }}>
           <div className="p-6 border-b border-white/10 flex justify-between items-center">
@@ -524,7 +562,8 @@ export default function AdminDashboard() {
           </div>
         </section>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 
@@ -779,7 +818,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
           {/* Metadata strip: everything about the ticket that is not its body */}
           <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <span className="text-xs text-[#8A8F98] block mb-3">Ticket details</span>
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-x-6 gap-y-4">
               <MetaItem label="Ticket ID" value={ticket.id} mono title={ticket.id} />
               <MetaItem label="Subject" value={ticket.subject || fullData?.subject || 'No subject'} />
               <MetaItem label="Requester" value={ticket.customer_email || fullData?.customer_email || 'Anonymous'} title={ticket.customer_email || undefined} />
@@ -1058,6 +1097,25 @@ function TabBtn({ active, onClick, icon, label, warn }: {
     >
       <span className={warn && !active ? 'text-[#FB923C]' : ''}>{icon}</span>
       <span>{label}</span>
+    </button>
+  );
+}
+
+/** Same nav semantics as TabBtn, laid out for the vertical sidebar rail. */
+function SidebarNavItem({ active, onClick, icon, label, warn }: {
+  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; warn?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-200 ${
+        active
+          ? 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shadow-[0_0_15px_rgba(232,163,61,0.15)]'
+          : 'text-[#8A8F98] hover:text-[#ECECEC] border border-transparent hover:bg-white/[0.04]'
+      }`}
+    >
+      <span className={`shrink-0 ${warn && !active ? 'text-[#FB923C]' : ''}`}>{icon}</span>
+      <span className="truncate">{label}</span>
     </button>
   );
 }
