@@ -102,11 +102,28 @@ def llm_invoke(prompt: str, temperature: float = 0.3) -> str:
     )
     return response.text
 
-def generate_draft(prompt: str) -> str:
-    """Synthesize a dual response using Gemini 3.1 Flash and RAG context."""
+class DraftGenerationError(RuntimeError):
+    """Every retry to the draft-generation model failed. Carries the real
+    attempt count so callers can report accurate LLM-call telemetry even on
+    total failure."""
+
+    def __init__(self, message: str, attempts: int) -> None:
+        super().__init__(message)
+        self.attempts = attempts
+
+
+def generate_draft(prompt: str) -> tuple[str, int]:
+    """Synthesize a dual response using Gemini 3.1 Flash and RAG context.
+
+    Returns (draft_text, attempts_used). Raises DraftGenerationError - never
+    returns a fake "Failed to generate draft: ..." string as if it were a
+    real draft - once every retry is exhausted, so callers can tell a real
+    failure apart from a real response and route to the dependency-failure
+    path instead of showing the customer an error message as their answer.
+    """
     ticket_text, context_chunks = _parse_specialist_prompt(prompt)
     if not context_chunks or not ticket_text:
-        return "I don't have enough information to resolve this."
+        return "I don't have enough information to resolve this.", 0
 
     context_str = "\n\n".join([f"Source {i+1}:\n{c['text']}" for i, c in enumerate(context_chunks)])
     
@@ -139,11 +156,13 @@ def generate_draft(prompt: str) -> str:
             tech_report = data.get("technical_report", "No technical report generated.")
             user_solution = data.get("user_solution", "No user solution generated.")
             
-            return f"**[INTERNAL TECHNICAL REPORT]**\n{tech_report}\n\n**[CUSTOMER RESPONSE]**\n{user_solution}"
+            return f"**[INTERNAL TECHNICAL REPORT]**\n{tech_report}\n\n**[CUSTOMER RESPONSE]**\n{user_solution}", attempt + 1
         except Exception as e:
             logger.error(f"Gemini API attempt {attempt + 1} failed: {e}")
             if attempt == max_retries - 1:
-                return f"Failed to generate draft: {str(e)}"
+                raise DraftGenerationError(
+                    f"Gemini draft generation failed after {max_retries} attempts: {e}", attempts=max_retries
+                ) from e
             import time
             time.sleep(2 ** attempt)  # Exponential backoff
 

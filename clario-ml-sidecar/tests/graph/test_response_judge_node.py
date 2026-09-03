@@ -6,8 +6,9 @@ from app.graph import response_judge_node as rjn
 
 
 class _StubScore:
-    def __init__(self, overall=4):
+    def __init__(self, overall=4, attempts_used=1):
         self.overall = overall
+        self.attempts_used = attempts_used
 
     def to_dict(self):
         return {"overall_score": self.overall, "judge_model": "stub-model"}
@@ -97,3 +98,34 @@ def test_judge_failure_is_swallowed_not_raised(monkeypatch) -> None:
 
     result = asyncio.run(rjn.response_judge_node(_state()))
     assert result["judge_evaluations"] == {}
+
+
+def test_successful_evaluation_adds_its_real_attempt_count_to_llm_call_count(monkeypatch) -> None:
+    async def few_shots(*_: object) -> list:
+        return []
+
+    async def evaluate(*_: object) -> _StubScore:
+        return _StubScore(attempts_used=2)  # e.g. one retry before succeeding
+
+    monkeypatch.setattr(rjn, "select_few_shots", few_shots)
+    monkeypatch.setattr(rjn, "evaluate_draft", evaluate)
+
+    result = asyncio.run(rjn.response_judge_node(_state(llm_call_count=3)))
+    assert result["llm_call_count"] == 5
+
+
+def test_failed_evaluation_still_adds_its_real_attempt_count_to_llm_call_count(monkeypatch) -> None:
+    async def few_shots(*_: object) -> list:
+        return []
+
+    async def evaluate(*_: object):
+        err = RuntimeError("gemini unavailable after retries")
+        err.attempts = 3  # matches ResponseJudge.evaluate()'s real failure contract
+        raise err
+
+    monkeypatch.setattr(rjn, "select_few_shots", few_shots)
+    monkeypatch.setattr(rjn, "evaluate_draft", evaluate)
+
+    result = asyncio.run(rjn.response_judge_node(_state()))
+    assert result["judge_evaluations"] == {}
+    assert result["llm_call_count"] == 3

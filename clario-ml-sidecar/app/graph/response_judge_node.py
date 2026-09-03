@@ -35,6 +35,7 @@ async def response_judge_node(state: TicketState) -> TicketState:
     retrieved_context = state.get("retrieved_context", {})
 
     evaluations: dict[str, dict] = {}
+    llm_call_count = state.get("llm_call_count", 0)
     for domain, draft in drafts.items():
         if not draft:
             continue
@@ -54,7 +55,9 @@ async def response_judge_node(state: TicketState) -> TicketState:
                 retrieved_context.get(domain, []),
             )
             evaluations[domain] = score.to_dict()
+            llm_call_count += score.attempts_used
         except Exception as e:
             logger.warning(f"Response judge failed for domain={domain}: {e}")
+            llm_call_count += getattr(e, "attempts", 0)
 
-    return {**state, "judge_evaluations": evaluations}
+    return {**state, "judge_evaluations": evaluations, "llm_call_count": llm_call_count}

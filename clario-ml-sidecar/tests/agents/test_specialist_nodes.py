@@ -18,14 +18,17 @@ def test_technical_agent_records_none_and_low_relevance_on_draft_failure(monkeyp
     assert result["agent_drafts"]["technical"] is None
     assert result["low_relevance_flags"]["technical"] is True
     assert result["rag_top_score"]["technical"] == 0.8
+    # RuntimeError("unavailable") carries no .attempts - a raw failure outside
+    # generate()'s own retry/attempts contract counts as 0 real calls made.
+    assert result["llm_call_count"] == 0
 
 
 def test_billing_agent_injects_prior_critique_and_records_draft(monkeypatch) -> None:
     seen: dict[str, str] = {}
 
-    async def successful_generate(prompt: str) -> str:
+    async def successful_generate(prompt: str) -> tuple[str, int]:
         seen["prompt"] = prompt
-        return "Review the pending authorization. [billing/payment_failed.md]"
+        return "Review the pending authorization. [billing/payment_failed.md]", 1
 
     monkeypatch.setattr("app.agents.billing_agent.node.retrieve_context", lambda *_: [{
         "text": "A pending authorization can be released.", "source_file": "billing/payment_failed.md", "score": 0.9
@@ -38,3 +41,4 @@ def test_billing_agent_injects_prior_critique_and_records_draft(monkeypatch) -> 
     assert "Your previous draft was rejected" in seen["prompt"]
     assert result["agent_drafts"]["billing"].startswith("Review")
     assert result["low_relevance_flags"]["billing"] is False
+    assert result["llm_call_count"] == 1

@@ -14,4 +14,6 @@ async def classification_node(state: TicketState) -> TicketState:
         "sentiment": result["sentiment"],
         "classification_confidence": result["confidence"],
         "classification_source": result["source"],
+        # classify_ticket_local makes exactly one model call - no internal retry loop.
+        "llm_call_count": state.get("llm_call_count", 0) + 1,
     }
