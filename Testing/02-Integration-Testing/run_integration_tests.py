@@ -238,12 +238,12 @@ async def _run_cache_hit_scenario(first: ScenarioResult, raw_text: str) -> Scena
         _check(result, "second identical ticket registered a semantic cache hit", bool(payload.get("cache_hit")))
         _check(result, "cache hit points back at the first scenario's ticket_id",
                payload.get("cache_source_ticket_id") == first.ticket_id)
-        # main.py inserts a ticket_classifications row unconditionally, even
-        # though classification_node is skipped on the cache-hit path - the
-        # row exists but every field is NULL. Documented, not "fixed" here:
-        # see the integration test report for this as a data-quality finding.
-        _check(result, "ticket_classifications row written on cache hit is present but empty (category is NULL)",
-               len(classifications) == 1 and classifications[0].get("category") is None)
+        # app/main.py now skips the ticket_classifications insert entirely
+        # when cache_hit is set (classification_node never ran, so there's
+        # nothing real to record) - fixed after this was found inserting an
+        # all-NULL row. See the integration test report, section on this fix.
+        _check(result, "no ticket_classifications row written on cache hit (classification_node was skipped)",
+               len(classifications) == 0)
     except Exception as exc:  # noqa: BLE001
         result.passed = False
         result.error = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
