@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle, Trash2, Copy, LogOut } from 'lucide-react';
+import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle, Trash2, Copy, LogOut, Star } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
 import { GlassPanel, GlassButton, GlassTextarea, Modal, StatusBadge } from '../../components/ui';
@@ -405,7 +405,7 @@ export default function Home() {
           ) : (
             <div className="flex flex-col w-full max-w-6xl mx-auto">
               {pastTickets.map(t => (
-                <UserTicketRow key={t.id} ticket={t} onDelete={handleDeleteTicket} />
+                <UserTicketRow key={t.id} ticket={t} onDelete={handleDeleteTicket} userId={user?.id || ''} />
               ))}
             </div>
           )}
@@ -445,7 +445,7 @@ function DashboardNavItem({ active, onClick, icon, label }: {
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 
-function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onDelete: (id: string) => void }) {
+function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolution; onDelete: (id: string) => void; userId: string }) {
   const [expanded, setExpanded] = useState(false);
   const finalResolution = ticket.resolutions?.find(r => r.escalated === false);
   const isFullyResolved = ticket.status === 'resolved' || !!finalResolution;
@@ -549,9 +549,62 @@ function UserTicketRow({ ticket, onDelete }: { ticket: TicketWithResolution; onD
                     : <div className="flex justify-center items-center py-8"><WavePhysicsLoader /></div>
                   )}
             </div>
+            {isFullyResolved && finalResolution?.final_response && (
+              <FeedbackStars ticketId={ticket.id} userId={userId} />
+            )}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+export function FeedbackStars({ ticketId, userId }: { ticketId: string; userId: string }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleRate = async (score: number) => {
+    if (submitted || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/customer_feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketId, userId, score }),
+      });
+      if (res.ok) setSubmitted(true);
+    } catch (e) {
+      console.error('Failed to submit feedback', e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-[#8A8F98] mr-2">Rate this response</span>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            aria-label={`Rate ${n} stars`}
+            onMouseEnter={() => setHovered(n)}
+            onMouseLeave={() => setHovered(null)}
+            onClick={() => handleRate(n)}
+            disabled={isSubmitting || submitted}
+            className="disabled:opacity-50"
+          >
+            <Star
+              className="w-4 h-4"
+              fill={(hovered ?? 0) >= n ? '#E8A33D' : 'none'}
+              stroke="#E8A33D"
+            />
+          </button>
+        ))}
+      </div>
+      {submitted && <p className="text-xs text-[#2DD4BF] mt-1">Thanks for your feedback!</p>}
     </div>
   );
 }
