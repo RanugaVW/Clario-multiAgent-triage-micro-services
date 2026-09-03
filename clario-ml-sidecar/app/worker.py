@@ -51,6 +51,7 @@ async def process_queue():
                         "rag_top_score": {},
                         "low_relevance_flags": {},
                         "validation_result": {},
+                        "llm_call_count": 0,
                     }
                     
                     start_time = time.time()
