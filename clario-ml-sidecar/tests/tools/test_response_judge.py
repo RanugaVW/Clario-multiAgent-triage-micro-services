@@ -42,15 +42,17 @@ def test_parse_response_parses_valid_json_normally() -> None:
 
 
 def test_evaluate_raises_after_every_retry_is_exhausted(monkeypatch) -> None:
-    judge = _judge()
+    judge = _judge(max_retries=2)
 
     async def always_fails(prompt: str) -> str:
         raise RuntimeError("gemini unavailable")
 
     monkeypatch.setattr(judge, "_call_gemini", always_fails)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as exc_info:
         asyncio.run(judge.evaluate("Some draft.", "High", "Technical", "issue"))
+    # Real attempt count survives even on total failure, for LLM-call telemetry.
+    assert exc_info.value.attempts == 3
 
 
 def test_evaluate_retries_a_malformed_json_response_instead_of_returning_it_as_a_score(
@@ -72,6 +74,7 @@ def test_evaluate_retries_a_malformed_json_response_instead_of_returning_it_as_a
     score = asyncio.run(judge.evaluate("Some draft.", "High", "Technical", "issue"))
     assert score.overall_score == 4
     assert calls["n"] == 2
+    assert score.attempts_used == 2
 
 
 def test_evaluate_still_returns_a_real_score_for_an_empty_draft() -> None:
@@ -80,6 +83,7 @@ def test_evaluate_still_returns_a_real_score_for_an_empty_draft() -> None:
     score = asyncio.run(judge.evaluate("   ", "High", "Technical", "issue"))
     assert score.overall_score == 1
     assert "Empty draft" in score.reasoning
+    assert score.attempts_used == 0  # never reached a real API call
 
 
 def test_gemini_is_the_default_provider() -> None:

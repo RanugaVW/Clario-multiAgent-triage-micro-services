@@ -22,9 +22,10 @@ async def technical_agent_node(state: TicketState) -> TicketState:
     prior_critique = state["reflection_critiques"][-1] if state.get("reflection_count", 0) else None
     prompt = build_specialist_prompt(state["redacted_text"], context, domain, prior_critique)
     try:
-        draft = await generate(prompt)
-    except (RuntimeError, CircuitBreakerOpenError):
+        draft, calls_made = await generate(prompt)
+    except (RuntimeError, CircuitBreakerOpenError) as err:
         draft = None
+        calls_made = getattr(err, "attempts", 0)
     return {
         **state,
         "agent_drafts": {**state.get("agent_drafts", {}), domain: draft},
@@ -34,4 +35,5 @@ async def technical_agent_node(state: TicketState) -> TicketState:
             **state.get("low_relevance_flags", {}), domain: draft is None or not check_relevance(context)
         },
         "failure_type": "dependency_failure" if draft is None else state.get("failure_type", "none"),
+        "llm_call_count": state.get("llm_call_count", 0) + calls_made,
     }
