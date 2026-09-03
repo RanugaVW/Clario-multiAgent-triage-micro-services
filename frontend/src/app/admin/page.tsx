@@ -85,6 +85,14 @@ type EvaluationScoreOverride = {
   created_at: string;
 };
 
+type CustomerFeedback = {
+  id: string;
+  ticket_id: string;
+  score: number;
+  comment: string | null;
+  created_at: string;
+};
+
 type ResponseEvaluation = {
   id: string;
   ticket_id: string;
@@ -115,6 +123,7 @@ type Ticket = {
   ticket_classifications: TicketClassification[];
   resolutions: Resolution[];
   response_evaluations: ResponseEvaluation[];
+  customer_feedback: CustomerFeedback[];
 };
 
 // ─── Virtual AI Agent Definitions (from architecture doc) ─────────────────────
@@ -673,6 +682,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
     ?.slice()
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
   const effectiveJudgeScore = latestOverride?.overall_score ?? evaluation?.overall_score ?? null;
+  const customerFeedback = (fullData?.customer_feedback || ticket.customer_feedback || [])[0];
   const hasResolvedResolution = allResolutions.some(r => !r.escalated);
   const isEscalated = !hasResolvedResolution && (allResolutions.some(r => r.escalated) || ticket.status === 'escalated');
   const resolutionMetadata = allResolutions.find(r => !r.escalated) || allResolutions[0];
@@ -703,7 +713,8 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
       ticket_drafts (*),
       ticket_classifications (*),
       resolutions (*),
-      response_evaluations (*, evaluation_score_overrides (*))
+      response_evaluations (*, evaluation_score_overrides (*)),
+      customer_feedback (*)
     `).eq('id', ticket.id).single();
     setFullData(data as any);
     return data;
@@ -982,6 +993,11 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                       >
                         <Pencil className="w-3 h-3" />
                       </button>
+                    </span>
+                  )}
+                  {customerFeedback && (
+                    <span className="text-xs text-[#2DD4BF]">
+                      Customer rating: {customerFeedback.score}/5
                     </span>
                   )}
                 </div>
