@@ -123,6 +123,63 @@ def test_evaluate_one_ticket_skips_when_no_draft_produced(monkeypatch):
     assert judge.calls == []
 
 
+def test_evaluate_one_ticket_skips_cache_hit_without_calling_judge_or_inserting(monkeypatch):
+    final_state = {
+        "cache_hit": True,
+        "agent_drafts": {"technical": "A reused precedent answer."},
+        "redacted_text": "I cannot log in",
+        "category": "Login Issue",
+        "priority": "Medium",
+        "judge_evaluations": {"technical": {"overall_score": 4}},
+    }
+    graph = _FakeGraph(final_state)
+    judge = _FakeJudge(_Verdict())
+    supabase = _FakeSupabase()
+    monkeypatch.setattr(rpe, "mask_pii", lambda text: (f"REDACTED[{text}]", []))
+
+    row = {"ticket_text": "I cannot log in", "source": "https://example.com/t/1", "response": "Clear your cache."}
+    results: list[dict] = []
+    processed = asyncio.run(
+        rpe._evaluate_one_ticket(
+            graph, judge, supabase, "run-1", {**row, "_source_doc_id": "rysera_row_0"}, _args(), results
+        )
+    )
+
+    assert processed is False
+    assert supabase.pairwise_table.inserted == []
+    assert judge.calls == []
+    assert results == []
+
+
+def test_summarize_computes_overall_and_per_category_counts_and_mean_scores():
+    rows = [
+        {"category": "Login Issue", "final_winner": "draft", "absolute_overall_score": 4},
+        {"category": "Login Issue", "final_winner": "reference", "absolute_overall_score": 2},
+        {"category": "Login Issue", "final_winner": "draft", "absolute_overall_score": None},
+        {"category": "Bug Report", "final_winner": "tie", "absolute_overall_score": None},
+    ]
+
+    stats = rpe._summarize(rows)
+
+    assert stats["overall_counts"] == {"draft": 2, "reference": 1, "tie": 1}
+    assert stats["per_category_counts"] == {
+        "Login Issue": {"draft": 2, "reference": 1},
+        "Bug Report": {"tie": 1},
+    }
+    assert stats["per_category_mean_score"]["Login Issue"] == 3.0
+    assert stats["per_category_mean_score"]["Bug Report"] == "no score data"
+
+
+def test_summarize_handles_no_rows():
+    stats = rpe._summarize([])
+
+    assert stats == {
+        "overall_counts": {},
+        "per_category_counts": {},
+        "per_category_mean_score": {},
+    }
+
+
 def test_run_continues_past_a_failing_row(monkeypatch, tmp_path):
     csv_path = tmp_path / "rysera.csv"
     csv_path.write_text(
@@ -134,7 +191,7 @@ def test_run_continues_past_a_failing_row(monkeypatch, tmp_path):
 
     calls = {"n": 0}
 
-    async def _fake_evaluate(graph, judge, supabase, eval_run_id, row, args):
+    async def _fake_evaluate(graph, judge, supabase, eval_run_id, row, args, results=None):
         calls["n"] += 1
         if calls["n"] == 1:
             raise RuntimeError("judge outage")
@@ -190,7 +247,7 @@ def test_run_counts_mixed_skip_and_processed_rows(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    async def _fake_evaluate(graph, judge, supabase, eval_run_id, row, args):
+    async def _fake_evaluate(graph, judge, supabase, eval_run_id, row, args, results=None):
         return row[args.ticket_col] != "skip row"
 
     monkeypatch.setattr(rpe, "build_graph", lambda: object())
