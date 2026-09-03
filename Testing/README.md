@@ -17,7 +17,7 @@ in each phase's own README.
 | # | Phase | Sample-plan equivalent | Status |
 |---|-------|------------------------|--------|
 | 01 | [Unit Testing](01-Unit-Testing/) | §3.1.2 Function Testing (unit-level) | **Complete** — see report |
-| 02 | [Integration Testing](02-Integration-Testing/) | §3.1.1 Data & Database Integrity Testing, §3.1.2 Function Testing (end-to-end) | Planned |
+| 02 | [Integration Testing](02-Integration-Testing/) | §3.1.1 Data & Database Integrity Testing, §3.1.2 Function Testing (end-to-end) | **Complete** — see report |
 | 03 | [UI / E2E Testing](03-UI-E2E-Testing/) | §3.1.3 User Interface Testing | Planned |
 | 04 | [Performance & Load Testing](04-Performance-Load-Testing/) | §3.1.4 Performance Profiling, §3.1.5 Load Testing | Planned |
 | 05 | [Security & Access Control Testing](05-Security-Access-Control-Testing/) | §3.1.6 Security and Access Control Testing | Planned |

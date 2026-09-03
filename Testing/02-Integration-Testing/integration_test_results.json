@@ -1,0 +1,125 @@
+{
+  "run_id": "c67dafb5",
+  "timestamp": "2026-09-03T17:08:01.054116+00:00",
+  "total": 4,
+  "passed": 1,
+  "failed": 3,
+  "scenarios": [
+    {
+      "name": "technical_resolved",
+      "passed": true,
+      "checks": [
+        "tickets row exists",
+        "ticket status is resolved or escalated (not stuck at 'received')",
+        "exactly one ticket_classifications row was written",
+        "resolutions row count is 1 (normal) or 2 (escalated, per the two-insert escalation path)",
+        "resolved ticket has at least one ticket_drafts row",
+        "resolved ticket has at least one response_evaluations row",
+        "resolved ticket has exactly one resolutions row"
+      ],
+      "failures": [],
+      "observed": {
+        "ticket_status": "resolved",
+        "classification_count": 1,
+        "category": "Login Issue",
+        "confidence": 0.85,
+        "draft_count": 1,
+        "draft_domains": [
+          "technical"
+        ],
+        "evaluation_count": 1,
+        "resolution_count": 1,
+        "resolution_escalated_flags": [
+          false
+        ],
+        "human_review_count": 0
+      },
+      "error": null
+    },
+    {
+      "name": "billing_resolved",
+      "passed": false,
+      "checks": [
+        "tickets row exists",
+        "ticket status is resolved or escalated (not stuck at 'received')",
+        "exactly one ticket_classifications row was written",
+        "resolutions row count is 1 (normal) or 2 (escalated, per the two-insert escalation path)",
+        "resolved ticket has at least one ticket_drafts row",
+        "resolved ticket has at least one response_evaluations row",
+        "resolved ticket has exactly one resolutions row"
+      ],
+      "failures": [
+        "resolved ticket has at least one response_evaluations row"
+      ],
+      "observed": {
+        "ticket_status": "resolved",
+        "classification_count": 1,
+        "category": "Payment Problem",
+        "confidence": 0.85,
+        "draft_count": 1,
+        "draft_domains": [
+          "billing"
+        ],
+        "evaluation_count": 0,
+        "resolution_count": 1,
+        "resolution_escalated_flags": [
+          false
+        ],
+        "human_review_count": 0
+      },
+      "error": null
+    },
+    {
+      "name": "ambiguous_dual_domain",
+      "passed": false,
+      "checks": [
+        "tickets row exists",
+        "ticket status is resolved or escalated (not stuck at 'received')",
+        "exactly one ticket_classifications row was written",
+        "resolutions row count is 1 (normal) or 2 (escalated, per the two-insert escalation path)",
+        "resolved ticket has at least one ticket_drafts row",
+        "resolved ticket has at least one response_evaluations row",
+        "resolved ticket has exactly one resolutions row"
+      ],
+      "failures": [
+        "resolved ticket has at least one response_evaluations row"
+      ],
+      "observed": {
+        "ticket_status": "resolved",
+        "classification_count": 1,
+        "category": "Payment Problem",
+        "confidence": 0.85,
+        "draft_count": 1,
+        "draft_domains": [
+          "billing"
+        ],
+        "evaluation_count": 0,
+        "resolution_count": 1,
+        "resolution_escalated_flags": [
+          false
+        ],
+        "human_review_count": 0
+      },
+      "error": null
+    },
+    {
+      "name": "cache_hit_resubmission",
+      "passed": false,
+      "checks": [
+        "second identical ticket registered a semantic cache hit",
+        "cache hit points back at the first scenario's ticket_id",
+        "classification_node was skipped on cache hit (no ticket_classifications row)"
+      ],
+      "failures": [
+        "classification_node was skipped on cache hit (no ticket_classifications row)"
+      ],
+      "observed": {
+        "cache_hit": true,
+        "cache_source_ticket_id": "da278bc4-ba58-452e-a65a-dad612f1670f",
+        "ticket_status": "resolved",
+        "classification_count": 1
+      },
+      "error": null
+    }
+  ]
+}

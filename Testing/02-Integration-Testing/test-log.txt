@@ -1,0 +1,12 @@
+=== Clario integration test run c67dafb5 — 2026-09-03T17:06:21.118561+00:00 ===
+Sidecar: http://localhost:8600
+Target Supabase project: https://mdvfvtpbwqhccmaarpli.supabase.co
+Chroma path: /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/vector_store/chroma_data
+
+[technical_resolved] PASS — {'ticket_status': 'resolved', 'classification_count': 1, 'category': 'Login Issue', 'confidence': 0.85, 'draft_count': 1, 'draft_domains': ['technical'], 'evaluation_count': 1, 'resolution_count': 1, 'resolution_escalated_flags': [False], 'human_review_count': 0}
+[billing_resolved] FAIL — {'ticket_status': 'resolved', 'classification_count': 1, 'category': 'Payment Problem', 'confidence': 0.85, 'draft_count': 1, 'draft_domains': ['billing'], 'evaluation_count': 0, 'resolution_count': 1, 'resolution_escalated_flags': [False], 'human_review_count': 0}
+[ambiguous_dual_domain] FAIL — {'ticket_status': 'resolved', 'classification_count': 1, 'category': 'Payment Problem', 'confidence': 0.85, 'draft_count': 1, 'draft_domains': ['billing'], 'evaluation_count': 0, 'resolution_count': 1, 'resolution_escalated_flags': [False], 'human_review_count': 0}
+[cache_hit_resubmission] FAIL — {'cache_hit': True, 'cache_source_ticket_id': 'da278bc4-ba58-452e-a65a-dad612f1670f', 'ticket_status': 'resolved', 'classification_count': 1}
+
+=== 1/4 scenarios passed ===
+JSON results written to /home/ranuga-weerasekara/Desktop/clario/Testing/02-Integration-Testing/integration_test_results.json
