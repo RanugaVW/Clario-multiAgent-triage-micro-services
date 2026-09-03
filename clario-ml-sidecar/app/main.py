@@ -160,7 +160,12 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
             domain = final_state.get("routing_decision") or final_state.get("category") or "technical"
             if domain not in {"technical", "billing"}:
                 domain = "technical"
-            add_precedent(ticket.ticket_id, redacted_text, final_response, domain)
+            # resolve_node restores this customer's real name/email into
+            # final_response, but a cache hit reuses the stored precedent
+            # verbatim for other, unrelated future customers - so it must
+            # never carry any one customer's identity baked in.
+            redacted_response, _ = mask_pii(final_response)
+            add_precedent(ticket.ticket_id, redacted_text, redacted_response, domain)
         except Exception as embed_err:
             logger.warning(f"Failed to embed precedent for ticket {ticket.ticket_id}: {embed_err}")
 
@@ -348,9 +353,14 @@ async def embed_resolved_ticket(request: EmbedResolvedTicketRequest):
         from app.tools.redaction_tool import mask_pii
         from app.tools.rag_tool import add_precedent
         
-        # We must mask the PII before saving to ChromaDB to prevent leakage
+        # We must mask the PII before saving to ChromaDB to prevent leakage.
+        # This precedent gets reused verbatim for other, unrelated future
+        # customers, so the stored response must never carry this customer's
+        # identity either - an admin's manually-typed reply will often
+        # address them by name directly.
         redacted_text, _ = mask_pii(request.ticket_text)
-        add_precedent(request.ticket_id, redacted_text, request.final_response, request.domain)
+        redacted_response, _ = mask_pii(request.final_response)
+        add_precedent(request.ticket_id, redacted_text, redacted_response, request.domain)
         
         return {"status": "success"}
     except Exception as e:
