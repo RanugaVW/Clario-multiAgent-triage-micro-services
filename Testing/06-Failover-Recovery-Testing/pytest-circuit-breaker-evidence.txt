@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar
+plugins: langsmith-0.10.5, Faker-20.1.0, anyio-4.14.2
+collecting ... collected 2 items
+
+tests/tools/test_circuit_breaker.py::test_breaker_opens_and_short_circuits_after_threshold PASSED [ 50%]
+tests/tools/test_circuit_breaker.py::test_half_open_success_closes_breaker PASSED [100%]
+
+============================== 2 passed in 0.05s ===============================
