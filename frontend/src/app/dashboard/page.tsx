@@ -90,7 +90,11 @@ export default function Home() {
     if (!user) return;
     setDataLoading(true);
     try {
-      const json = await fetchJson<{ data: TicketWithResolution[] }>(`/api/user_tickets?userId=${user.id}`);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const json = await fetchJson<{ data: TicketWithResolution[] }>(`/api/user_tickets?userId=${user.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       setPastTickets(json.data || []);
     } catch (e) {
       console.error('Failed to fetch history:', e);
@@ -583,9 +587,14 @@ export function FeedbackStars({
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
       const res = await fetch('/api/customer_feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ ticketId, userId, score: n }),
       });
       if (res.ok) setScore(n);

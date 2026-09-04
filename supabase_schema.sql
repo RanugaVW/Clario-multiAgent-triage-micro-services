@@ -167,6 +167,17 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.human_reviews ENABLE ROW LEVEL SECURITY;
 
+-- Staff can view all human review (handoff) records. Confirmed live in
+-- production via Testing/05-Security-Access-Control-Testing (checks A7/A7b/A7c):
+-- this table previously had RLS enabled with no policy checked into this
+-- file at all, even though a real staff-only policy demonstrably exists in
+-- the deployed database (staff JWTs got real rows, non-staff/anonymous got
+-- none). Recorded here now so this file matches production - written to
+-- match the exact staff-check expression used by every other staff policy
+-- in this schema (public.tickets, customer_feedback, response_evaluations).
+CREATE POLICY "Staff can view all human reviews" ON public.human_reviews
+    FOR SELECT USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
+
 -- 1. Users can only see their own profile. Admins/Agents can see all.
 CREATE POLICY "Users can view own profile" ON public.users 
     FOR SELECT USING (auth.uid() = id OR (SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
