@@ -35,28 +35,40 @@ def check_rag_required(text: str) -> bool:
 
 
 def decide_routing(category: str | None, confidence: float | None, text: str) -> str:
-    """Choose the initial specialist domain without modifying state. Routes to escalation if unsure."""
+    """Choose the initial specialist domain without modifying state. Routes to
+    "both" (send to both specialists, not a guess) whenever the classifier
+    itself is unsure or the ticket text carries a genuine dual-domain signal;
+    "escalation" is reserved for when there's no usable signal at all."""
+    # Low classifier confidence: don't trust the category, give both specialists a shot.
     if confidence is not None and confidence < 0.7:
-        return "escalation"
-        
-    # Primary logic: Trust the LLM's classification category
-    if category:
-        cat_lower = category.lower()
-        if "technical" in cat_lower or "tech" in cat_lower:
-            return "technical"
-        # Access wording wins over billing wording, so "Account Access" is not
-        # swallowed by the billing branch on the bare word "account".
-        if any(term in cat_lower for term in ACCOUNT_ACCESS_TERMS):
-            return "technical"
-        if any(term in cat_lower for term in ACCOUNT_BILLING_TERMS):
-            return "billing"
-        # A bare "Account" is genuinely ambiguous: fall through to scoring the
-        # ticket text rather than guessing a domain from the label alone.
+        return "both"
 
-    # Fallback logic: Compute weighted scores if category is missing or unrecognized
+    # No category at all: same reasoning as low confidence.
+    if not category:
+        return "both"
+
     tech_score = _calculate_score(text, TECHNICAL_KEYWORDS)
     billing_score = _calculate_score(text, BILLING_KEYWORDS)
-    
+
+    # The ticket text itself carries real signal for both domains (e.g. "payment
+    # failed" - technical failure wording plus billing wording) - this overrides
+    # a category label that may not reflect the whole ticket.
+    if tech_score > 0 and billing_score > 0:
+        return "both"
+
+    # Primary logic: Trust the LLM's classification category
+    cat_lower = category.lower()
+    if "technical" in cat_lower or "tech" in cat_lower:
+        return "technical"
+    # Access wording wins over billing wording, so "Account Access" is not
+    # swallowed by the billing branch on the bare word "account".
+    if any(term in cat_lower for term in ACCOUNT_ACCESS_TERMS):
+        return "technical"
+    if any(term in cat_lower for term in ACCOUNT_BILLING_TERMS):
+        return "billing"
+    # A bare "Account" is genuinely ambiguous: fall through to scoring the
+    # ticket text rather than guessing a domain from the label alone.
+
     if tech_score > 0 or billing_score > 0:
         if billing_score > tech_score:
             return "billing"
@@ -64,7 +76,7 @@ def decide_routing(category: str | None, confidence: float | None, text: str) ->
             return "technical"
         # If scores are exactly tied and > 0, we can't decide confidently
         return "escalation"
-        
+
     return "escalation"
 
 

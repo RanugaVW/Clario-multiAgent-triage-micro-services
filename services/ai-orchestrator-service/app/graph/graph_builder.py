@@ -34,7 +34,27 @@ def _after_cache(state: TicketState) -> str:
 
 
 def _specialist_target(state: TicketState) -> str:
-    return {"technical": "technical_agent", "billing": "billing_agent", "escalation": "escalation"}[state["routing_decision"]]
+    return {
+        "technical": "technical_agent", "billing": "billing_agent",
+        "both": "both_specialists", "escalation": "escalation",
+    }[state["routing_decision"]]
+
+
+async def _both_specialists_node(state: TicketState) -> TicketState:
+    """Draft both domains for an ambiguous ticket.
+
+    Runs technical_agent_node then billing_agent_node *sequentially*, not as
+    a parallel LangGraph fan-out: both nodes return `{**state, ...}`, and two
+    concurrent branches writing the same TypedDict keys in one step hits
+    LangGraph's InvalidUpdateError ("Can receive only one value per step").
+    Sequential composition sidesteps that - each node's read-merge-write on
+    agent_drafts/retrieved_context/etc. naturally accumulates both domains'
+    entries, and llm_call_count's own `state.get(...) + calls_made` pattern
+    still sums correctly across the two calls.
+    """
+    state = await technical_agent_node(state)
+    state = await billing_agent_node(state)
+    return state
 
 
 def _after_validation(state: TicketState) -> str:
@@ -62,6 +82,7 @@ def build_graph():
     graph.add_node("routing", routing_node)
     graph.add_node("technical_agent", technical_agent_node)
     graph.add_node("billing_agent", billing_agent_node)
+    graph.add_node("both_specialists", _both_specialists_node)
     graph.add_node("validation", validation_node)
     graph.add_node("reflection", reflection_node)
     graph.add_node("response_judge", response_judge_node)
@@ -76,6 +97,7 @@ def build_graph():
     graph.add_conditional_edges("routing", _specialist_target)
     graph.add_edge("technical_agent", "validation")
     graph.add_edge("billing_agent", "validation")
+    graph.add_edge("both_specialists", "validation")
     graph.add_conditional_edges("validation", _after_validation)
     graph.add_conditional_edges("reflection", _specialist_target)
     graph.add_edge("response_judge", "escalation")
