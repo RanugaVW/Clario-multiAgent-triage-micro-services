@@ -6,6 +6,29 @@ services:
     ports:
       - "6380:6379"
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Baked into the client bundle at build time. These are the URLs the
+        # browser uses, so they point at the host's published ports, not at the
+        # compose service names.
+        - NEXT_PUBLIC_API_URL=http://localhost:8080
+        - NEXT_PUBLIC_VOICE_SERVICE_URL=http://localhost:8002
+    ports:
+      - "3000:3000"
+    env_file:
+      # Supplies SUPABASE_SERVICE_ROLE_KEY for the src/app/api/* route handlers.
+      - ./frontend/.env
+    environment:
+      # Route handlers run inside the network, so the cache is the broker
+      # service, not the localhost default in src/app/api/tickets/route.ts.
+      - REDIS_URL=redis://redis-broker:6379
+    depends_on:
+      - redis-broker
+      - api-gateway
+
   api-gateway:
     build:
       context: ./services/api-gateway
