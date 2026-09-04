@@ -56,13 +56,24 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         matches = []
         embeds = [_embedding_model().encode(query, normalize_embeddings=True).tolist()]
 
-        # Query standard support docs
+        # Query standard support docs. Excludes precedent_memory: those
+        # documents are OTHER customers' full ticket narratives (product
+        # names, specific circumstances), and feeding them here means the
+        # specialist prompt's "answer ONLY from retrieved context" instruction
+        # makes the LLM copy those specifics into a new customer's response
+        # even when that customer never mentioned them - confirmed live: a
+        # customer who only said "this course" got told "the AI course did
+        # not meet your expectations", copied verbatim from three unrelated
+        # customers' precedent tickets that all happened to name that course.
+        # precedent_memory still fully serves its real purpose - exact-match
+        # cache-hit reuse in cache_check_node.py, which queries it directly
+        # and never calls this function.
         try:
             collection = client.get_collection(_COLLECTION_NAME)
             result = collection.query(
                 query_embeddings=embeds,
                 n_results=k,
-                where={"domain": domain},
+                where={"$and": [{"domain": domain}, {"source_file": {"$ne": "precedent_memory"}}]},
                 include=["documents", "metadatas", "distances"],
             )
             docs = result.get("documents", [[]])[0] or []
@@ -103,6 +114,11 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         raise
         
     breaker.record_success()
+    # Defense in depth: the where-clause above should already exclude these,
+    # but never let a precedent_memory document (another customer's full
+    # ticket narrative) reach a generation prompt even if that filter is
+    # ever bypassed.
+    matches = [match for match in matches if match["source_file"] != "precedent_memory"]
     # Sort combined matches by score descending and keep top k
     matches.sort(key=lambda x: x["score"], reverse=True)
     return matches[:k]
