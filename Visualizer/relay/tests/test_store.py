@@ -50,3 +50,30 @@ def test_prunes_events_older_than_one_hour():
     store.add(_event(ticket_id="t1", step="surrogate"))
     events = store.events_for("t1")
     assert [e["step"] for e in events] == ["surrogate"]
+
+
+def test_merge_correlation_prepends_correlation_events_under_the_real_ticket_id():
+    store = TraceStore()
+    store.add(_event(ticket_id="corr-1", step="submit"))
+    store.add(_event(ticket_id="corr-1", step="received"))
+    store.add(_event(ticket_id="real-1", step="persisted"))
+
+    store.merge_correlation("corr-1", "real-1")
+
+    events = store.events_for("real-1")
+    assert [e["step"] for e in events] == ["submit", "received", "persisted"]
+    assert store.events_for("corr-1") == []
+
+
+def test_merge_correlation_is_a_noop_when_ids_are_already_equal():
+    store = TraceStore()
+    store.add(_event(ticket_id="t1", step="cache_check"))
+    store.merge_correlation("t1", "t1")
+    assert [e["step"] for e in store.events_for("t1")] == ["cache_check"]
+
+
+def test_merge_correlation_is_a_noop_when_nothing_is_filed_under_the_correlation_id():
+    store = TraceStore()
+    store.add(_event(ticket_id="real-1", step="persisted"))
+    store.merge_correlation("corr-does-not-exist", "real-1")
+    assert [e["step"] for e in store.events_for("real-1")] == ["persisted"]

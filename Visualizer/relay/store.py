@@ -36,6 +36,18 @@ class TraceStore:
     def events_for(self, ticket_id: str) -> list[dict]:
         return list(self._events.get(ticket_id, []))
 
+    def merge_correlation(self, correlation_id: str, ticket_id: str) -> None:
+        """Fold a correlation-id-keyed ticket's events into its real ticket_id
+        once that's known (from ticket-core-service's "persisted" event, which
+        carries both). No-op if they're already the same key or nothing is
+        filed under the correlation id."""
+        if correlation_id == ticket_id or correlation_id not in self._events:
+            return
+        correlation_events = self._events.pop(correlation_id)
+        self._events.setdefault(ticket_id, [])
+        self._events[ticket_id] = correlation_events + self._events[ticket_id]
+        self._events.move_to_end(ticket_id)
+
     def tickets(self) -> list[dict]:
         result = []
         for ticket_id, events in self._events.items():
