@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import os
-from typing import Any, Awaitable, Callable
+from typing import Callable
 
 import httpx
 
@@ -42,7 +42,10 @@ def emit(ticket_id: str, service: str, step: str, status: str, detail: dict | No
         "ticket_id": ticket_id, "service": service, "step": step,
         "status": status, "detail": detail or {},
     }
-    asyncio.create_task(_post(payload))
+    try:
+        asyncio.create_task(_post(payload))
+    except RuntimeError:
+        pass  # no running event loop (e.g. called from a thread) - fail silently
 
 
 def _summarize_cache_check(state: dict) -> dict:
