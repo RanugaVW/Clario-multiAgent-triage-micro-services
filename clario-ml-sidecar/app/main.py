@@ -170,11 +170,6 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
             logger.warning(f"Failed to embed precedent for ticket {ticket.ticket_id}: {embed_err}")
 
     try:
-        supabase_client.table("tickets").update({
-            "status": status,
-            "raw_graph_payload": final_state
-        }).eq("id", ticket.ticket_id).execute()
-        
         # cache_check_node short-circuits straight to response_judge on a hit,
         # so classification_node never ran - final_state has no classification
         # fields to insert (they'd all be NULL).
@@ -279,9 +274,22 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "total_reflection_count": final_state.get("reflection_count", 0),
                 "total_llm_calls": final_state.get("llm_call_count", 0),
             }).execute()
-            
+
+        # Flip the ticket's status LAST, only after every supporting row
+        # above has been written successfully. Writing this first (as it
+        # used to) meant a failure on any later insert left the ticket
+        # marked "resolved"/"escalated" with some or all of its supporting
+        # data missing - a real failure mode found and reproduced in
+        # Testing/06-Failover-Recovery-Testing (finding C1). If anything
+        # above raises, this line never runs and the ticket simply stays in
+        # its prior status instead of silently lying about being done.
+        supabase_client.table("tickets").update({
+            "status": status,
+            "raw_graph_payload": final_state
+        }).eq("id", ticket.ticket_id).execute()
+
     except Exception as e:
-        logger.error(f"Failed to save to Supabase: {e}")
+        logger.error(f"Failed to save to Supabase for ticket {ticket.ticket_id}: {e}")
 
 @app.post("/process_ticket")
 async def process_ticket(ticket: TicketRequest, background_tasks: BackgroundTasks) -> dict:
