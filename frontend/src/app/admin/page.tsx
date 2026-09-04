@@ -794,7 +794,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
       try {
         await fetch(`${API_URL}/embed_resolved_ticket`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({
             ticket_id: ticket.id,
             ticket_text: ticket.raw_text,

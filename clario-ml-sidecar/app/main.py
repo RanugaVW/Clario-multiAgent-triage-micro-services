@@ -105,6 +105,19 @@ async def verify_token(authorization: str = Header(None)) -> dict:
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
 
+
+def get_user_role(user_id: str) -> str:
+    """Looks up a user's real role from public.users - the schema stores it
+    there (see supabase_schema.sql), not on the Supabase auth user's
+    app_metadata, which this schema never populates. A previous check here
+    read app_metadata.role, which was always None, so no admin could ever
+    force-delete a ticket (found live in Testing/07-API-Testing)."""
+    try:
+        res = supabase_client.table("users").select("role").eq("id", user_id).single().execute()
+        return (res.data or {}).get("role", "user")
+    except Exception:
+        return "user"
+
 # Track active processing tasks so we can cancel them if the user deletes the ticket
 active_tasks = {}
 active_tasks_lock = asyncio.Lock()
@@ -292,11 +305,21 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
         logger.error(f"Failed to save to Supabase for ticket {ticket.ticket_id}: {e}")
 
 @app.post("/process_ticket")
-async def process_ticket(ticket: TicketRequest, background_tasks: BackgroundTasks) -> dict:
+async def process_ticket(ticket: TicketRequest, background_tasks: BackgroundTasks, user = Depends(verify_token)) -> dict:
     """Trigger background ticket processing and return immediately."""
     import time
     start_time = time.time()
-    
+
+    # Had no auth at all - anyone who could reach this port could trigger a
+    # full LLM pipeline run against any ticket_id for free (found live in
+    # Testing/07-API-Testing). The real submission path (ticket-core-service
+    # dispatching to Redis, consumed by worker.py) never calls this HTTP
+    # route, so ownership can only be checked against whatever ticket row
+    # already exists for this ticket_id.
+    ticket_res = supabase_client.table("tickets").select("user_id").eq("id", ticket.ticket_id).execute()
+    if not ticket_res.data or ticket_res.data[0].get("user_id") != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to process this ticket.")
+
     initial_state = {
         "ticket_id": ticket.ticket_id,
         "raw_text": ticket.raw_text,
@@ -331,11 +354,14 @@ async def get_customer_tickets(user_id: str, user = Depends(verify_token)):
 @app.delete('/customer_tickets/{ticket_id}')
 async def delete_customer_ticket(ticket_id: str, force: bool = False, user = Depends(verify_token)):
     try:
-        # Check permissions
-        is_admin = getattr(user, 'app_metadata', {}).get('role') == 'admin' if hasattr(user, 'app_metadata') else False
+        # Check permissions. Used to read auth app_metadata.role, which this
+        # schema never populates (role lives in public.users.role) - so
+        # force-delete silently never authorized any real admin. Found live
+        # in Testing/07-API-Testing.
+        is_admin = get_user_role(user.id) == "admin"
         if force and not is_admin:
             raise HTTPException(status_code=403, detail="Only admins can force delete")
-            
+
         if not is_admin:
             ticket_res = supabase_client.table('tickets').select('user_id').eq('id', ticket_id).execute()
             if not ticket_res.data or ticket_res.data[0].get('user_id') != user.id:
@@ -347,14 +373,23 @@ async def delete_customer_ticket(ticket_id: str, force: bool = False, user = Dep
         if task:
             task.cancel()
             logger.info(f"Cancelled active task for ticket {ticket_id}")
-            
+
         if force:
             # Hard delete for admins
             supabase_client.table('tickets').delete().eq('id', ticket_id).execute()
         else:
-            # Soft delete from user side by replacing the UUID with a zero UUID
-            supabase_client.table('tickets').update({'user_id': '00000000-0000-0000-0000-000000000000'}).eq('id', ticket_id).execute()
+            # Soft delete from user side by clearing ownership. Used to write
+            # a literal all-zero placeholder UUID, but tickets.user_id has a
+            # foreign key to public.users(id) with no such row - every
+            # non-force delete unconditionally raised a Postgres FK
+            # violation (found live in Testing/07-API-Testing, reproduced
+            # for every ticket regardless of who owned it). NULL is what
+            # this same column's own ON DELETE SET NULL already uses for
+            # "owner is gone", and a foreign key always permits NULL.
+            supabase_client.table('tickets').update({'user_id': None}).eq('id', ticket_id).execute()
         return {"status": "success", "message": "Ticket deleted and processing stopped."}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f'Failed to delete ticket: {e}')
         raise HTTPException(status_code=500, detail="Failed to delete ticket")
@@ -366,8 +401,15 @@ class EmbedResolvedTicketRequest(BaseModel):
     domain: str = Field(min_length=1, max_length=100)
 
 @app.post('/embed_resolved_ticket')
-async def embed_resolved_ticket(request: EmbedResolvedTicketRequest):
+async def embed_resolved_ticket(request: EmbedResolvedTicketRequest, user = Depends(verify_token)):
     """Embeds a resolved ticket into the vector store as precedent memory."""
+    # Had no auth at all - anyone who found this URL could inject fabricated
+    # "precedent" answers straight into the RAG store, which are later
+    # served verbatim to unrelated future customers (found live in
+    # Testing/07-API-Testing). Only staff resolve tickets, so this mirrors
+    # the same staff-only boundary /api/tickets already enforces.
+    if get_user_role(user.id) not in ("admin", "agent"):
+        raise HTTPException(status_code=403, detail="Staff access required")
     try:
         from app.tools.redaction_tool import mask_pii
         from app.tools.rag_tool import add_precedent
