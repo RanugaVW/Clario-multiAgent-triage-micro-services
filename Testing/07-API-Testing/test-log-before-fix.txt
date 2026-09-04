@@ -1,0 +1,229 @@
+newman
+
+Clario API Tests
+
+❏ 1. ML Sidecar - Health
+↳ GET /health
+  GET http://127.0.0.1:8600/health [200 OK, 140B, 75ms]
+  ✓  status 200
+  ✓  status equals 'ok'
+
+❏ 2. ML Sidecar - POST /process_ticket
+↳ No auth header -> 401
+  POST http://127.0.0.1:8600/process_ticket [200 OK, 190B, 11ms]
+  1. status is 401
+
+↳ Authenticated but not the ticket owner -> 403
+  POST http://127.0.0.1:8600/process_ticket [200 OK, 190B, 15ms]
+  2. status is 403
+
+↳ Ticket owner -> 200 processing
+  POST http://127.0.0.1:8600/process_ticket [200 OK, 190B, 16ms]
+  ✓  status is 200
+  ✓  status equals 'processing'
+
+↳ Missing raw_text -> 422 validation error
+  POST http://127.0.0.1:8600/process_ticket [422 Unprocessable Entity, 285B, 16ms]
+  ✓  status is 422
+
+↳ raw_text over 5000 chars -> 422 validation error
+  POST http://127.0.0.1:8600/process_ticket [422 Unprocessable Entity, 5.3kB, 19ms]
+  ✓  status is 422
+
+❏ 3. ML Sidecar - /customer_tickets
+↳ GET no auth -> 401
+  GET http://127.0.0.1:8600/customer_tickets/38ab6203-3b94-491e-a132-6b2afd9383b7 [401 Unauthorized, 172B, 24ms]
+  ✓  status is 401
+
+↳ GET own tickets -> 200 array
+  GET http://127.0.0.1:8600/customer_tickets/38ab6203-3b94-491e-a132-6b2afd9383b7 [200 OK, 4.33kB, 780ms]
+  ✓  status 200
+  ✓  response is an array
+
+↳ GET another customer's tickets -> 403
+  GET http://127.0.0.1:8600/customer_tickets/38ab6203-3b94-491e-a132-6b2afd9383b7 [403 Forbidden, 184B, 78ms]
+  ✓  status is 403
+
+↳ DELETE (soft, own ticket) -> 200
+  DELETE http://127.0.0.1:8600/customer_tickets/8c520f5d-3c00-4895-ad2b-e88f46878ff1 [500 Internal Server Error, 180B, 330ms]
+  3. status is 200
+  4. status equals 'success'
+
+↳ DELETE force=true as non-admin -> 403
+  DELETE http://127.0.0.1:8600/customer_tickets/aa8b54ea-a1fe-4c11-b67e-11ef7504db6e?force=true [500 Internal Server Error, 180B, 193ms]
+  5. status is 403
+
+↳ DELETE force=true as staff -> 200 (verifies the role-check fix)
+  DELETE http://127.0.0.1:8600/customer_tickets/6440401c-b6d9-4ba3-8cbc-d99b90673719?force=true [500 Internal Server Error, 180B, 186ms]
+  6. status is 200
+  7. status equals 'success'
+
+❏ 4. ML Sidecar - POST /embed_resolved_ticket
+↳ No auth header -> 401
+  POST http://127.0.0.1:8600/embed_resolved_ticket [200 OK, 145B, 26.2s]
+  8. status is 401
+
+↳ Authenticated customer (non-staff) -> 403
+  POST http://127.0.0.1:8600/embed_resolved_ticket [200 OK, 145B, 377ms]
+  9. status is 403
+
+↳ Staff -> 200 success
+  POST http://127.0.0.1:8600/embed_resolved_ticket [200 OK, 145B, 401ms]
+  ✓  status is 200
+  ✓  status equals 'success'
+
+❏ 5. Next.js API - /api/tickets (staff console)
+↳ GET no auth -> 401
+  GET http://localhost:3000/api/tickets [401 Unauthorized, 295B, 66ms]
+  ✓  status is 401
+
+↳ GET as customer (non-staff) -> 403
+  GET http://localhost:3000/api/tickets [403 Forbidden, 290B, 398ms]
+  ✓  status is 403
+
+↳ GET as staff -> 200 with data[]
+  GET http://localhost:3000/api/tickets [200 OK, 167.66kB, 787ms]
+  ✓  status 200
+  ✓  data is an array
+
+↳ PUT missing final_response -> 400
+  PUT http://localhost:3000/api/tickets [400 Bad Request, 299B, 163ms]
+  ✓  status is 400
+
+↳ PUT valid resolve -> 200 success:true
+  PUT http://localhost:3000/api/tickets [200 OK, 266B, 620ms]
+  ✓  status is 200
+  ✓  success equals true
+
+↳ DELETE as staff -> 200
+  DELETE http://localhost:3000/api/tickets?id=5a1aff65-fb77-44b5-a00d-1f5525f938e1 [200 OK, 293B, 912ms]
+  ✓  status is 200
+
+❏ 6. Next.js API - /api/user_tickets
+↳ GET no auth -> 401
+  GET http://localhost:3000/api/user_tickets?userId=38ab6203-3b94-491e-a132-6b2afd9383b7 [401 Unauthorized, 295B, 24ms]
+  ✓  status is 401
+
+↳ GET missing userId -> 400
+  GET http://localhost:3000/api/user_tickets [400 Bad Request, 285B, 351ms]
+  ✓  status is 400
+
+↳ GET own history -> 200 with data[]
+  GET http://localhost:3000/api/user_tickets?userId=38ab6203-3b94-491e-a132-6b2afd9383b7 [200 OK, 4.5kB, 252ms]
+  ✓  status 200
+  ✓  data is an array
+
+↳ GET another customer's history -> 403
+  GET http://localhost:3000/api/user_tickets?userId=38ab6203-3b94-491e-a132-6b2afd9383b7 [403 Forbidden, 303B, 286ms]
+  ✓  status is 403
+
+↳ Staff GET another customer's history -> 200 (staff exception)
+  GET http://localhost:3000/api/user_tickets?userId=38ab6203-3b94-491e-a132-6b2afd9383b7 [200 OK, 4.5kB, 354ms]
+  ✓  status is 200
+
+❏ 7. Next.js API - /api/customer_feedback
+↳ POST no auth -> 401
+  POST http://localhost:3000/api/customer_feedback [401 Unauthorized, 295B, 26ms]
+  ✓  status is 401
+
+↳ POST missing ticketId -> 400
+  POST http://localhost:3000/api/customer_feedback [400 Bad Request, 287B, 480ms]
+  ✓  status is 400
+
+↳ POST score out of range (0) -> 400
+  POST http://localhost:3000/api/customer_feedback [400 Bad Request, 311B, 404ms]
+  ✓  status is 400
+
+↳ POST valid, own ticket -> 200
+  POST http://localhost:3000/api/customer_feedback [200 OK, 263B, 472ms]
+  ✓  status is 200
+
+↳ POST valid score, someone else's ticket -> 403
+  POST http://localhost:3000/api/customer_feedback [403 Forbidden, 299B, 354ms]
+  ✓  status is 403
+
+❏ 8. Voice-to-Text Service
+↳ GET /health
+  GET http://127.0.0.1:8002/health [200 OK, 175B, 13ms]
+  ✓  status 200
+  ✓  model_loaded is true
+
+↳ POST /transcribe/base64 valid audio -> 200 with text field
+  POST http://127.0.0.1:8002/transcribe/base64 [200 OK, 167B, 252ms]
+  ✓  status 200
+  ✓  response has a text field
+
+↳ POST /transcribe/base64 empty audio -> 400
+  POST http://127.0.0.1:8002/transcribe/base64 [400 Bad Request, 166B, 8ms]
+  ✓  status is 400
+
+↳ POST /transcribe/base64 garbage payload -> 400
+  POST http://127.0.0.1:8002/transcribe/base64 [400 Bad Request, 186B, 9ms]
+  ✓  status is 400
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                 35 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                 35 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                 46 │                 9 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 36.4s                                        │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 186.49kB (approx)                           │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 1000ms [min: 8ms, max: 26.2s, s.d.: 4.3s] │
+└──────────────────────────────────────────────────────────────────┘
+
+  #  failure         detail                                                                                                       
+                                                                                                                                  
+ 1.  AssertionError  status is 401                                                                                                
+                     expected response to have status code 401 but got 200                                                        
+                     at assertion:0 in test-script                                                                                
+                     inside "2. ML Sidecar - POST /process_ticket / No auth header -> 401"                                        
+                                                                                                                                  
+ 2.  AssertionError  status is 403                                                                                                
+                     expected response to have status code 403 but got 200                                                        
+                     at assertion:0 in test-script                                                                                
+                     inside "2. ML Sidecar - POST /process_ticket / Authenticated but not the ticket owner -> 403"                
+                                                                                                                                  
+ 3.  AssertionError  status is 200                                                                                                
+                     expected response to have status code 200 but got 500                                                        
+                     at assertion:0 in test-script                                                                                
+                     inside "3. ML Sidecar - /customer_tickets / DELETE (soft, own ticket) -> 200"                                
+                                                                                                                                  
+ 4.  AssertionError  status equals 'success'                                                                                      
+                     expected undefined to deeply equal 'success'                                                                 
+                     at assertion:1 in test-script                                                                                
+                     inside "3. ML Sidecar - /customer_tickets / DELETE (soft, own ticket) -> 200"                                
+                                                                                                                                  
+ 5.  AssertionError  status is 403                                                                                                
+                     expected response to have status code 403 but got 500                                                        
+                     at assertion:0 in test-script                                                                                
+                     inside "3. ML Sidecar - /customer_tickets / DELETE force=true as non-admin -> 403"                           
+                                                                                                                                  
+ 6.  AssertionError  status is 200                                                                                                
+                     expected response to have status code 200 but got 500                                                        
+                     at assertion:0 in test-script                                                                                
+                     inside "3. ML Sidecar - /customer_tickets / DELETE force=true as staff -> 200 (verifies the role-check fix)" 
+                                                                                                                                  
+ 7.  AssertionError  status equals 'success'                                                                                      
+                     expected undefined to deeply equal 'success'                                                                 
+                     at assertion:1 in test-script                                                                                
+                     inside "3. ML Sidecar - /customer_tickets / DELETE force=true as staff -> 200 (verifies the role-check fix)" 
+                                                                                                                                  
+ 8.  AssertionError  status is 401                                                                                                
+                     expected response to have status code 401 but got 200                                                        
+                     at assertion:0 in test-script                                                                                
+                     inside "4. ML Sidecar - POST /embed_resolved_ticket / No auth header -> 401"                                 
+                                                                                                                                  
+ 9.  AssertionError  status is 403                                                                                                
+                     expected response to have status code 403 but got 200                                                        
+                     at assertion:0 in test-script                                                                                
+                     inside "4. ML Sidecar - POST /embed_resolved_ticket / Authenticated customer (non-staff) -> 403"             

@@ -1,0 +1,182 @@
+newman
+
+Clario API Tests
+
+❏ 1. ML Sidecar - Health
+↳ GET /health
+  GET http://127.0.0.1:8600/health [200 OK, 140B, 126ms]
+  ✓  status 200
+  ✓  status equals 'ok'
+
+❏ 2. ML Sidecar - POST /process_ticket
+↳ No auth header -> 401
+  POST http://127.0.0.1:8600/process_ticket [401 Unauthorized, 172B, 21ms]
+  ✓  status is 401
+
+↳ Authenticated but not the ticket owner -> 403
+  POST http://127.0.0.1:8600/process_ticket [403 Forbidden, 183B, 1765ms]
+  ✓  status is 403
+
+↳ Ticket owner -> 200 processing
+  POST http://127.0.0.1:8600/process_ticket [200 OK, 190B, 272ms]
+  ✓  status is 200
+  ✓  status equals 'processing'
+
+↳ Missing raw_text -> 422 validation error
+  POST http://127.0.0.1:8600/process_ticket [422 Unprocessable Entity, 285B, 166ms]
+  ✓  status is 422
+
+↳ raw_text over 5000 chars -> 422 validation error
+  POST http://127.0.0.1:8600/process_ticket [422 Unprocessable Entity, 5.3kB, 117ms]
+  ✓  status is 422
+
+❏ 3. ML Sidecar - /customer_tickets
+↳ GET no auth -> 401
+  GET http://127.0.0.1:8600/customer_tickets/4ebfb0ed-9426-4ba5-9391-dd4e5c348be5 [401 Unauthorized, 172B, 29ms]
+  ✓  status is 401
+
+↳ GET own tickets -> 200 array
+  GET http://127.0.0.1:8600/customer_tickets/4ebfb0ed-9426-4ba5-9391-dd4e5c348be5 [200 OK, 4.34kB, 217ms]
+  ✓  status 200
+  ✓  response is an array
+
+↳ GET another customer's tickets -> 403
+  GET http://127.0.0.1:8600/customer_tickets/4ebfb0ed-9426-4ba5-9391-dd4e5c348be5 [403 Forbidden, 184B, 111ms]
+  ✓  status is 403
+
+↳ DELETE (soft, own ticket) -> 200
+  DELETE http://127.0.0.1:8600/customer_tickets/fe42e4c8-243e-4a7b-b3f3-ef3ca5cd8b2f [200 OK, 196B, 456ms]
+  ✓  status is 200
+  ✓  status equals 'success'
+
+↳ DELETE force=true as non-admin -> 403
+  DELETE http://127.0.0.1:8600/customer_tickets/da3013f6-3f24-4a2d-a7f0-2b3d158036a1?force=true [403 Forbidden, 173B, 223ms]
+  ✓  status is 403
+
+↳ DELETE force=true as staff -> 200 (verifies the role-check fix)
+  DELETE http://127.0.0.1:8600/customer_tickets/8151fae7-7db4-45e0-ab06-8c5477dc62b8?force=true [200 OK, 196B, 358ms]
+  ✓  status is 200
+  ✓  status equals 'success'
+
+❏ 4. ML Sidecar - POST /embed_resolved_ticket
+↳ No auth header -> 401
+  POST http://127.0.0.1:8600/embed_resolved_ticket [401 Unauthorized, 172B, 9ms]
+  ✓  status is 401
+
+↳ Authenticated customer (non-staff) -> 403
+  POST http://127.0.0.1:8600/embed_resolved_ticket [403 Forbidden, 166B, 173ms]
+  ✓  status is 403
+
+↳ Staff -> 200 success
+  POST http://127.0.0.1:8600/embed_resolved_ticket [200 OK, 145B, 13.1s]
+  ✓  status is 200
+  ✓  status equals 'success'
+
+❏ 5. Next.js API - /api/tickets (staff console)
+↳ GET no auth -> 401
+  GET http://localhost:3000/api/tickets [401 Unauthorized, 295B, 92ms]
+  ✓  status is 401
+
+↳ GET as customer (non-staff) -> 403
+  GET http://localhost:3000/api/tickets [403 Forbidden, 290B, 641ms]
+  ✓  status is 403
+
+↳ GET as staff -> 200 with data[]
+  GET http://localhost:3000/api/tickets [200 OK, 167.12kB, 3.3s]
+  ✓  status 200
+  ✓  data is an array
+
+↳ PUT missing final_response -> 400
+  PUT http://localhost:3000/api/tickets [400 Bad Request, 299B, 435ms]
+  ✓  status is 400
+
+↳ PUT valid resolve -> 200 success:true
+  PUT http://localhost:3000/api/tickets [200 OK, 266B, 509ms]
+  ✓  status is 200
+  ✓  success equals true
+
+↳ DELETE as staff -> 200
+  DELETE http://localhost:3000/api/tickets?id=69de3805-7e74-4d8e-b0e3-fb36be4a9d22 [200 OK, 293B, 929ms]
+  ✓  status is 200
+
+❏ 6. Next.js API - /api/user_tickets
+↳ GET no auth -> 401
+  GET http://localhost:3000/api/user_tickets?userId=4ebfb0ed-9426-4ba5-9391-dd4e5c348be5 [401 Unauthorized, 295B, 28ms]
+  ✓  status is 401
+
+↳ GET missing userId -> 400
+  GET http://localhost:3000/api/user_tickets [400 Bad Request, 285B, 273ms]
+  ✓  status is 400
+
+↳ GET own history -> 200 with data[]
+  GET http://localhost:3000/api/user_tickets?userId=4ebfb0ed-9426-4ba5-9391-dd4e5c348be5 [200 OK, 3.19kB, 641ms]
+  ✓  status 200
+  ✓  data is an array
+
+↳ GET another customer's history -> 403
+  GET http://localhost:3000/api/user_tickets?userId=4ebfb0ed-9426-4ba5-9391-dd4e5c348be5 [403 Forbidden, 303B, 303ms]
+  ✓  status is 403
+
+↳ Staff GET another customer's history -> 200 (staff exception)
+  GET http://localhost:3000/api/user_tickets?userId=4ebfb0ed-9426-4ba5-9391-dd4e5c348be5 [200 OK, 3.19kB, 303ms]
+  ✓  status is 200
+
+❏ 7. Next.js API - /api/customer_feedback
+↳ POST no auth -> 401
+  POST http://localhost:3000/api/customer_feedback [401 Unauthorized, 295B, 23ms]
+  ✓  status is 401
+
+↳ POST missing ticketId -> 400
+  POST http://localhost:3000/api/customer_feedback [400 Bad Request, 287B, 210ms]
+  ✓  status is 400
+
+↳ POST score out of range (0) -> 400
+  POST http://localhost:3000/api/customer_feedback [400 Bad Request, 311B, 201ms]
+  ✓  status is 400
+
+↳ POST valid, own ticket -> 200
+  POST http://localhost:3000/api/customer_feedback [200 OK, 263B, 553ms]
+  ✓  status is 200
+
+↳ POST valid score, someone else's ticket -> 403
+  POST http://localhost:3000/api/customer_feedback [403 Forbidden, 299B, 361ms]
+  ✓  status is 403
+
+❏ 8. Voice-to-Text Service
+↳ GET /health
+  GET http://127.0.0.1:8002/health [200 OK, 175B, 11ms]
+  ✓  status 200
+  ✓  model_loaded is true
+
+↳ POST /transcribe/base64 valid audio -> 200 with text field
+  POST http://127.0.0.1:8002/transcribe/base64 [200 OK, 167B, 209ms]
+  ✓  status 200
+  ✓  response has a text field
+
+↳ POST /transcribe/base64 empty audio -> 400
+  POST http://127.0.0.1:8002/transcribe/base64 [400 Bad Request, 166B, 4ms]
+  ✓  status is 400
+
+↳ POST /transcribe/base64 garbage payload -> 400
+  POST http://127.0.0.1:8002/transcribe/base64 [400 Bad Request, 186B, 3ms]
+  ✓  status is 400
+
+┌─────────────────────────┬───────────────────┬───────────────────┐
+│                         │          executed │            failed │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              iterations │                 1 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│                requests │                35 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│            test-scripts │                35 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│      prerequest-scripts │                 1 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              assertions │                46 │                 0 │
+├─────────────────────────┴───────────────────┴───────────────────┤
+│ total run duration: 27.6s                                       │
+├─────────────────────────────────────────────────────────────────┤
+│ total data received: 183.4kB (approx)                           │
+├─────────────────────────────────────────────────────────────────┤
+│ average response time: 750ms [min: 3ms, max: 13.1s, s.d.: 2.2s] │
+└─────────────────────────────────────────────────────────────────┘
