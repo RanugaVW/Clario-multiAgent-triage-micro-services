@@ -28,7 +28,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # jsdom 30's own package.json requires
+          # "^22.22.2 || ^24.15.0 || >=26.0.0" - Node 20 doesn't have the
+          # node:util webidl internals undici's CacheStorage polyfill needs
+          # (fails with "webidl.util.markAsUncloneable is not a function").
+          # 24 matches the Node version already used for local development.
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
