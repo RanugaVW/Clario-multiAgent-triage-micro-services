@@ -179,6 +179,24 @@ export default function Home() {
 
       let ticketUuid = crypto.randomUUID();
       const GATEWAY_URL = 'http://localhost:8080';
+      const TRACE_RELAY_URL = process.env.NEXT_PUBLIC_TRACE_RELAY_URL || 'http://localhost:8700';
+      const traceEnabled = process.env.NEXT_PUBLIC_TRACE_ENABLED === 'true';
+      const correlationId = crypto.randomUUID();
+
+      if (traceEnabled) {
+        fetch(`${TRACE_RELAY_URL}/trace/event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticket_id: correlationId,
+            correlation_id: correlationId,
+            service: 'frontend',
+            step: 'submit',
+            status: 'done',
+            detail: {},
+          }),
+        }).catch(() => {});
+      }
 
       if (user) {
         const { data: sessionData } = await supabase.auth.getSession();
@@ -189,7 +207,8 @@ export default function Home() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            ...(traceEnabled ? { 'X-Trace-Correlation-Id': correlationId } : {})
           },
           body: JSON.stringify({
             rawText: ticketText,
