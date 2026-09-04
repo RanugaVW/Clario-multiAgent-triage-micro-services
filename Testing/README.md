@@ -18,7 +18,7 @@ in each phase's own README.
 |---|-------|------------------------|--------|
 | 01 | [Unit Testing](01-Unit-Testing/) | §3.1.2 Function Testing (unit-level) | **Complete** — see report |
 | 02 | [Integration Testing](02-Integration-Testing/) | §3.1.1 Data & Database Integrity Testing, §3.1.2 Function Testing (end-to-end) | **Complete** — see report |
-| 03 | [UI / E2E Testing](03-UI-E2E-Testing/) | §3.1.3 User Interface Testing | Planned |
+| 03 | [UI / E2E Testing](03-UI-E2E-Testing/) | §3.1.3 User Interface Testing | **Complete** — see report |
 | 04 | [Performance & Load Testing](04-Performance-Load-Testing/) | §3.1.4 Performance Profiling, §3.1.5 Load Testing | Planned |
 | 05 | [Security & Access Control Testing](05-Security-Access-Control-Testing/) | §3.1.6 Security and Access Control Testing | Planned |
 | 06 | [Failover & Recovery Testing](06-Failover-Recovery-Testing/) | §3.1.7 Failover and Recovery Testing | Planned |
@@ -32,9 +32,10 @@ in the sample system.
 
 Every result in this folder comes from actually running the project's real
 test suites (`pytest` for the two Python services, `vitest` for the
-frontend) on 2026-09-03 and capturing the unmodified console output. No
-numbers here are estimated or fabricated — where a suite failed, the raw
-failure output is kept alongside the analysis.
+frontend, `playwright` for browser-driven UI/E2E) on 2026-09-03 and
+2026-09-04 and capturing the unmodified console output. No numbers here
+are estimated or fabricated — where a suite failed, the raw failure output
+is kept alongside the analysis.
 
 ## Deliverables per phase (mirrors §4 of the sample plan)
 

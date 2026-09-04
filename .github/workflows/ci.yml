@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  contracts:
+    name: Contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - run: pytest tests/contracts -v
+
+  frontend:
+    name: Frontend (lint + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test
+
+  java-services:
+    name: Java - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api-gateway, ticket-core-service, agent-review-service]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: services/${{ matrix.service }}/pom.xml
+      - run: chmod +x mvnw
+      - run: ./mvnw test -B
+
+  python-services:
+    name: Python - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: nlp-classifier-service
+            needs_cpu_torch: true
+          - service: ai-orchestrator-service
+            needs_cpu_torch: true
+          - service: voice-to-text-service
+            needs_cpu_torch: false
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    env:
+      # Dummy values so module-level `create_client(...)` calls don't blow up
+      # at import time - these tests never make real network calls.
+      SUPABASE_PROJECT_URL: https://example.supabase.co
+      SUPABASE_SECRET_API: test-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/${{ matrix.service }}/requirements.txt
+      - name: Install CPU-only torch first
+        if: matrix.needs_cpu_torch
+        run: |
+          pip install --timeout 120 --retries 10 \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple \
+            torch==2.13.0+cpu
+      - run: pip install --timeout 120 --retries 10 -r requirements.txt
+      - run: pip install pytest
+      - run: pytest tests -v
+
+  ml-sidecar:
+    name: clario-ml-sidecar
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clario-ml-sidecar
+    env:
+      SUPABASE_PROJECT_URL: https://example.supabase.co
+      SUPABASE_SECRET_API: test-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: clario-ml-sidecar/requirements.txt
+      - name: Install CPU-only torch first
+        run: |
+          pip install --timeout 120 --retries 10 \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --extra-index-url https://pypi.org/simple \
+            torch==2.13.0+cpu
+      - run: pip install --timeout 120 --retries 10 -r requirements.txt
+      - run: pip install pytest
+      - run: pytest tests -v
+
+  ml-finetuning:
+    name: ml_finetuning
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ml_finetuning
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ml_finetuning/requirements.txt
+      - run: pip install --timeout 120 --retries 10 -r requirements.txt
+      - run: pip install pytest
+      - run: pytest tests -v

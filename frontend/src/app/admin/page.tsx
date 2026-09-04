@@ -124,7 +124,9 @@ type Ticket = {
   ticket_classifications: TicketClassification[];
   resolutions: Resolution[];
   response_evaluations: ResponseEvaluation[];
-  customer_feedback: CustomerFeedback[];
+  // ticket_id carries a UNIQUE constraint, so PostgREST embeds this as a
+  // to-one relation (a bare object or null) rather than an array.
+  customer_feedback: CustomerFeedback | null;
   // tickets.customer_email is never populated at ticket-creation time; this
   // is the real fallback, fetched via the user_id FK (see fetchFullData).
   users?: { email: string | null } | null;
@@ -686,7 +688,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
     ?.slice()
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
   const effectiveJudgeScore = latestOverride?.overall_score ?? evaluation?.overall_score ?? null;
-  const customerFeedback = (fullData?.customer_feedback || ticket.customer_feedback || [])[0];
+  const customerFeedback = fullData?.customer_feedback || ticket.customer_feedback || null;
   const hasResolvedResolution = allResolutions.some(r => !r.escalated);
   const isEscalated = !hasResolvedResolution && (allResolutions.some(r => r.escalated) || ticket.status === 'escalated');
   const resolutionMetadata = allResolutions.find(r => !r.escalated) || allResolutions[0];
