@@ -1,0 +1,33 @@
+$ npx playwright test
+(clario/frontend, 2026-09-04, against the live dev server on :3000, the live
+api-gateway on :8080, the live Redis-queued clario-ml-sidecar worker, and the
+real Supabase project mdvfvtpbwqhccmaarpli - no mocks)
+
+Running 9 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/auth.spec.ts:11:5 › unauthenticated visitor to /dashboard is redirected to /login (1.8s)
+  ✓  2 [chromium] › e2e/auth.spec.ts:16:5 › login with wrong password shows a real error and does not navigate away (8.2s)
+  ✓  3 [chromium] › e2e/auth.spec.ts:27:5 › login with valid customer credentials redirects to /dashboard and shows the account email (6.9s)
+  ✓  4 [chromium] › e2e/auth.spec.ts:33:5 › login with valid admin credentials redirects straight to /admin (5.2s)
+  ✓  5 [chromium] › e2e/auth.spec.ts:38:5 › sign out clears the session and a protected route bounces back to /login (6.6s)
+  ✓  6 [chromium] › e2e/ticket-lifecycle.spec.ts:86:7 › customer submits, and admin reviews, one real ticket › customer submits a real ticket through the dashboard form (6.0s)
+  ✓  7 [chromium] › e2e/ticket-lifecycle.spec.ts:102:7 › customer submits, and admin reviews, one real ticket › the pipeline reaches a terminal state and renders the correct outcome for the customer (12.5s)
+  ✓  8 [chromium] › e2e/ticket-lifecycle.spec.ts:121:7 › customer submits, and admin reviews, one real ticket › the star-rating widget saves a real rating, keeps it colored, and stays editable (10.5s)
+  ✓  9 [chromium] › e2e/ticket-lifecycle.spec.ts:145:7 › customer submits, and admin reviews, one real ticket › admin console shows the real requester email, pipeline time, and LLM-call data for this ticket (6.2s)
+
+  9 passed (1.1m)
+
+This is the final, clean run, after two real bugs found by earlier runs of
+this same suite were fixed and re-verified (see TEST_REPORT.md §4 and §5):
+a production RLS policy gap (Requester/admin visibility) and a
+PostgREST array-vs-object relationship-shape bug (customer feedback not
+loading back after a page reload). The ticket text used
+("Hi I'm Warusha, I cannot login to my account...") is a real Login Issue
+scenario that resolves via AI without escalation, exercising every UI path
+in this suite in one run, including the star-rating widget test that an
+earlier, differently-worded run had to skip because that ticket escalated
+instead (documented in TEST_REPORT.md §6 as real, reproducible pipeline
+behavior, not a flake).
+
+Tool versions: @playwright/test 1.62.1, Chromium 151.0.7922.34 (headless),
+Node v24.14.0.

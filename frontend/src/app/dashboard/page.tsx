@@ -59,7 +59,9 @@ type TicketWithResolution = {
     sentiment: string | null;
     confidence: number | null;
   }[];
-  customer_feedback?: { score: number }[];
+  // ticket_id carries a UNIQUE constraint, so PostgREST embeds this as a
+  // to-one relation (a bare object or null) rather than an array.
+  customer_feedback?: { score: number } | null;
 };
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -551,7 +553,7 @@ function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolut
                   )}
             </div>
             {isFullyResolved && finalResolution?.final_response && (
-              <FeedbackStars ticketId={ticket.id} userId={userId} existingScore={ticket.customer_feedback?.[0]?.score ?? null} />
+              <FeedbackStars ticketId={ticket.id} userId={userId} existingScore={ticket.customer_feedback?.score ?? null} />
             )}
           </div>
         </div>
