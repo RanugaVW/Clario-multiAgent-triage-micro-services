@@ -22,6 +22,15 @@ in each phase's own README.
 | 04 | [Performance & Load Testing](04-Performance-Load-Testing/) | §3.1.4 Performance Profiling, §3.1.5 Load Testing | **Complete** — see report |
 | 05 | [Security & Access Control Testing](05-Security-Access-Control-Testing/) | §3.1.6 Security and Access Control Testing | **Complete** — see report (6 findings, all fixed & re-verified: 23/23) |
 | 06 | [Failover & Recovery Testing](06-Failover-Recovery-Testing/) | §3.1.7 Failover and Recovery Testing | **Complete** — see report (3 findings, all fixed & re-verified: 16/16) |
+| 07 | [API Testing](07-API-Testing/) | §3.1.2 Function Testing (HTTP API contracts) | **Complete** — see report (5 findings, all fixed & re-verified: 46/46) |
+| 08 | [Selenium Functional Testing](08-Selenium-Functional-Testing/) | §3.1.3 User Interface Testing (Selenium) | **Complete** — see report (8/8) |
+| 09 | [REST Assured API Integration Testing](09-RestAssured-API-Testing/) | §3.1.1/§3.1.2 Integration Testing (REST Assured) | **Complete** — see report (13/13) |
+| 10 | [JMeter Basic Performance Testing](10-JMeter-Performance-Testing/) | §3.1.4/§3.1.5 Basic Performance Testing (JMeter) | **Complete** — see report |
+
+Phases 08–10 map to the specific tool set assigned separately from the
+sample plan (Selenium, REST Assured, JMeter) — each phase's own README
+records that mapping and, where relevant, why the other tools in that
+assignment (e.g. HP LoadRunner, BlazeMeter) weren't used.
 
 Configuration testing (§3.1.8 in the sample plan) is not tracked as a
 separate phase — Clario runs as a containerized web service, not a
