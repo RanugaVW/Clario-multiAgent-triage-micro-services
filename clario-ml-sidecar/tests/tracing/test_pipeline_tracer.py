@@ -2,6 +2,7 @@
 never let a relay failure affect the caller - see Global Constraints in
 docs/superpowers/plans/2026-09-05-ticket-pipeline-tracer.md."""
 
+import concurrent.futures
 import importlib
 
 import pytest
@@ -100,3 +101,23 @@ def test_surrogate_summarizer_shows_pii_types_and_fake_stand_ins_only(monkeypatc
     detail = tracer._SUMMARIZERS["surrogate"](state)
     assert detail == {"pii_types": ["person"], "fake_stand_ins": ["Jane Doe"]}
     assert "Deshan Athukorarala" not in str(detail)
+
+
+def test_emit_from_thread_with_no_event_loop_does_not_raise(monkeypatch) -> None:
+    """Verify emit() silently handles RuntimeError when called from a thread pool.
+
+    LangGraph runs sync nodes via loop.run_in_executor(), which executes them
+    in a worker thread with no running event loop. Calling emit() from such a
+    thread would raise RuntimeError on asyncio.create_task() unless we catch it.
+    """
+    tracer = _reload_tracer(monkeypatch, "true")
+
+    def call_emit_in_thread():
+        # This runs in a thread pool with no event loop
+        tracer.emit("t1", "svc", "step", "finished", {"x": 1})
+        return True
+
+    # Execute emit() in a thread with no event loop - must not raise
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        result = executor.submit(call_emit_in_thread).result(timeout=5)
+        assert result is True
