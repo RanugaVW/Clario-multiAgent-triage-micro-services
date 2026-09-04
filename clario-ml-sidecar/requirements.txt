@@ -167,4 +167,4 @@ peft
 supabase
 sentencepiece
 tiktoken
-bitsandbytes
+bitsandbytespytest-asyncio==0.25.2
