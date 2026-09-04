@@ -1,0 +1,75 @@
+<!-- Visualizer/viewer/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ticket Pipeline Tracer</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: #0f1115; color: #e6e6e6; }
+  #tickets { width: 320px; overflow-y: auto; border-right: 1px solid #333; padding: 12px; box-sizing: border-box; }
+  #timeline { flex: 1; overflow-y: auto; padding: 24px; box-sizing: border-box; }
+  .ticket-row { padding: 8px; margin-bottom: 6px; border-radius: 6px; cursor: pointer; background: #1a1d24; }
+  .ticket-row:hover { background: #24283a; }
+  .ticket-row.selected { background: #2d3a55; }
+  .ticket-id { font-family: monospace; font-size: 12px; opacity: 0.7; }
+  .step-row { display: flex; align-items: center; margin-bottom: 10px; padding: 10px; border-radius: 6px; background: #1a1d24; }
+  .step-row.started { opacity: 0.6; }
+  .marker { width: 10px; height: 10px; border-radius: 50%; margin-right: 12px; flex-shrink: 0; }
+  .marker.finished, .marker.done { background: #4caf50; }
+  .marker.started { background: #f0ad4e; }
+  .step-name { font-weight: 600; margin-right: 10px; }
+  .step-detail { font-family: monospace; font-size: 12px; opacity: 0.75; white-space: pre-wrap; }
+  h2 { font-size: 14px; text-transform: uppercase; opacity: 0.6; }
+</style>
+</head>
+<body>
+  <div id="tickets"><h2>Recent tickets</h2><div id="ticket-list"></div></div>
+  <div id="timeline"><h2>Select a ticket</h2><div id="steps"></div></div>
+
+<script>
+const RELAY_URL = "http://localhost:8700";
+let selectedTicketId = null;
+let ws = null;
+
+async function refreshTicketList() {
+  const res = await fetch(`${RELAY_URL}/trace/tickets`);
+  const tickets = await res.json();
+  const listEl = document.getElementById("ticket-list");
+  listEl.innerHTML = "";
+  tickets.sort((a, b) => b.last_seen - a.last_seen);
+  for (const t of tickets) {
+    const row = document.createElement("div");
+    row.className = "ticket-row" + (t.ticket_id === selectedTicketId ? " selected" : "");
+    row.innerHTML = `<div class="ticket-id">${t.ticket_id}</div><div>${t.latest_step} · ${t.latest_status}</div>`;
+    row.onclick = () => selectTicket(t.ticket_id);
+    listEl.appendChild(row);
+  }
+}
+
+function selectTicket(ticketId) {
+  selectedTicketId = ticketId;
+  document.getElementById("steps").innerHTML = "";
+  document.querySelector("#timeline h2").textContent = `Ticket ${ticketId}`;
+  if (ws) ws.close();
+  ws = new WebSocket(`${RELAY_URL.replace("http", "ws")}/trace/ws?ticket_id=${encodeURIComponent(ticketId)}`);
+  ws.onmessage = (msg) => renderStep(JSON.parse(msg.data));
+  refreshTicketList();
+}
+
+function renderStep(event) {
+  const stepsEl = document.getElementById("steps");
+  const row = document.createElement("div");
+  row.className = `step-row ${event.status}`;
+  const detail = event.detail && Object.keys(event.detail).length ? JSON.stringify(event.detail, null, 2) : "";
+  row.innerHTML = `<div class="marker ${event.status}"></div>
+    <div><div class="step-name">${event.service} / ${event.step} — ${event.status}</div>
+    <div class="step-detail">${detail}</div></div>`;
+  stepsEl.appendChild(row);
+  stepsEl.scrollTop = stepsEl.scrollHeight;
+}
+
+refreshTicketList();
+setInterval(refreshTicketList, 3000);
+</script>
+</body>
+</html>
