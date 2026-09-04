@@ -1,6 +1,10 @@
-# 04 — Performance & Load Testing (Planned)
+# 04 — Performance & Load Testing
 
-**Status:** Not yet executed.
+**Status:** Complete — see [`TEST_REPORT.md`](TEST_REPORT.md). All
+measurements completed with 0 errors/crashes/timeouts. Key finding: the
+single-worker Redis queue processes tickets serially even under
+concurrent submission (measured, not assumed) — a real architectural fact
+worth the team's attention if concurrent usage is expected to grow.
 
 **Sample-plan equivalent:** §3.1.4 Performance Profiling, §3.1.5 Load Testing.
 

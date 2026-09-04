@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, X, Clock, CheckCircle, Trash2, Copy, LogOut, Star } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, LogOut, Star } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
 import { GlassPanel, GlassButton, GlassTextarea, Modal, StatusBadge } from '../../components/ui';
@@ -81,24 +81,23 @@ export default function Home() {
   const [pastTickets, setPastTickets] = useState<TicketWithResolution[]>([]);
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [successModal, setSuccessModal] = useState<{show: boolean, trackingId: string}>({show: false, trackingId: ''});
   const [dataLoading, setDataLoading] = useState(false);
   const { user, role, loading, roleLoading } = useAuth();
   const router = useRouter();
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!user) return;
     setDataLoading(true);
     try {
-      const json = await fetchJson(`/api/user_tickets?userId=${user.id}`);
+      const json = await fetchJson<{ data: TicketWithResolution[] }>(`/api/user_tickets?userId=${user.id}`);
       setPastTickets(json.data || []);
     } catch (e) {
       console.error('Failed to fetch history:', e);
     } finally {
       setDataLoading(false);
     }
-  };
+  }, [user]);
 
   const handleDeleteTicket = async (ticketId: string) => {
     if (!confirm("Are you sure you want to delete this ticket? This will immediately stop processing.")) return;
@@ -132,9 +131,12 @@ export default function Home() {
     } else if (role === 'admin') {
       router.push('/admin');
     } else {
-      fetchHistory();
+      // fetchHistory sets state synchronously as its first step; deferring
+      // the call to a microtask keeps that update out of this effect's own
+      // synchronous execution (avoids a same-tick cascading render).
+      queueMicrotask(fetchHistory);
     }
-  }, [user, role, loading, roleLoading, router]);
+  }, [user, role, loading, roleLoading, router, fetchHistory]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -206,12 +208,11 @@ export default function Home() {
         setSuccessModal({ show: true, trackingId: ticketUuid });
         setTicketText('');
         setImageFile(null);
-        setImageBase64(null);
         if (user) fetchHistory();
         setActiveTab('history');
 
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred while connecting to the sidecar.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred while connecting to the sidecar.');
     } finally {
       setIsProcessing(false);
     }
@@ -397,7 +398,7 @@ export default function Home() {
           {pastTickets.length === 0 ? (
             <div className="text-center py-24 glass-panel rounded-[28px]">
               <Ticket className="w-16 h-16 mx-auto mb-4 opacity-20 text-[#E8A33D]" />
-              <p className="text-[#8A8F98] text-lg">You haven't submitted any tickets yet.</p>
+              <p className="text-[#8A8F98] text-lg">You haven&apos;t submitted any tickets yet.</p>
               <button
                 onClick={() => setActiveTab('new')}
                 className="mt-6 text-[#E8A33D] hover:text-[#F4B856] font-medium underline-offset-4 hover:underline"
@@ -539,7 +540,7 @@ function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolut
               <span className="text-xs text-[#8A8F98] block">Your message</span>
               <MorphButton textToCopy={ticket.id} label="Copy ID" />
             </div>
-            <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">"{ticket.raw_text}"</p>
+            <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">&quot;{ticket.raw_text}&quot;</p>
           </div>
 
           <div className="border-t border-white/10 pt-4">

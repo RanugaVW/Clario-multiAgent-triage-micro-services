@@ -18,7 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
 });
 
-const fetchUserRole = async (userId: string): Promise<'user' | 'agent' | 'admin'> => {
+const fetchUserRole = async (): Promise<'user' | 'agent' | 'admin'> => {
   // Use RPC to bypass RLS infinite recursion on the users table.
   // get_my_role() is SECURITY DEFINER (runs as postgres superuser) so it reads
   // the role without triggering any SELECT policy on public.users.
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (currentUser) {
         setRoleLoading(true);
-        const r = await fetchUserRole(currentUser.id);
+        const r = await fetchUserRole();
         setRole(r);
         setRoleLoading(false);
       } else {
@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (currentUser) {
         setRoleLoading(true);
-        const r = await fetchUserRole(currentUser.id);
+        const r = await fetchUserRole();
         setRole(r);
         setRoleLoading(false);
       } else {

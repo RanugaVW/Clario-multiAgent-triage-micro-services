@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
-  Activity, Settings, Database, Server, Cpu, LogOut, Loader2,
-  ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Mail, Clock,
-  BarChart2, MessageSquare, ShieldAlert, Tag, Zap, ArrowLeft, Bot,
+  Settings, Database, Server, Cpu, LogOut, Loader2,
+  ChevronDown, ChevronUp, AlertTriangle, CheckCircle,
+  BarChart2, MessageSquare, ShieldAlert, Tag, ArrowLeft, Bot,
   CreditCard, Wrench, Brain, GitBranch, Eye, RotateCcw, ArrowRightLeft,
-  Shield, Layers, CheckCircle2, Trash2, Image as ImageIcon, Pencil,
+  Shield, Layers, CheckCircle2, Image as ImageIcon, Pencil,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
@@ -49,7 +49,7 @@ type TicketDraft = {
   rag_top_score: number | null;
   draft_text: string | null;
   domain: string | null;
-  retrieved_sources: any[] | null;
+  retrieved_sources: unknown[] | null;
   reflection_attempt: number | null;
   low_relevance?: boolean | null;
 };
@@ -110,7 +110,7 @@ type ResponseEvaluation = {
   evaluation_score_overrides: EvaluationScoreOverride[];
 };
 
-type Ticket = {
+export type Ticket = {
   id: string;
   raw_text: string;
   subject: string | null;
@@ -119,7 +119,10 @@ type Ticket = {
   status: string;
   created_at: string;
   updated_at?: string | null;
-  raw_graph_payload?: any;
+  // Loosely-structured JSON dumped verbatim from the Python pipeline (see
+  // clario-ml-sidecar's TicketState) - only processing_time_ms is ever read
+  // by name here, everything else is just JSON.stringify'd for display.
+  raw_graph_payload?: { processing_time_ms?: number | null; [key: string]: unknown } | null;
   ticket_drafts: TicketDraft[];
   ticket_classifications: TicketClassification[];
   resolutions: Resolution[];
@@ -183,35 +186,6 @@ export default function AdminDashboard() {
 
   const isFullyLoaded = !loading && !roleLoading;
 
-  useEffect(() => {
-    if (!isFullyLoaded) return;
-    if (!user || role !== 'admin') {
-      router.push('/login');
-      return;
-    }
-    fetchData();
-  }, [isFullyLoaded, user, role]);
-
-  const handleDeleteTicket = async (ticketId: string) => {
-    if (!confirm("Are you sure you want to permanently delete this ticket from the system?")) return;
-    try {
-      // Bypass gateway/sidecar and delete directly via our Next.js API
-      const res = await fetch(`/api/tickets?id=${ticketId}`, { 
-        method: 'DELETE'
-      });
-      
-      if (res.ok) {
-        sessionStorage.removeItem('tickets:list:metadata');
-        fetchData();
-      } else {
-        alert("Failed to delete ticket.");
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Error deleting ticket.");
-    }
-  };
-
   const fetchData = useCallback(async () => {
     setDataLoading(true);
     setDebugInfo('');
@@ -226,23 +200,55 @@ export default function AdminDashboard() {
             setDataLoading(false);
             return;
           }
-        } catch (e) {}
+        } catch {}
       }
 
       // 2. Fetch from Next.js API (which checks Redis)
-      const json = await fetchJson('/api/tickets');
+      const json = await fetchJson<{ data: Ticket[] }>('/api/tickets');
       setAllTickets(json.data || []);
       // Save to Client Cache
       sessionStorage.setItem('tickets:list:metadata', JSON.stringify({
         timestamp: Date.now(),
         data: json.data || []
       }));
-    } catch (e: any) {
-       setDebugInfo(`Fetch error: ${e.message}`);
+    } catch (e: unknown) {
+       setDebugInfo(`Fetch error: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setDataLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!isFullyLoaded) return;
+    if (!user || role !== 'admin') {
+      router.push('/login');
+      return;
+    }
+    // fetchData sets state synchronously as its first step; deferring the
+    // call to a microtask keeps that state update out of this effect's own
+    // synchronous execution (avoids a same-tick cascading render).
+    queueMicrotask(fetchData);
+  }, [isFullyLoaded, user, role, fetchData, router]);
+
+  const handleDeleteTicket = async (ticketId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this ticket from the system?")) return;
+    try {
+      // Bypass gateway/sidecar and delete directly via our Next.js API
+      const res = await fetch(`/api/tickets?id=${ticketId}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        sessionStorage.removeItem('tickets:list:metadata');
+        fetchData();
+      } else {
+        alert("Failed to delete ticket.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error deleting ticket.");
+    }
+  };
 
   // Group tickets by agent domain based on ticket_drafts domain
   const getAgentTickets = (agentDomain: string) => {
@@ -678,6 +684,10 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   const [expanded, setExpanded] = useState(false);
   const [fullData, setFullData] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // Tracks "a fetch is already in flight" without being a render-triggering
+  // state value itself, so the effect below doesn't depend on (and
+  // re-trigger from) the very state it sets.
+  const fetchInFlightRef = useRef(false);
 
   const draft = fullData?.ticket_drafts?.[0] || ticket.ticket_drafts?.[0];
   const classification = fullData?.ticket_classifications?.[0] || ticket.ticket_classifications?.[0];
@@ -700,11 +710,15 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
     .flatMap(r => (Array.isArray(r.escalation_reasons) ? r.escalation_reasons : []))
     .map(r => String(r));
 
-  // Ticks only on the client so the "open for" clock stays live without an SSR mismatch.
-  const [nowIso, setNowIso] = useState<string | null>(null);
+  // Lazy initializer (not a synchronous setState-in-effect) so the "open
+  // for" clock shows a correct value immediately on the client, while still
+  // rendering null during any actual SSR pass (typeof window is undefined
+  // there) to avoid a hydration mismatch.
+  const [nowIso, setNowIso] = useState<string | null>(
+    () => (typeof window === 'undefined' ? null : new Date().toISOString())
+  );
   useEffect(() => {
     if (!expanded) return;
-    setNowIso(new Date().toISOString());
     const timer = setInterval(() => setNowIso(new Date().toISOString()), 30000);
     return () => clearInterval(timer);
   }, [expanded]);
@@ -723,21 +737,23 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
       customer_feedback (*),
       users:user_id ( email )
     `).eq('id', ticket.id).single();
-    setFullData(data as any);
-    return data;
+    const typedData = data as Ticket | null;
+    setFullData(typedData);
+    return typedData;
   }, [ticket.id]);
 
   useEffect(() => {
-    if (expanded && !fullData && !isLoading) {
-      setIsLoading(true);
-      fetchFullData().then((data: any) => {
-        setIsLoading(false);
-        const fetchedDraft = data?.ticket_drafts?.[0];
-        const fetchedRes = data?.resolutions?.find((r: any) => !r.escalated);
-        setReplyText(fetchedDraft?.draft_text || fetchedRes?.final_response || "");
-      });
-    }
-  }, [expanded, fullData, isLoading, fetchFullData]);
+    if (!expanded || fullData || fetchInFlightRef.current) return;
+    fetchInFlightRef.current = true;
+    setIsLoading(true);
+    fetchFullData().then((data) => {
+      fetchInFlightRef.current = false;
+      setIsLoading(false);
+      const fetchedDraft = data?.ticket_drafts?.[0];
+      const fetchedRes = data?.resolutions?.find((r) => !r.escalated);
+      setReplyText(fetchedDraft?.draft_text || fetchedRes?.final_response || "");
+    });
+  }, [expanded, fullData, fetchFullData]);
 
   // Status mapping
   let statusColor = '#8A8F98';
@@ -776,12 +792,12 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
             domain: ticket.ticket_classifications?.[0]?.category || 'General'
           })
         });
-      } catch (embedError) {}
+      } catch {}
 
       try {
         await fetch('/api/tickets', { method: 'DELETE' });
         sessionStorage.removeItem('tickets:list:metadata');
-      } catch (e) {}
+      } catch {}
 
       window.location.reload();
     } catch (e) {
@@ -827,8 +843,8 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
       if (error) throw error;
       await fetchFullData();
       setIsEditingScore(false);
-    } catch (e: any) {
-      setScoreError(e?.message || "Failed to save the override.");
+    } catch (e: unknown) {
+      setScoreError(e instanceof Error ? e.message : "Failed to save the override.");
     } finally {
       setIsSavingScore(false);
     }
@@ -929,7 +945,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
           <div className="space-y-6">
             <div>
               <span className="text-xs text-[#2DD4BF] block mb-2">Original message</span>
-              <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">"{textParts[0].trim()}"</p>
+              <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">&quot;{textParts[0].trim()}&quot;</p>
             </div>
 
             {textParts.length > 1 && (
@@ -1131,23 +1147,6 @@ function MetaItem({ label, value, hint, color, mono, title }: {
       </span>
       {hint && <span className="text-xs text-[#8A8F98] block mt-0.5">{hint}</span>}
     </div>
-  );
-}
-
-function Chip({ label, color, icon }: { label: string; color: string; icon?: React.ReactNode }) {
-  const colors: Record<string, string> = {
-    indigo: 'bg-[#E8A33D]/15 text-[#E8A33D] border-[#E8A33D]/25',
-    sky: 'bg-[#2DD4BF]/15 text-[#2DD4BF] border-[#2DD4BF]/25',
-    amber: 'bg-[#FB923C]/15 text-[#FB923C] border-[#FB923C]/25',
-    red: 'bg-[#FB7185]/15 text-[#FB7185] border-[#FB7185]/25',
-    emerald: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
-    slate: 'bg-white/[0.06] text-[#8A8F98] border-white/10',
-  };
-  return (
-    <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full border font-medium capitalize ${colors[color] || colors.slate}`}>
-      {icon && <span className="mr-1">{icon}</span>}
-      {label}
-    </span>
   );
 }
 

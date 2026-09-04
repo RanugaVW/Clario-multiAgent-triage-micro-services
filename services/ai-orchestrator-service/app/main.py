@@ -15,7 +15,40 @@ from app.graph.graph_builder import build_graph
 from app.graph.handoff_node import build_handoff_package
 
 logger = logging.getLogger(__name__)
-app = FastAPI(title="Clario Agent Orchestration")
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Preload heavy ML models in the background to reduce latency on the first request."""
+    import threading
+    from app.tools.local_llm import _load_model as load_llm
+    from app.tools.local_ocr import _load_model_singleton as load_ocr
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from app.jobs.sync_judge_references import sync_judge_references
+
+    def preload_models():
+        try:
+            logger.info("Preloading ML Models at startup...")
+            load_llm()
+            load_ocr()
+            logger.info("ML Models preloaded successfully.")
+        except Exception as e:
+            logger.error(f"Failed to preload models: {e}")
+
+    # Run in background thread so it doesn't block Uvicorn from starting up and binding the port
+    threading.Thread(target=preload_models, daemon=True).start()
+
+    # Feeds admin-corrected judge scores back into the judge's reference pool
+    # every 24h. Upsert-based, so a duplicate run (e.g. worker.py also holds
+    # this lifespan) or a restart mid-cycle is harmless.
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(sync_judge_references, "interval", hours=24, id="sync_judge_references")
+    scheduler.start()
+
+    yield
+    scheduler.shutdown(wait=False)
+
+app = FastAPI(title="Clario Agent Orchestration", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -79,14 +112,11 @@ active_tasks_lock = asyncio.Lock()
 async def background_orchestration(ticket: TicketRequest, initial_state: dict, start_time: float):
     try:
         import time
+        from app.tools.redaction_tool import mask_pii
+        from app.tools.rag_tool import add_precedent
         if ticket.image_base64:
             from app.tools.local_ocr import process_image_async
-            try:
-                ocr_text = await process_image_async(ticket.image_base64)
-            except Exception as e:
-                logger.error(f"OCR extraction failed: {e}")
-                ocr_text = "[OCR FAILED]"
-                
+            ocr_text = await process_image_async(ticket.image_base64)
             # Sync the extracted text back to the database so the Admin can see it
             initial_state["raw_text"] += f"\n\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\n{ocr_text}"
             try:
@@ -116,11 +146,28 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
     finally:
         async with active_tasks_lock:
             active_tasks.pop(ticket.ticket_id, None)
-        
+
     is_escalated = bool(final_state.get("escalation_triggered"))
     status = "escalated" if is_escalated else "resolved"
     final_response = final_state.get("final_response")
     handoff = build_handoff_package(final_state) if is_escalated else None
+
+    if not is_escalated and final_response:
+        try:
+            redacted_text = final_state.get("redacted_text") or ticket.raw_text
+            if redacted_text == ticket.raw_text:
+                redacted_text, _ = mask_pii(ticket.raw_text)
+            domain = final_state.get("routing_decision") or final_state.get("category") or "technical"
+            if domain not in {"technical", "billing"}:
+                domain = "technical"
+            # resolve_node restores this customer's real name/email into
+            # final_response, but a cache hit reuses the stored precedent
+            # verbatim for other, unrelated future customers - so it must
+            # never carry any one customer's identity baked in.
+            redacted_response, _ = mask_pii(final_response)
+            add_precedent(ticket.ticket_id, redacted_text, redacted_response, domain)
+        except Exception as embed_err:
+            logger.warning(f"Failed to embed precedent for ticket {ticket.ticket_id}: {embed_err}")
 
     try:
         supabase_client.table("tickets").update({
@@ -128,20 +175,28 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
             "raw_graph_payload": final_state
         }).eq("id", ticket.ticket_id).execute()
         
-        classification_payload = {
-            "ticket_id": ticket.ticket_id,
-            "category": final_state.get("category"),
-            "priority": final_state.get("priority"),
-            "sentiment": final_state.get("sentiment"),
-            "confidence": final_state.get("classification_confidence"),
-            "source": "gemini"
-        }
-        supabase_client.table("ticket_classifications").insert(classification_payload).execute()
+        # cache_check_node short-circuits straight to response_judge on a hit,
+        # so classification_node never ran - final_state has no classification
+        # fields to insert (they'd all be NULL).
+        if not final_state.get("cache_hit"):
+            classification_payload = {
+                "ticket_id": ticket.ticket_id,
+                "category": final_state.get("category"),
+                "priority": final_state.get("priority"),
+                "sentiment": final_state.get("sentiment"),
+                "confidence": final_state.get("classification_confidence"),
+                # Was hardcoded to "gemini" regardless of what actually classified
+                # the ticket - classify_ticket_local runs the local fine-tuned
+                # adapter (source "gemma3_lora"), never Gemini directly.
+                "source": final_state.get("classification_source"),
+            }
+            supabase_client.table("ticket_classifications").insert(classification_payload).execute()
         
         agent_drafts = final_state.get("agent_drafts", {})
         rag_scores = final_state.get("rag_top_score", {})
         low_relevance = final_state.get("low_relevance_flags", {})
         retrieved = final_state.get("retrieved_context", {})
+        judge_evaluations = final_state.get("judge_evaluations", {})
         for domain, draft_text in agent_drafts.items():
             sources = [
                 {"text": r.get("text", ""), "source_file": r.get("source_file", ""), "score": r.get("score", 0)}
@@ -156,7 +211,34 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "retrieved_sources": sources,
                 "reflection_attempt": final_state.get("reflection_count", 0),
             }
-            supabase_client.table("ticket_drafts").insert(draft_payload).execute()
+            draft_result = supabase_client.table("ticket_drafts").insert(draft_payload).execute()
+
+            judge_eval = judge_evaluations.get(domain)
+            if judge_eval and draft_result.data:
+                try:
+                    eval_payload = {
+                        "ticket_id": ticket.ticket_id,
+                        "draft_id": draft_result.data[0].get("id"),
+                        "domain": domain,
+                        "judge_model": judge_eval.get("judge_model"),
+                        "overall_score": judge_eval.get("overall_score"),
+                        "priority_tone_match_score": judge_eval.get("priority_tone_match_score"),
+                        "completeness_score": judge_eval.get("completeness_score"),
+                        "accuracy_score": judge_eval.get("accuracy_score"),
+                        "policy_compliance_score": judge_eval.get("policy_compliance_score"),
+                        "groundedness_score": judge_eval.get("groundedness_score"),
+                        "judge_reasoning": judge_eval.get("reasoning"),
+                        "improvement_suggestions": judge_eval.get("improvement_suggestions"),
+                        "required_phrases_present": judge_eval.get("required_phrases_present"),
+                        "required_phrases_missing": judge_eval.get("required_phrases_missing"),
+                        "forbidden_phrases_found": judge_eval.get("forbidden_phrases_found"),
+                        "priority_at_evaluation": final_state.get("priority"),
+                        "category_at_evaluation": final_state.get("category"),
+                        "evaluation_latency_ms": judge_eval.get("evaluation_latency_ms"),
+                    }
+                    supabase_client.table("response_evaluations").insert(eval_payload).execute()
+                except Exception as e:
+                    logger.warning(f"Failed to save response evaluation for ticket {ticket.ticket_id} domain {domain}: {e}")
         
         if not is_escalated and final_response:
             resolution_payload = {
@@ -164,6 +246,16 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "final_response": final_response,
                 "escalated": False,
                 "total_reflection_count": final_state.get("reflection_count", 0),
+                "total_llm_calls": final_state.get("llm_call_count", 0),
+            }
+            supabase_client.table("resolutions").insert(resolution_payload).execute()
+        elif final_response:
+            resolution_payload = {
+                "ticket_id": ticket.ticket_id,
+                "final_response": final_response,
+                "escalated": True,
+                "total_reflection_count": final_state.get("reflection_count", 0),
+                "total_llm_calls": final_state.get("llm_call_count", 0),
             }
             supabase_client.table("resolutions").insert(resolution_payload).execute()
         
@@ -185,6 +277,7 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "escalated": True,
                 "escalation_reasons": escalation_reasons,
                 "total_reflection_count": final_state.get("reflection_count", 0),
+                "total_llm_calls": final_state.get("llm_call_count", 0),
             }).execute()
             
     except Exception as e:
@@ -208,6 +301,7 @@ async def process_ticket(ticket: TicketRequest, background_tasks: BackgroundTask
         "rag_top_score": {},
         "low_relevance_flags": {},
         "validation_result": {},
+        "llm_call_count": 0,
     }
     
     # Fire and forget the background orchestration properly
@@ -270,9 +364,14 @@ async def embed_resolved_ticket(request: EmbedResolvedTicketRequest):
         from app.tools.redaction_tool import mask_pii
         from app.tools.rag_tool import add_precedent
         
-        # We must mask the PII before saving to ChromaDB to prevent leakage
+        # We must mask the PII before saving to ChromaDB to prevent leakage.
+        # This precedent gets reused verbatim for other, unrelated future
+        # customers, so the stored response must never carry this customer's
+        # identity either - an admin's manually-typed reply will often
+        # address them by name directly.
         redacted_text, _ = mask_pii(request.ticket_text)
-        add_precedent(request.ticket_id, redacted_text, request.final_response, request.domain)
+        redacted_response, _ = mask_pii(request.final_response)
+        add_precedent(request.ticket_id, redacted_text, redacted_response, request.domain)
         
         return {"status": "success"}
     except Exception as e:
