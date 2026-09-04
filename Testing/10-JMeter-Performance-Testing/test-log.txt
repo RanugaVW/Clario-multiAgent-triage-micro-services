@@ -1,0 +1,13 @@
+WARN StatusConsoleListener The use of package scanning to locate plugins is deprecated and will be removed in a future release
+WARN StatusConsoleListener The use of package scanning to locate plugins is deprecated and will be removed in a future release
+WARN StatusConsoleListener The use of package scanning to locate plugins is deprecated and will be removed in a future release
+WARN StatusConsoleListener The use of package scanning to locate plugins is deprecated and will be removed in a future release
+Creating summariser <summary>
+Created the tree successfully using clario-basic-performance.jmx
+Starting standalone test @ 2026 Sep 4 20:50:57 IST (1788535257778)
+Waiting for possible Shutdown/StopTestNow/HeapDump/ThreadDump message on port 4445
+summary +    181 in 00:00:02 =   94.1/s Avg:     6 Min:     1 Max:   154 Err:     0 (0.00%) Active: 6 Started: 15 Finished: 9
+summary +     69 in 00:00:13 =    5.4/s Avg:   868 Min:     3 Max:  8292 Err:     0 (0.00%) Active: 0 Started: 15 Finished: 15
+summary =    250 in 00:00:15 =   17.1/s Avg:   244 Min:     1 Max:  8292 Err:     0 (0.00%)
+Tidying up ...    @ 2026 Sep 4 20:51:12 IST (1788535272747)
+... end of run
