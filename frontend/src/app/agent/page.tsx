@@ -16,7 +16,7 @@ const MOCK_TICKETS = [
 export default function AgentDashboard() {
   const { user, role, loading } = useAuth();
   const router = useRouter();
-  const [tickets, setTickets] = useState(MOCK_TICKETS);
+  const [tickets] = useState(MOCK_TICKETS);
 
   useEffect(() => {
     if (!loading && !user && !role) {

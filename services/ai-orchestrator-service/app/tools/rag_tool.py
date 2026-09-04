@@ -3,21 +3,25 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import chromadb
 from chromadb.errors import NotFoundError
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+from sentence_transformers import SentenceTransformer
 
 from app.tools.circuit_breaker import CircuitBreakerOpenError, get_breaker
 
 _ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(_ROOT / ".env")
-_MODEL_NAME = "gemini-embedding-2"
+_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 _COLLECTION_NAME = "kb_support_docs"
-_embedder_client: genai.Client | None = None
+_embedder: SentenceTransformer | None = None
+
+
+_WHITESPACE_RE = re.compile(r"\s+")
+_PUNCT_RE = re.compile(r"[^\w\s]")
 
 
 def _chroma_path() -> str:
@@ -25,19 +29,18 @@ def _chroma_path() -> str:
     return str(configured if configured.is_absolute() else _ROOT / configured)
 
 
-def _embedding_model() -> genai.Client:
-    global _embedder_client
-    if _embedder_client is None:
-        _embedder_client = genai.Client()
-    return _embedder_client
+def _embedding_model() -> SentenceTransformer:
+    global _embedder
+    if _embedder is None:
+        _embedder = SentenceTransformer(_MODEL_NAME)
+    return _embedder
 
-def get_embedding(text: str) -> list[float]:
-    res = _embedding_model().models.embed_content(
-        model=_MODEL_NAME,
-        contents=[text],
-        config=types.EmbedContentConfig(output_dimensionality=384)
-    )
-    return res.embeddings[0].values
+
+def canonicalize_ticket_text(text: str) -> str:
+    """Normalize ticket text so semantically equivalent issues compare more reliably."""
+    cleaned = text.lower().strip()
+    cleaned = _PUNCT_RE.sub(" ", cleaned)
+    return _WHITESPACE_RE.sub(" ", cleaned).strip()
 
 
 def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
@@ -51,7 +54,7 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         client = chromadb.PersistentClient(path=_chroma_path())
         
         matches = []
-        embeds = [get_embedding(query)]
+        embeds = [_embedding_model().encode(query, normalize_embeddings=True).tolist()]
 
         # Query standard support docs
         try:
@@ -124,6 +127,7 @@ def add_precedent(ticket_id: str, redacted_text: str, final_response: str, domai
         
         # Only embed the ticket issue, but keep resolution in the stored document
         content = f"Ticket Issue:\n{redacted_text}\n\nResolution:\n{final_response}"
+        normalized_text = canonicalize_ticket_text(redacted_text)
         
         # We use a deterministic ID based on the ticket_id
         doc_id = f"precedent_{ticket_id}"
@@ -131,7 +135,7 @@ def add_precedent(ticket_id: str, redacted_text: str, final_response: str, domai
         # Insert or update
         collection.upsert(
             ids=[doc_id],
-            embeddings=[get_embedding(redacted_text)],
+            embeddings=[_embedding_model().encode(normalized_text, normalize_embeddings=True).tolist()],
             documents=[content],
             metadatas=[{
                 "domain": domain,

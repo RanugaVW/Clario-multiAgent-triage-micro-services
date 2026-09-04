@@ -18,6 +18,10 @@ class TicketState(TypedDict):
     redacted_text: str
     # surrogate_node writes; validation_node reads for outgoing PII checks.
     pii_found: list[dict]
+    # surrogate_node writes ({fake_value: real_value} for PERSON/EMAIL only);
+    # validation_node reads to exempt these from the pii_in_draft check,
+    # resolve_node reads to restore real values into the final draft.
+    pii_shadow_map: dict[str, str]
     # classification_node writes; routing_node, escalation_node, and handoff_node read.
     category: str | None
     # classification_node writes; escalation_node and handoff_node read.
@@ -66,3 +70,9 @@ class TicketState(TypedDict):
     final_response: str | None
     # escalation_node writes for human review; handoff_node reads.
     human_review_notes: str | None
+    # response_judge_node writes (Gemini judge, record-only); API layer reads to persist to Supabase.
+    judge_evaluations: dict[str, dict]
+    # classification_node, technical/billing agent nodes, and response_judge_node
+    # each add their real model-call attempts (including failed retries) here;
+    # main.py persists the running total into resolutions.total_llm_calls.
+    llm_call_count: int

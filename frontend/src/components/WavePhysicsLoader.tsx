@@ -76,7 +76,7 @@ export function WavePhysicsLoader() {
     }
 
     return { bars: barsData, ballX: bX, ballY: bY, ballScaleX: bScaleX, ballScaleY: bScaleY, times: tArr };
-  }, []);
+  }, [barTotalWidth]);
 
   return (
     <div className="relative flex flex-col items-center justify-center w-full scale-[0.6] sm:scale-75 md:scale-100">

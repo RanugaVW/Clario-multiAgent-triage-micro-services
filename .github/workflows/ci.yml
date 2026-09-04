@@ -93,7 +93,11 @@ jobs:
             torch==2.13.0+cpu
       - run: pip install --timeout 120 --retries 10 -r requirements.txt
       - run: pip install pytest
-      - run: pytest tests -v
+      # `pytest` (the bare console script) does not add the working
+      # directory to sys.path, so `from app...` imports fail with
+      # ModuleNotFoundError; `python -m pytest` does (python -m always
+      # prepends cwd to sys.path) - confirmed by reproducing both locally.
+      - run: python -m pytest tests -v
 
   ml-sidecar:
     name: clario-ml-sidecar
@@ -119,7 +123,11 @@ jobs:
             torch==2.13.0+cpu
       - run: pip install --timeout 120 --retries 10 -r requirements.txt
       - run: pip install pytest
-      - run: pytest tests -v
+      # `pytest` (the bare console script) does not add the working
+      # directory to sys.path, so `from app...` imports fail with
+      # ModuleNotFoundError; `python -m pytest` does (python -m always
+      # prepends cwd to sys.path) - confirmed by reproducing both locally.
+      - run: python -m pytest tests -v
 
   ml-finetuning:
     name: ml_finetuning
@@ -136,4 +144,8 @@ jobs:
           cache-dependency-path: ml_finetuning/requirements.txt
       - run: pip install --timeout 120 --retries 10 -r requirements.txt
       - run: pip install pytest
-      - run: pytest tests -v
+      # `pytest` (the bare console script) does not add the working
+      # directory to sys.path, so `from app...` imports fail with
+      # ModuleNotFoundError; `python -m pytest` does (python -m always
+      # prepends cwd to sys.path) - confirmed by reproducing both locally.
+      - run: python -m pytest tests -v
