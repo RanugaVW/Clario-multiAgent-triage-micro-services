@@ -22,6 +22,7 @@ from app.graph.response_judge_node import response_judge_node
 from app.graph.routing_node import routing_node
 from app.graph.state import TicketState
 from app.graph.validation_node import validation_node
+from app.tracing.pipeline_tracer import trace_node
 
 load_dotenv()
 
@@ -75,20 +76,20 @@ def _after_validation(state: TicketState) -> str:
 def build_graph():
     """Compile the ticket graph; reroute and reflection are each structurally bounded."""
     graph = StateGraph(TicketState)
-    graph.add_node("cache_check", cache_check_node)
-    graph.add_node("surrogate", surrogate_node)
-    graph.add_node("analyzer", analyzer_node)
-    graph.add_node("classification", classification_node)
-    graph.add_node("routing", routing_node)
-    graph.add_node("technical_agent", technical_agent_node)
-    graph.add_node("billing_agent", billing_agent_node)
-    graph.add_node("both_specialists", _both_specialists_node)
-    graph.add_node("validation", validation_node)
-    graph.add_node("reflection", reflection_node)
-    graph.add_node("response_judge", response_judge_node)
-    graph.add_node("escalation", escalation_node)
-    graph.add_node("handoff", handoff_node)
-    graph.add_node("resolve", resolve_node)
+    graph.add_node("cache_check", trace_node("cache_check")(cache_check_node))
+    graph.add_node("surrogate", trace_node("surrogate")(surrogate_node))
+    graph.add_node("analyzer", trace_node("analyzer")(analyzer_node))
+    graph.add_node("classification", trace_node("classification")(classification_node))
+    graph.add_node("routing", trace_node("routing")(routing_node))
+    graph.add_node("technical_agent", trace_node("technical_agent")(technical_agent_node))
+    graph.add_node("billing_agent", trace_node("billing_agent")(billing_agent_node))
+    graph.add_node("both_specialists", trace_node("both_specialists")(_both_specialists_node))
+    graph.add_node("validation", trace_node("validation")(validation_node))
+    graph.add_node("reflection", trace_node("reflection")(reflection_node))
+    graph.add_node("response_judge", trace_node("response_judge")(response_judge_node))
+    graph.add_node("escalation", trace_node("escalation")(escalation_node))
+    graph.add_node("handoff", trace_node("handoff")(handoff_node))
+    graph.add_node("resolve", trace_node("resolve")(resolve_node))
     graph.add_edge(START, "cache_check")
     graph.add_conditional_edges("cache_check", _after_cache)
     graph.add_edge("surrogate", "analyzer")

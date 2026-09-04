@@ -168,3 +168,4 @@ supabase
 sentencepiece
 tiktoken
 bitsandbytes
+pytest-asyncio==0.25.2

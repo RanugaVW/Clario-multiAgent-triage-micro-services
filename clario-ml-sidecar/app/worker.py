@@ -13,6 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("RedisWorker")
 
 from app.main import background_orchestration, TicketRequest, lifespan
+from app.tracing.pipeline_tracer import emit
 
 # Assuming a mock FastAPI app to reuse the lifespan preload logic
 class MockApp:
@@ -61,6 +62,8 @@ async def process_queue():
                 logger.info(f"Received message from {QUEUE_KEY}")
                 try:
                     payload = json.loads(message)
+                    emit(payload.get("ticket_id", "unknown"), "ai-orchestrator-service", "queue", "dequeued",
+                         {"queue_depth": r.llen(QUEUE_KEY)})
                     ticket = TicketRequest(
                         ticket_id=payload['ticket_id'],
                         raw_text=payload['raw_text'],
