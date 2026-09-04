@@ -29,7 +29,9 @@ const baseTicket = {
 
 describe('TicketRow customer rating badge', () => {
   it('shows the customer rating when feedback exists', () => {
-    render(<TicketRow ticket={{ ...baseTicket, customer_feedback: [{ score: 5 }] } as any} role="all" />);
+    // customer_feedback.ticket_id carries a UNIQUE constraint, so PostgREST
+    // embeds this as a to-one relation - a bare object, not an array.
+    render(<TicketRow ticket={{ ...baseTicket, customer_feedback: { score: 5 } } as any} role="all" />);
     // The badge lives in TicketRow's expanded detail panel (pre-existing
     // behavior, unrelated to this task), so expand the row first.
     fireEvent.click(screen.getByText('Cannot log in'));
@@ -37,7 +39,7 @@ describe('TicketRow customer rating badge', () => {
   });
 
   it('renders no rating badge when there is no feedback yet', () => {
-    render(<TicketRow ticket={{ ...baseTicket, customer_feedback: [] } as any} role="all" />);
+    render(<TicketRow ticket={{ ...baseTicket, customer_feedback: null } as any} role="all" />);
     fireEvent.click(screen.getByText('Cannot log in'));
     expect(screen.queryByText(/Customer rating/i)).not.toBeInTheDocument();
   });
