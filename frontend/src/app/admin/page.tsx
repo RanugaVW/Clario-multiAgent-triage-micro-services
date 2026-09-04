@@ -20,6 +20,15 @@ import RotateButton from '../../components/RotateButton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
 
+// /api/tickets requires a staff session - every call site below attaches
+// this. Without it the route now correctly answers 401/403 instead of
+// serving every customer's raw ticket data to anyone who asks.
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 function parseAdminResponse(text: string | null | undefined): React.ReactNode {
   if (!text) return 'No final response was produced.';
   if (text.includes('**[INTERNAL TECHNICAL REPORT]**') && text.includes('**[CUSTOMER RESPONSE]**')) {
@@ -204,7 +213,7 @@ export default function AdminDashboard() {
       }
 
       // 2. Fetch from Next.js API (which checks Redis)
-      const json = await fetchJson<{ data: Ticket[] }>('/api/tickets');
+      const json = await fetchJson<{ data: Ticket[] }>('/api/tickets', { headers: await authHeaders() });
       setAllTickets(json.data || []);
       // Save to Client Cache
       sessionStorage.setItem('tickets:list:metadata', JSON.stringify({
@@ -235,7 +244,8 @@ export default function AdminDashboard() {
     try {
       // Bypass gateway/sidecar and delete directly via our Next.js API
       const res = await fetch(`/api/tickets?id=${ticketId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: await authHeaders(),
       });
 
       if (res.ok) {
@@ -773,7 +783,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
     try {
       const res = await fetch('/api/tickets', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           id: ticket.id,
           final_response: replyText.trim()
@@ -795,7 +805,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
       } catch {}
 
       try {
-        await fetch('/api/tickets', { method: 'DELETE' });
+        await fetch('/api/tickets', { method: 'DELETE', headers: await authHeaders() });
         sessionStorage.removeItem('tickets:list:metadata');
       } catch {}
 

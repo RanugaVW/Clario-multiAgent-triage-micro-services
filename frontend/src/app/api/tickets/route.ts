@@ -1,22 +1,26 @@
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { requireUser, isStaff } from '../../../lib/apiAuth';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const CACHE_KEY = 'tickets:list:metadata';
 const CACHE_TTL_SECONDS = 60; // 1 minute cache
 
-// Building the client with an empty key throws while the module loads, which makes
-// Next.js answer with an HTML error page instead of JSON. Build it on first use so a
-// missing key comes back as a JSON 500 the caller can actually read.
+// Read these lazily (inside functions) rather than as module-level constants. Static
+// imports execute before a test file's own top-level statements, so a module-level
+// const here would capture env vars before a test's `process.env.X = ...` assignments
+// ever ran. Building the client with an empty key also throws while the module loads,
+// which makes Next.js answer with an HTML error page instead of JSON - building it on
+// first use means a missing key comes back as a JSON 500 the caller can actually read.
 function createServiceClient() {
-  return createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return createSupabaseClient(url, key);
 }
 
 let supabaseClient: ReturnType<typeof createServiceClient> | null = null;
 
 function getSupabase() {
-  if (!SUPABASE_SERVICE_KEY) return null;
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
   if (!supabaseClient) {
     supabaseClient = createServiceClient();
   }
@@ -45,7 +49,17 @@ async function getRedisClient(): Promise<CacheClient | null> {
   return null;
 }
 
-export async function GET() {
+async function requireStaff(request: Request): Promise<NextResponse | null> {
+  const user = await requireUser(request);
+  if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  if (!isStaff(user)) return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
+  return null;
+}
+
+export async function GET(request: Request) {
+  const authError = await requireStaff(request);
+  if (authError) return authError;
+
   const supabase = getSupabase();
   if (!supabase) return MISSING_KEY_RESPONSE();
 
@@ -97,6 +111,9 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
+  const authError = await requireStaff(request);
+  if (authError) return authError;
+
   const supabase = getSupabase();
   if (!supabase) return MISSING_KEY_RESPONSE();
 
@@ -132,6 +149,9 @@ export async function DELETE(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const authError = await requireStaff(request);
+  if (authError) return authError;
+
   const supabase = getSupabase();
   if (!supabase) return MISSING_KEY_RESPONSE();
 

@@ -1,0 +1,63 @@
+=== Clario Security & Access Control Test Run 76eb307d ===
+Supabase project: https://mdvfvtpbwqhccmaarpli.supabase.co
+Next.js target:   http://localhost:3000
+
+Fixtures created: customer_a=27c872db-4922-48b5-bc60-1feb42540476, customer_b=10a195fe-2a5a-418d-bb3a-f8a14d83eadf, admin=75fa0174-d1ad-4f9b-bca6-34b7bdf2ce6a, canary_ticket=d1b62969-7a95-4382-9afe-6f9499674e5a
+
+--- Section A: Row Level Security ---
+[PASS] A1 (info) - Customer B cannot SELECT customer A's ticket via PostgREST
+       evidence: HTTP 200, rows returned=0
+[PASS] A2 (info) - Customer A CAN select their own ticket (positive control)
+       evidence: HTTP 200, rows returned=1
+[PASS] A3 (info) - Anonymous (no session) cannot SELECT any row from tickets
+       evidence: HTTP 200, rows returned=0
+[PASS] A4 (info) - Staff (admin role) CAN select a ticket that isn't theirs (positive control)
+       evidence: HTTP 200, rows returned=1
+[PASS] A5 (info) - Customer B cannot SELECT customer A's public.users row
+       evidence: HTTP 200, rows returned=0
+[PASS] A6 (info) - Customer B cannot INSERT a ticket with user_id spoofed to customer A
+       evidence: HTTP 403: {"code":"42501","details":null,"hint":null,"message":"new row violates row-level security policy for table \"tickets\""}
+[PASS] A7 (info) - Staff (admin role) CAN select from human_reviews (positive control)
+       evidence: HTTP 200, rows returned=5
+[PASS] A7b (info) - Non-staff (plain customer) JWT cannot select from human_reviews
+       evidence: HTTP 200, rows returned=0
+[PASS] A7c (info) - Anonymous (no session) cannot select from human_reviews
+       evidence: HTTP 200, rows returned=0
+[PASS] A7d (info) - supabase_schema.sql documents the human_reviews staff-read policy (previously: live DB had one, the checked-in schema file didn't)
+       evidence: supabase_schema.sql contains a CREATE POLICY for human_reviews near its ENABLE ROW LEVEL SECURITY line
+
+--- Section B: Service-role Next.js API route authorization ---
+[PASS] B1 (critical) - GET /api/tickets with no Authorization header at all
+       evidence: HTTP 401, 0 tickets returned to an UNAUTHENTICATED request (no cookie, no bearer token, no API key of any kind beyond what a public browser tab has). The disposable canary ticket from this run was absent in the response. Per-row fields observed: raw_text=absent, customer_email=absent. Full response body is NOT persisted to disk or printed - this count and field-presence check is the only evidence kept, to avoid writing real customers' unredacted PII into a test report.
+[PASS] B2 (critical) - GET /api/user_tickets?userId=<victim> with no proof of being that user (IDOR)
+       evidence: HTTP 401, request supplied ONLY customer B's userId (a UUID with no other secret) and no Authorization header whatsoever, and the route returned 0 row(s) with HTTP 200 rather than 401/403. The route filters by the supplied userId but never verifies the caller IS that user.
+[PASS] B3 (info) - PUT /api/tickets (forge a resolution) against the canary ticket, no auth
+       evidence: HTTP 401: {"error":"Authentication required"}
+[PASS] B4 (info) - POST /api/customer_feedback with no auth, only a userId+ticketId pair (chained with B2)
+       evidence: HTTP 401: {"error":"Authentication required"}. Ownership of the ticket BY that userId is checked server-side, but nothing verifies the REQUEST came from that user.
+[PASS] B5 (info) - DELETE /api/tickets?id=<canary>, no auth (destructive action)
+       evidence: HTTP 401, ticket still in DB after call: True
+[PASS] B6 (info) - GET /api/tickets WITH a valid staff session still works (positive control)
+       evidence: HTTP 200, canary present=True
+[PASS] B7 (info) - GET /api/user_tickets?userId=<self> WITH the matching session still works (positive control)
+       evidence: HTTP 200, own ticket present=True
+[PASS] B8 (info) - POST /api/customer_feedback WITH the ticket owner's own session still works (positive control)
+       evidence: HTTP 200: {"data":null}
+[PASS] B9 (info) - PUT /api/tickets WITH a valid staff session still works (positive control)
+       evidence: HTTP 200: {"success":true}
+[PASS] B10 (info) - DELETE /api/tickets?id=<canary2> WITH a valid staff session still works (positive control)
+       evidence: HTTP 200, ticket gone=True
+
+--- Section C: PII redaction boundary ---
+[PASS] C1 (info) - mask_pii() strips name/email/phone/card from a realistic multi-PII ticket
+       evidence: pii_found types=['credit_card', 'email', 'gpe', 'org', 'person', 'phone'], leaked_raw_values_in_output=none
+[PASS] C2 (info) - mask_pii_reversible() never gives phone/card a reversible stand-in (only PERSON/EMAIL are reversible; everything else must stay a bracket token)
+       evidence: leaked_raw_values=none, shadow_map_covers=['Kalana', 'Kalana Wijesuriya', 'kalana.w+billing@clario-test.dev']
+[PASS] C3 (info) - Every add_precedent() call site passes redacted_text (never raw_text) into ChromaDB
+       evidence: 168:            add_precedent(ticket.ticket_id, redacted_text, redacted_response, domain); 374:        add_precedent(request.ticket_id, redacted_text, redacted_response, request.domain)
+
+--- Cleanup ---
+
+=== SUMMARY: 23/23 checks passed ===
+
+Full results written to /home/ranuga-weerasekara/Desktop/clario/Testing/05-Security-Access-Control-Testing/security_test_results.json

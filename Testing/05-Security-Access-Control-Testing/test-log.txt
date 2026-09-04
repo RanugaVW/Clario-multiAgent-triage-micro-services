@@ -1,0 +1,103 @@
+=== Clario Security & Access Control Test Run c0eb8a5c ===
+Supabase project: https://mdvfvtpbwqhccmaarpli.supabase.co
+Next.js target:   http://localhost:3000
+
+Fixtures created: customer_a=84c0453b-78e7-45e2-a6be-ad63672251ef, customer_b=c53e59b0-3594-4c29-8c79-7f0cb8ee7d18, admin=03dfaba6-fbc5-4dc5-8b2d-73f95c8471dc, canary_ticket=70bf1c2a-8af0-4bd6-a9e4-ea5d89ec63f8
+
+--- Section A: Row Level Security ---
+[PASS] A1 (info) - Customer B cannot SELECT customer A's ticket via PostgREST
+       evidence: HTTP 200, rows returned=0
+[PASS] A2 (info) - Customer A CAN select their own ticket (positive control)
+       evidence: HTTP 200, rows returned=1
+[PASS] A3 (info) - Anonymous (no session) cannot SELECT any row from tickets
+       evidence: HTTP 200, rows returned=0
+[PASS] A4 (info) - Staff (admin role) CAN select a ticket that isn't theirs (positive control)
+       evidence: HTTP 200, rows returned=1
+[PASS] A5 (info) - Customer B cannot SELECT customer A's public.users row
+       evidence: HTTP 200, rows returned=0
+[PASS] A6 (info) - Customer B cannot INSERT a ticket with user_id spoofed to customer A
+       evidence: HTTP 403: {"code":"42501","details":null,"hint":null,"message":"new row violates row-level security policy for table \"tickets\""}
+[FAIL] A7 (low) - human_reviews (RLS enabled, no policies) fails closed even for staff JWT
+       evidence: HTTP 200, rows returned=5 (table has RLS enabled but no CREATE POLICY anywhere in the 3 schema .sql files - only the service-role key can read it; if any authenticated-role UI feature needs direct client reads of this table, that feature is currently broken, not insecure)
+
+--- Section B: Service-role Next.js API route authorization ---
+[FAIL] B1 (critical) - GET /api/tickets with no Authorization header at all
+       evidence: HTTP 200, 27 tickets returned to an UNAUTHENTICATED request (no cookie, no bearer token, no API key of any kind beyond what a public browser tab has). The disposable canary ticket from this run was present in the response. Per-row fields observed: raw_text=present, customer_email=present. Full response body is NOT persisted to disk or printed - this count and field-presence check is the only evidence kept, to avoid writing real customers' unredacted PII into a test report.
+[FAIL] B2 (critical) - GET /api/user_tickets?userId=<victim> with no proof of being that user (IDOR)
+       evidence: HTTP 200, request supplied ONLY customer B's userId (a UUID with no other secret) and no Authorization header whatsoever, and the route returned 0 row(s) with HTTP 200 rather than 401/403. The route filters by the supplied userId but never verifies the caller IS that user.
+[FAIL] B3 (critical) - PUT /api/tickets (forge a resolution) against the canary ticket, no auth
+       evidence: HTTP 200: {"success":true}
+[FAIL] B4 (high) - POST /api/customer_feedback with no auth, only a userId+ticketId pair (chained with B2)
+       evidence: HTTP 200: {"data":null}. Ownership of the ticket BY that userId is checked server-side, but nothing verifies the REQUEST came from that user.
+[FAIL] B5 (critical) - DELETE /api/tickets?id=<canary>, no auth (destructive action)
+       evidence: HTTP 200, ticket still in DB after call: False
+
+--- Section C: PII redaction boundary ---
+[PASS] C1 (info) - mask_pii() strips name/email/phone/card from a realistic multi-PII ticket
+       evidence: pii_found types=['credit_card', 'email', 'gpe', 'org', 'person', 'phone'], leaked_raw_values_in_output=none
+[PASS] C2 (info) - mask_pii_reversible() never gives phone/card a reversible stand-in (only PERSON/EMAIL are reversible; everything else must stay a bracket token)
+       evidence: leaked_raw_values=none, shadow_map_covers=['Kalana', 'Kalana Wijesuriya', 'kalana.w+billing@clario-test.dev']
+[PASS] C3 (info) - Every add_precedent() call site passes redacted_text (never raw_text) into ChromaDB
+       evidence: 168:            add_precedent(ticket.ticket_id, redacted_text, redacted_response, domain); 374:        add_precedent(request.ticket_id, redacted_text, redacted_response, request.domain)
+
+--- Cleanup ---
+[cleanup] canary ticket already gone or failed to delete: {'message': 'invalid input syntax for type uuid: "None"', 'code': '22P02', 'hint': None, 'details': None}
+
+=== SUMMARY: 9/15 checks passed ===
+6 FAILED (i.e. 6 real security gap(s) found):
+  - A7 [low] human_reviews (RLS enabled, no policies) fails closed even for staff JWT
+  - B1 [critical] GET /api/tickets with no Authorization header at all
+  - B2 [critical] GET /api/user_tickets?userId=<victim> with no proof of being that user (IDOR)
+  - B3 [critical] PUT /api/tickets (forge a resolution) against the canary ticket, no auth
+  - B4 [high] POST /api/customer_feedback with no auth, only a userId+ticketId pair (chained with B2)
+  - B5 [critical] DELETE /api/tickets?id=<canary>, no auth (destructive action)
+
+Full results written to /home/ranuga-weerasekara/Desktop/clario/Testing/05-Security-Access-Control-Testing/security_test_results.json
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar
+plugins: langsmith-0.10.5, Faker-20.1.0, anyio-4.14.2
+collecting ... collected 14 items
+
+tests/tools/test_redaction_tool.py::test_mask_pii_redacts_person_and_email_without_leaking_the_value PASSED [  7%]
+tests/tools/test_redaction_tool.py::test_mask_pii_redacts_phone_and_card_generically PASSED [ 14%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_replaces_name_with_a_realistic_stand_in PASSED [ 21%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_gives_email_a_realistic_stand_in_too PASSED [ 28%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_still_redacts_phone_and_card_generically PASSED [ 35%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_reuses_the_same_stand_in_for_repeated_mentions PASSED [ 42%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_round_trips_back_to_the_original_value PASSED [ 50%]
+tests/graph/test_response_judge_node.py::test_scores_every_domain_with_a_draft PASSED [ 57%]
+tests/graph/test_response_judge_node.py::test_skips_domains_with_no_draft PASSED [ 64%]
+tests/graph/test_response_judge_node.py::test_no_drafts_short_circuits_without_judge_evaluations_key PASSED [ 71%]
+tests/graph/test_response_judge_node.py::test_cache_hit_ticket_redacts_raw_text_before_judging PASSED [ 78%]
+tests/graph/test_response_judge_node.py::test_judge_failure_is_swallowed_not_raised PASSED [ 85%]
+tests/graph/test_response_judge_node.py::test_successful_evaluation_adds_its_real_attempt_count_to_llm_call_count PASSED [ 92%]
+tests/graph/test_response_judge_node.py::test_failed_evaluation_still_adds_its_real_attempt_count_to_llm_call_count PASSED [100%]
+
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 14 passed, 14 warnings in 13.38s =======================
+
+=== Supplementary probe: A7b/A7c (run separately, after the main run above,
+=== to determine whether human_reviews' unexpected staff-visible rows (A7)
+=== meant "correctly staff-only" or "wide open to any authenticated user") ===
+
+$ python3 -c "... sign in as a fresh disposable non-staff customer and a
+fully anonymous (anon-key-only) client, GET .../rest/v1/human_reviews ..."
+
+non-staff customer GET human_reviews -> 200 []
+anonymous GET human_reviews -> 200 []
+cleaned up probe user
+
+=== Cleanup verification (run after both the main run and the probe) ===
+
+$ python3 -c "... list_users() filtered to the 4 test emails used this
+phase, and search tickets for any leftover SECURITY-TEST-CANARY* subject ..."
+
+leftover test users: none
+leftover canary tickets: []

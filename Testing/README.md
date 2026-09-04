@@ -20,7 +20,7 @@ in each phase's own README.
 | 02 | [Integration Testing](02-Integration-Testing/) | §3.1.1 Data & Database Integrity Testing, §3.1.2 Function Testing (end-to-end) | **Complete** — see report |
 | 03 | [UI / E2E Testing](03-UI-E2E-Testing/) | §3.1.3 User Interface Testing | **Complete** — see report |
 | 04 | [Performance & Load Testing](04-Performance-Load-Testing/) | §3.1.4 Performance Profiling, §3.1.5 Load Testing | **Complete** — see report |
-| 05 | [Security & Access Control Testing](05-Security-Access-Control-Testing/) | §3.1.6 Security and Access Control Testing | Planned |
+| 05 | [Security & Access Control Testing](05-Security-Access-Control-Testing/) | §3.1.6 Security and Access Control Testing | **Complete** — see report (6 findings, all fixed & re-verified: 23/23) |
 | 06 | [Failover & Recovery Testing](06-Failover-Recovery-Testing/) | §3.1.7 Failover and Recovery Testing | Planned |
 
 Configuration testing (§3.1.8 in the sample plan) is not tracked as a
