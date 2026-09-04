@@ -74,7 +74,7 @@ import VoiceRecorder from '../../components/VoiceRecorder';
 import { fetchJson } from '../../lib/fetchJson';
 
 export default function Home() {
-  const [ticketText, setTicketText] = useState('Payment failed but the money was taken from my bank account.');
+  const [ticketText, setTicketText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<TicketResponse | null>(null);
   const [error, setError] = useState<string | null>(null);

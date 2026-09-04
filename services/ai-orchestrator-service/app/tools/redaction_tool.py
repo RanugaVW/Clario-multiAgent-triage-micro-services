@@ -11,6 +11,20 @@ from faker import Faker
 EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 PHONE_PATTERN = re.compile(r"(?<!\w)(?:\+?\d[\d .()\-]{7,}\d)(?!\w)")
 CARD_PATTERN = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
+# Support-ticket self-introductions ("Hi I'm Deshan", "My name is Deshan
+# Athukorarala") are the single most common place a real name appears in
+# this domain, and spaCy's en_core_web_md was confirmed live to sometimes
+# miss real names here entirely (e.g. "Deshan" tagged as nothing at all) -
+# found because that exact miss let a customer's real name leak verbatim
+# into a cached RAG precedent later served to other customers. This is a
+# second, independent detector for the same "person" kind, layered on top
+# of NER rather than replacing it: a deterministic pattern match on the
+# specific phrasing support tickets actually use, so a name NER's training
+# data underrepresents is still caught.
+SELF_INTRO_PATTERN = re.compile(
+    r"\b(?:I'?m|I\s+am|[Mm]y\s+name\s+is|[Tt]his\s+is)\s+"
+    r"([A-Z][a-zA-Z'-]+(?:\s+[A-Z][a-zA-Z'-]+){0,2})"
+)
 REGEX_PATTERNS = (("email", EMAIL_PATTERN), ("credit_card", CARD_PATTERN), ("phone", PHONE_PATTERN))
 NER_LABELS = {"PERSON", "GPE", "ORG"}
 
@@ -45,7 +59,8 @@ def _non_overlapping(spans: list[tuple[int, int, str]]) -> list[tuple[int, int, 
 
 
 def _detect_spans(text: str) -> list[tuple[int, int, str]]:
-    """Find every PII span (regex + spaCy NER), longest-and-earliest-wins on overlap."""
+    """Find every PII span (regex + spaCy NER + self-intro name pattern),
+    longest-and-earliest-wins on overlap."""
     spans = [
         (match.start(), match.end(), kind)
         for kind, pattern in REGEX_PATTERNS
@@ -55,6 +70,10 @@ def _detect_spans(text: str) -> list[tuple[int, int, str]]:
         (entity.start_char, entity.end_char, entity.label_.lower())
         for entity in _nlp()(text).ents
         if entity.label_ in NER_LABELS
+    )
+    spans.extend(
+        (match.start(1), match.end(1), "person")
+        for match in SELF_INTRO_PATTERN.finditer(text)
     )
     return _non_overlapping(spans)
 

@@ -106,6 +106,37 @@ async def verify_token(authorization: str = Header(None)) -> dict:
         raise HTTPException(status_code=401, detail=str(e))
 
 
+def should_cache_precedent(
+    cache_hit: bool, groundedness_score: int | None, min_groundedness: int
+) -> tuple[bool, str]:
+    """Decide whether a resolved ticket's response is safe to store as a
+    reusable precedent. Returns (should_cache, reason_if_not).
+
+    Two independent guards, both found live (a customer got an answer
+    referencing another customer's assignment deadline that was never
+    mentioned in their own ticket):
+
+    1. Never re-store a cache HIT as a new precedent. cache_check_node
+       returns the OLD stored document verbatim as final_response; without
+       this guard, every reuse re-embeds that same text under a new
+       ticket_id, so one leaky precedent compounds every time it's served.
+    2. Gate NEW precedents on groundedness_score. response_judge_node
+       already runs an independent LLM judge that scores whether the draft
+       "references or aligns with retrieved KB context" - a sentence like
+       "given your deadline" is by definition not grounded in KB content (a
+       generic support article), so a working judge scores it low. This is
+       real, independent verification, not the same generation call
+       trusting its own output. Fails closed: an unscored response (the
+       judge call itself errored) is treated the same as a low-scoring one
+       - no confirmed groundedness means no verified safety to cache on.
+    """
+    if cache_hit:
+        return False, "cache_hit"
+    if groundedness_score is None or groundedness_score < min_groundedness:
+        return False, f"groundedness_score={groundedness_score!r} (need >= {min_groundedness})"
+    return True, ""
+
+
 def get_user_role(user_id: str) -> str:
     """Looks up a user's real role from public.users - the schema stores it
     there (see supabase_schema.sql), not on the Supabase auth user's
@@ -166,21 +197,29 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
     handoff = build_handoff_package(final_state) if is_escalated else None
 
     if not is_escalated and final_response:
-        try:
-            redacted_text = final_state.get("redacted_text") or ticket.raw_text
-            if redacted_text == ticket.raw_text:
-                redacted_text, _ = mask_pii(ticket.raw_text)
-            domain = final_state.get("routing_decision") or final_state.get("category") or "technical"
-            if domain not in {"technical", "billing"}:
-                domain = "technical"
-            # resolve_node restores this customer's real name/email into
-            # final_response, but a cache hit reuses the stored precedent
-            # verbatim for other, unrelated future customers - so it must
-            # never carry any one customer's identity baked in.
-            redacted_response, _ = mask_pii(final_response)
-            add_precedent(ticket.ticket_id, redacted_text, redacted_response, domain)
-        except Exception as embed_err:
-            logger.warning(f"Failed to embed precedent for ticket {ticket.ticket_id}: {embed_err}")
+        domain = final_state.get("routing_decision") or final_state.get("category") or "technical"
+        if domain not in {"technical", "billing"}:
+            domain = "technical"
+        judge_eval = final_state.get("judge_evaluations", {}).get(domain) or {}
+        min_groundedness = int(os.environ.get("PRECEDENT_MIN_GROUNDEDNESS", "4"))
+        cache_ok, skip_reason = should_cache_precedent(
+            bool(final_state.get("cache_hit")), judge_eval.get("groundedness_score"), min_groundedness
+        )
+        if not cache_ok:
+            logger.info(f"Not caching ticket {ticket.ticket_id}'s response as a precedent - {skip_reason}")
+        else:
+            try:
+                redacted_text = final_state.get("redacted_text") or ticket.raw_text
+                if redacted_text == ticket.raw_text:
+                    redacted_text, _ = mask_pii(ticket.raw_text)
+                # resolve_node restores this customer's real name/email into
+                # final_response, but a cache hit reuses the stored precedent
+                # verbatim for other, unrelated future customers - so it must
+                # never carry any one customer's identity baked in.
+                redacted_response, _ = mask_pii(final_response)
+                add_precedent(ticket.ticket_id, redacted_text, redacted_response, domain)
+            except Exception as embed_err:
+                logger.warning(f"Failed to embed precedent for ticket {ticket.ticket_id}: {embed_err}")
 
     try:
         # cache_check_node short-circuits straight to response_judge on a hit,
@@ -195,7 +234,7 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "confidence": final_state.get("classification_confidence"),
                 # Was hardcoded to "gemini" regardless of what actually classified
                 # the ticket - classify_ticket_local runs the local fine-tuned
-                # adapter (source "gemma3_lora"), never Gemini directly.
+                # adapter (source "llama32_lora"), never Gemini directly.
                 "source": final_state.get("classification_source"),
             }
             supabase_client.table("ticket_classifications").insert(classification_payload).execute()
