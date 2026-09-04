@@ -13,6 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("RedisWorker")
 
 from app.main import background_orchestration, TicketRequest, lifespan
+from app.tracing import pipeline_tracer
 from app.tracing.pipeline_tracer import emit, TRACE_ENABLED
 
 # Assuming a mock FastAPI app to reuse the lifespan preload logic
@@ -60,6 +61,10 @@ async def process_queue():
                 if not message:
                     continue
                 logger.info(f"Received message from {QUEUE_KEY}")
+                # Capture the loop actually running this pipeline so emit()
+                # can reschedule onto it from a sync node's executor thread
+                # (which has no loop of its own) - see pipeline_tracer.bind_loop.
+                pipeline_tracer.bind_loop()
                 try:
                     payload = json.loads(message)
                     if TRACE_ENABLED:

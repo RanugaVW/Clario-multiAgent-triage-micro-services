@@ -24,6 +24,34 @@ _SERVICE_NAME = "ai-orchestrator-service"
 
 _client: httpx.AsyncClient | None = httpx.AsyncClient(timeout=1.0) if TRACE_ENABLED else None
 
+# The event loop actually running the pipeline, captured via bind_loop() at
+# the pipeline's real entry points (app/main.py's background_orchestration,
+# app/worker.py's process_queue). LangGraph dispatches sync nodes via
+# loop.run_in_executor(None, func, ...), a worker thread with no event loop
+# of its own - asyncio.get_running_loop() fails there, so emit() needs this
+# reference to reschedule the post back onto the loop that's actually
+# running, instead of silently dropping the event.
+_loop: asyncio.AbstractEventLoop | None = None
+
+# Keep references to in-flight emit tasks so they aren't garbage collected
+# mid-flight (per asyncio.create_task's own documented risk).
+_background_tasks: set[asyncio.Task] = set()
+
+
+def bind_loop() -> None:
+    """Call from an async context before any node runs, so emit() can
+    reschedule work from a sync node's executor thread (which has no loop
+    of its own) back onto the loop actually running the pipeline. Safe to
+    call every time (idempotent, cheap) - re-captures on each call so a
+    stale loop from a prior process/reload is never used."""
+    global _loop
+    if not TRACE_ENABLED:
+        return
+    try:
+        _loop = asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+
 
 async def _post(payload: dict) -> None:
     if _client is None:
@@ -32,6 +60,13 @@ async def _post(payload: dict) -> None:
         await _client.post(f"{RELAY_URL}/trace/event", json=payload)
     except Exception:
         pass  # relay down/slow/unreachable - never allowed to affect the real pipeline
+
+
+def _track(task: asyncio.Task | None) -> None:
+    if task is None:
+        return
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
 
 def emit(ticket_id: str, service: str, step: str, status: str, detail: dict | None = None) -> None:
@@ -43,9 +78,20 @@ def emit(ticket_id: str, service: str, step: str, status: str, detail: dict | No
         "status": status, "detail": detail or {},
     }
     try:
-        asyncio.create_task(_post(payload))
+        # Fast path: already running inside the calling thread's own event
+        # loop (the common case for async nodes, and for anything called
+        # directly from the async request/worker handlers).
+        asyncio.get_running_loop()
+        _track(asyncio.create_task(_post(payload)))
     except RuntimeError:
-        pass  # no running event loop (e.g. called from a thread) - fail silently
+        # No running loop in this thread - this is a sync node executing in
+        # LangGraph's executor thread pool. Reschedule onto the loop that's
+        # actually running the pipeline, captured earlier via bind_loop().
+        if _loop is not None and not _loop.is_closed():
+            try:
+                asyncio.run_coroutine_threadsafe(_post(payload), _loop)
+            except RuntimeError:
+                pass  # loop closed/shutting down between the check and the call - fail silently
 
 
 def _summarize_cache_check(state: dict) -> dict:
@@ -125,6 +171,10 @@ def _summarize_handoff(state: dict) -> dict:
     return {"escalation_triggered": state.get("escalation_triggered"), "failure_type": state.get("failure_type")}
 
 
+def _summarize_resolve(state: dict) -> dict:
+    return {"final_response_present": state.get("final_response") is not None}
+
+
 _SUMMARIZERS: dict[str, Callable[[dict], dict]] = {
     "cache_check": _summarize_cache_check,
     "surrogate": _summarize_surrogate,
@@ -138,6 +188,7 @@ _SUMMARIZERS: dict[str, Callable[[dict], dict]] = {
     "response_judge": _summarize_response_judge,
     "escalation": _summarize_escalation,
     "handoff": _summarize_handoff,
+    "resolve": _summarize_resolve,
 }
 
 
@@ -163,7 +214,11 @@ def trace_node(step_name: str) -> Callable[[Callable], Callable]:
                 ticket_id = state.get("ticket_id", "unknown")
                 emit(ticket_id, _SERVICE_NAME, step_name, "started")
                 result = await node_fn(state)
-                emit(ticket_id, _SERVICE_NAME, step_name, "finished", summarize(result))
+                try:
+                    detail = summarize(result)
+                except Exception:
+                    detail = {}
+                emit(ticket_id, _SERVICE_NAME, step_name, "finished", detail)
                 return result
             return _wrapped_async
 
@@ -171,7 +226,11 @@ def trace_node(step_name: str) -> Callable[[Callable], Callable]:
             ticket_id = state.get("ticket_id", "unknown")
             emit(ticket_id, _SERVICE_NAME, step_name, "started")
             result = node_fn(state)
-            emit(ticket_id, _SERVICE_NAME, step_name, "finished", summarize(result))
+            try:
+                detail = summarize(result)
+            except Exception:
+                detail = {}
+            emit(ticket_id, _SERVICE_NAME, step_name, "finished", detail)
             return result
         return _wrapped_sync
 

@@ -30,7 +30,11 @@ def test_emit_is_a_true_no_op_when_disabled(monkeypatch) -> None:
     assert calls == []
 
 
-def test_emit_fires_a_task_when_enabled(monkeypatch) -> None:
+@pytest.mark.asyncio
+async def test_emit_fires_a_task_when_enabled(monkeypatch) -> None:
+    # emit() takes the fast path (asyncio.create_task in the calling
+    # thread's own loop) when called from an async context that already has
+    # a running loop - the common case for async nodes.
     tracer = _reload_tracer(monkeypatch, "true")
     calls = []
     monkeypatch.setattr(tracer.asyncio, "create_task", lambda coro: calls.append(coro) or coro.close())
@@ -121,3 +125,107 @@ def test_emit_from_thread_with_no_event_loop_does_not_raise(monkeypatch) -> None
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         result = executor.submit(call_emit_in_thread).result(timeout=5)
         assert result is True
+
+
+@pytest.mark.asyncio
+async def test_bind_loop_captures_the_running_loop() -> None:
+    import asyncio as _asyncio
+
+    from app.tracing import pipeline_tracer as tracer
+
+    tracer._loop = None
+    tracer.bind_loop()
+    assert tracer._loop is _asyncio.get_running_loop()
+
+
+@pytest.mark.asyncio
+async def test_emit_from_a_worker_thread_reaches_the_bound_loop_via_run_coroutine_threadsafe(monkeypatch) -> None:
+    """This is the real bug: LangGraph dispatches sync nodes via
+    loop.run_in_executor(None, func, ...), a worker thread with no event
+    loop of its own. Before the fix, asyncio.get_running_loop() raised
+    RuntimeError there and the caught exception silently dropped the event -
+    not merely avoided a crash. bind_loop() (called at the pipeline's real
+    entry points) plus emit()'s run_coroutine_threadsafe fallback must
+    actually deliver the event onto the loop that's running the pipeline.
+    """
+    tracer = _reload_tracer(monkeypatch, "true")
+    posted = []
+
+    async def fake_post(payload):
+        posted.append(payload)
+
+    monkeypatch.setattr(tracer, "_post", fake_post)
+    tracer.bind_loop()  # capture *this* running loop, as main.py/worker.py do
+
+    def call_emit_in_thread():
+        # Runs in a plain worker thread - no event loop here at all.
+        tracer.emit("t1", "svc", "cache_check", "finished", {"x": 1})
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(call_emit_in_thread).result(timeout=5)
+
+    # The threadsafe reschedule is itself async - give the loop a tick to
+    # actually run the scheduled coroutine.
+    for _ in range(20):
+        if posted:
+            break
+        await __import__("asyncio").sleep(0.01)
+
+    assert len(posted) == 1
+    assert posted[0]["step"] == "cache_check"
+
+
+@pytest.mark.asyncio
+async def test_sync_node_under_a_real_langgraph_ainvoke_actually_emits_events(monkeypatch) -> None:
+    """End-to-end proof for the real bug: build a minimal two-node
+    LangGraph (one sync node, one async node - both wrapped via
+    trace_node()) and run it through .ainvoke(), the same entry point
+    app/main.py's background_orchestration uses for the real graph.
+    LangGraph's own runtime, not a hand-rolled executor, is what dispatches
+    the sync node into a worker thread - so this proves the real dispatch
+    path, not a mocked stand-in for it.
+    """
+    from langgraph.graph import END, StateGraph
+    from typing_extensions import TypedDict
+
+    tracer = _reload_tracer(monkeypatch, "true")
+    posted = []
+
+    async def fake_post(payload):
+        posted.append(payload)
+
+    monkeypatch.setattr(tracer, "_post", fake_post)
+    tracer.bind_loop()  # exactly what main.py/worker.py do before running the graph
+
+    class State(TypedDict):
+        ticket_id: str
+        touched: list
+
+    def sync_node(state: State) -> State:
+        return {**state, "touched": state["touched"] + ["sync"]}
+
+    async def async_node(state: State) -> State:
+        return {**state, "touched": state["touched"] + ["async"]}
+
+    graph = StateGraph(State)
+    graph.add_node("sync_step", tracer.trace_node("cache_check")(sync_node))
+    graph.add_node("async_step", tracer.trace_node("classification")(async_node))
+    graph.set_entry_point("sync_step")
+    graph.add_edge("sync_step", "async_step")
+    graph.add_edge("async_step", END)
+    compiled = graph.compile()
+
+    result = await compiled.ainvoke({"ticket_id": "t-e2e", "touched": []})
+    assert result["touched"] == ["sync", "async"]
+
+    # Give any cross-thread-rescheduled coroutines a moment to actually run.
+    for _ in range(50):
+        if len(posted) >= 4:
+            break
+        await __import__("asyncio").sleep(0.02)
+
+    steps_and_statuses = [(p["step"], p["status"]) for p in posted]
+    assert ("cache_check", "started") in steps_and_statuses
+    assert ("cache_check", "finished") in steps_and_statuses
+    assert ("classification", "started") in steps_and_statuses
+    assert ("classification", "finished") in steps_and_statuses
