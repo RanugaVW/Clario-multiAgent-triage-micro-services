@@ -28,7 +28,7 @@ describe('Spring Boot API Gateway Integration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as any).mockReturnValue({ push: mockPush, refresh: vi.fn() });
+    vi.mocked(useRouter).mockReturnValue({ push: mockPush, refresh: vi.fn() } as unknown as ReturnType<typeof useRouter>);
     
     // Mock the initial history fetch (Next.js API route)
     global.fetch = vi.fn().mockImplementation((url) => {
@@ -46,12 +46,12 @@ describe('Spring Boot API Gateway Integration', () => {
   });
 
   it('routes ticket submissions through the Spring Boot API Gateway instead of Supabase/Sidecar directly', async () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: { id: 'user-123', email: 'test@example.com' },
       role: 'user',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
     
@@ -68,17 +68,20 @@ describe('Spring Boot API Gateway Integration', () => {
 
     // Verify the API Gateway is called correctly
     await waitFor(() => {
-      const fetchCalls = (global.fetch as any).mock.calls;
-      const gatewayCall = fetchCalls.find((call: any[]) => call[0].includes('/api/tickets') && call[1]?.method === 'POST');
-      
+      const fetchCalls = vi.mocked(global.fetch).mock.calls;
+      const gatewayCall = fetchCalls.find(
+        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
+      );
+
       expect(gatewayCall).toBeDefined();
-      
+      const init = gatewayCall![1] as RequestInit;
+
       // Verify the JWT is passed securely
-      expect(gatewayCall[1].headers).toHaveProperty('Authorization', 'Bearer mock-jwt-token');
-      expect(gatewayCall[1].headers).toHaveProperty('Content-Type', 'application/json');
-      
+      expect(init.headers).toHaveProperty('Authorization', 'Bearer mock-jwt-token');
+      expect(init.headers).toHaveProperty('Content-Type', 'application/json');
+
       // Verify the payload shape exactly matches the Spring Boot CreateTicketRequest DTO
-      const payload = JSON.parse(gatewayCall[1].body);
+      const payload = JSON.parse(init.body as string);
       expect(payload).toEqual({
         rawText: 'My server is down',
         subject: 'Support Ticket'

@@ -26,7 +26,7 @@ describe('Dashboard Routing', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as any).mockReturnValue({ push: mockPush, refresh: vi.fn() });
+    vi.mocked(useRouter).mockReturnValue({ push: mockPush, refresh: vi.fn() } as unknown as ReturnType<typeof useRouter>);
     
     // Mock fetch for the history call
     global.fetch = vi.fn().mockResolvedValue({
@@ -36,12 +36,12 @@ describe('Dashboard Routing', () => {
   });
 
   it('redirects to login if user is not authenticated', () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: null,
       role: null,
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
     
@@ -49,12 +49,12 @@ describe('Dashboard Routing', () => {
   });
 
   it('redirects to admin if user role is admin', () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: { id: 'admin-123' },
       role: 'admin',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
     
@@ -62,12 +62,12 @@ describe('Dashboard Routing', () => {
   });
 
   it('renders dashboard if user is authenticated as user', () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: { id: 'user-123' },
       role: 'user',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
     
@@ -79,12 +79,12 @@ describe('Dashboard Routing', () => {
   });
   
   it('shows loading spinner when auth is loading', () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: null,
       role: null,
       loading: true,
       roleLoading: true,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     const { container } = render(<DashboardPage />);
     

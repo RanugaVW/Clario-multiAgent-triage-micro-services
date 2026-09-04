@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import DashboardPage from '../dashboard/page';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
 
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
@@ -29,12 +28,12 @@ vi.mock('../../lib/supabase', () => ({
 describe('Dashboard Ticket Submission', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: { id: 'user-123', email: 'test@example.com' },
       role: 'user',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
     
     // Mock the initial history fetch
     global.fetch = vi.fn().mockResolvedValue({
@@ -72,14 +71,18 @@ describe('Dashboard Ticket Submission', () => {
     
     await waitFor(() => {
       // Check fetch was called for api gateway
-      const fetchCalls = (global.fetch as any).mock.calls;
-      const gatewayCall = fetchCalls.find((call: any[]) => call[0].includes('/api/tickets') && call[1]?.method === 'POST');
-      
+      const fetchCalls = vi.mocked(global.fetch).mock.calls;
+      const gatewayCall = fetchCalls.find(
+        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
+      );
+
       expect(gatewayCall).toBeDefined();
-      expect(gatewayCall[1].headers['Authorization']).toBe('Bearer fake-token');
-      expect(gatewayCall[1].headers['Content-Type']).toBe('application/json');
-      
-      const payload = JSON.parse(gatewayCall[1].body);
+      const init = gatewayCall![1] as RequestInit;
+      const headers = init.headers as Record<string, string>;
+      expect(headers['Authorization']).toBe('Bearer fake-token');
+      expect(headers['Content-Type']).toBe('application/json');
+
+      const payload = JSON.parse(init.body as string);
       expect(payload.rawText).toBe('My test issue description');
       
       // Check success modal appears
@@ -124,12 +127,14 @@ describe('Dashboard Ticket Submission', () => {
 
     await waitFor(() => {
       // Check fetch was called for API Gateway
-      const fetchCalls = (global.fetch as any).mock.calls;
-      const gatewayCall = fetchCalls.find((call: any[]) => call[0].includes('/api/tickets') && call[1]?.method === 'POST');
-      
+      const fetchCalls = vi.mocked(global.fetch).mock.calls;
+      const gatewayCall = fetchCalls.find(
+        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
+      );
+
       expect(gatewayCall).toBeDefined();
-      
-      const body = JSON.parse(gatewayCall[1].body);
+
+      const body = JSON.parse((gatewayCall![1] as RequestInit).body as string);
       expect(body.imageBase64).toBeDefined();
       expect(body.rawText).toBe('Issue with screenshot');
     });

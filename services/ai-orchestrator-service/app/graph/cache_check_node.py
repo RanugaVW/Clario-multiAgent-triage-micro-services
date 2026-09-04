@@ -2,7 +2,7 @@
 
 import chromadb
 from app.graph.state import TicketState
-from app.tools.rag_tool import _chroma_path, _embedding_model, _COLLECTION_NAME
+from app.tools.rag_tool import _chroma_path, _embedding_model, _COLLECTION_NAME, canonicalize_ticket_text
 
 def cache_check_node(state: TicketState) -> TicketState:
     """Embed the raw_text and query ChromaDB for a near-identical resolved ticket."""
@@ -10,11 +10,13 @@ def cache_check_node(state: TicketState) -> TicketState:
     if not raw_text:
         return {**state, "cache_hit": False, "cache_source_ticket_id": None}
 
+    normalized_text = canonicalize_ticket_text(raw_text)
+
     try:
         client = chromadb.PersistentClient(path=_chroma_path())
         collection = client.get_collection(_COLLECTION_NAME)
         
-        embeds = [_embedding_model().encode(raw_text, normalize_embeddings=True).tolist()]
+        embeds = [_embedding_model().encode(normalized_text, normalize_embeddings=True).tolist()]
         
         result = collection.query(
             query_embeddings=embeds,
@@ -30,7 +32,8 @@ def cache_check_node(state: TicketState) -> TicketState:
         if docs and metas and dists:
             # Cosine distance to similarity score
             score = max(0.0, 1.0 - (float(dists[0]) / 2.0))
-            if score >= 0.95:
+            score_threshold = 0.92
+            if score >= score_threshold:
                 # We have a cache hit!
                 document = docs[0]
                 ticket_id = metas[0].get("ticket_id")

@@ -1,0 +1,48 @@
+$ cd clario-ml-sidecar && source .venv/bin/activate
+$ python ../Testing/04-Performance-Load-Testing/run_performance_tests.py
+
+Performance & Load Test run f4fcd4f4 — sidecar=http://localhost:8600 gateway=http://localhost:8080
+Baseline memory: {'ram_used_mb': 10355, 'ram_available_mb': 5332, 'gpu_used_mb': 4325, 'gpu_total_mb': 6141}
+
+=== Stage A: sequential single-request latency (sidecar-direct) ===
+  technical_login: status=resolved wall=32208.5ms pipeline_internal=24101.65ms llm_calls=1
+  billing_payment: status=resolved wall=10382.3ms pipeline_internal=5165.8ms llm_calls=1
+  refund_request: status=resolved wall=17846.7ms pipeline_internal=13442.41ms llm_calls=3
+
+=== Stage B: concurrent load (3 real accounts, real gateway, real worker queue) ===
+  memory before: {'ram_used_mb': 10101, 'ram_available_mb': 5586, 'gpu_used_mb': 4435, 'gpu_total_mb': 6141}
+  admin: submitted 7ccc62d4-a43a-464b-ab08-0bcbd50d7d58 (gateway accept: 1704.5ms)
+  user_1: submitted 92afbd07-b010-4da4-9ed3-0cfed1307639 (gateway accept: 1703.3ms)
+  user_2: submitted b2de983f-661f-48f0-8026-9782a2e6f00a (gateway accept: 1702.6ms)
+  memory after: {'ram_used_mb': 10130, 'ram_available_mb': 5556, 'gpu_used_mb': 4545, 'gpu_total_mb': 6141}
+  concurrent_admin: status=resolved wall_from_batch_start=49156.1ms pipeline_internal=41332.63ms
+  concurrent_user_1: status=resolved wall_from_batch_start=58635.7ms pipeline_internal=9689.69ms
+  concurrent_user_2: status=resolved wall_from_batch_start=68122.8ms pipeline_internal=8623.14ms
+  batch total drain time: 68123.0ms
+
+=== Stage C1: ChromaDB retrieval latency (30 real queries, no API cost) ===
+Loading weights: 100%|██████████| 103/103 [00:00<00:00, 957.86it/s]
+  technical: {'min': 40.8, 'p50': 114.5, 'p95': 152.1, 'max': 21142.4, 'mean': 1504.1, 'n': 15}
+  billing: {'min': 34.1, 'p50': 101.5, 'p95': 137.2, 'max': 138.5, 'mean': 89.3, 'n': 15}
+
+=== Stage C2: Supabase query latency (20 real reads, no API cost) ===
+  real tickets table size: 32 rows
+  list (25 rows): {'min': 222.4, 'p50': 321.7, 'p95': 474.1, 'max': 1123.7, 'mean': 366.9, 'n': 20}
+  single by id: {'min': 65.3, 'p50': 90.9, 'p95': 10886.7, 'max': 59717.2, 'mean': 3930.0, 'n': 20}
+  joined full detail (admin console shape): {'min': 74.9, 'p50': 95.8, 'p95': 426.2, 'max': 1094.4, 'mean': 168.5, 'n': 20}
+
+=== Cleanup: deleting 6 test ticket(s) ===
+  done.
+
+Results written to /home/ranuga-weerasekara/Desktop/clario/Testing/04-Performance-Load-Testing/performance_test_results.json
+
+[exited with code 0]
+
+---
+
+$ python3 -c "... re-run of the 'single by id' benchmark standalone ..."
+raw single-by-id timings (ms): [107.2, 123.0, 84.1, 97.8, 491.7, 62.5, 82.5, 96.1, 70.5, 118.2, 80.9, 80.8, 186.8, 97.8, 64.9, 81.4, 82.4, 61.5, 91.9, 80.8]
+(see TEST_REPORT.md §5 and supabase_single_by_id_rerun.json)
+
+Tool versions: Python 3.12 (clario-ml-sidecar/.venv), httpx, supabase-py,
+chromadb, sentence-transformers 'all-MiniLM-L6-v2'.

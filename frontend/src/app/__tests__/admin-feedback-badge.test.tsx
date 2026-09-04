@@ -11,7 +11,7 @@ vi.mock('../../lib/supabase', () => ({
   supabase: { from: vi.fn(() => ({ select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) }) })) },
 }));
 
-import { TicketRow } from '../admin/page';
+import { TicketRow, type Ticket } from '../admin/page';
 
 const baseTicket = {
   id: 'ticket-1',
@@ -31,7 +31,7 @@ describe('TicketRow customer rating badge', () => {
   it('shows the customer rating when feedback exists', () => {
     // customer_feedback.ticket_id carries a UNIQUE constraint, so PostgREST
     // embeds this as a to-one relation - a bare object, not an array.
-    render(<TicketRow ticket={{ ...baseTicket, customer_feedback: { score: 5 } } as any} role="all" />);
+    render(<TicketRow ticket={{ ...baseTicket, customer_feedback: { score: 5 } } as unknown as Ticket} role="all" />);
     // The badge lives in TicketRow's expanded detail panel (pre-existing
     // behavior, unrelated to this task), so expand the row first.
     fireEvent.click(screen.getByText('Cannot log in'));
@@ -39,7 +39,7 @@ describe('TicketRow customer rating badge', () => {
   });
 
   it('renders no rating badge when there is no feedback yet', () => {
-    render(<TicketRow ticket={{ ...baseTicket, customer_feedback: null } as any} role="all" />);
+    render(<TicketRow ticket={{ ...baseTicket, customer_feedback: null } as unknown as Ticket} role="all" />);
     fireEvent.click(screen.getByText('Cannot log in'));
     expect(screen.queryByText(/Customer rating/i)).not.toBeInTheDocument();
   });

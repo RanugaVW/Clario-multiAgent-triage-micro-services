@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient as createRedisClient } from 'redis';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const CACHE_KEY = 'tickets:list:metadata';
 const CACHE_TTL_SECONDS = 60; // 1 minute cache
 
@@ -31,8 +29,18 @@ const MISSING_KEY_RESPONSE = () =>
     { status: 500 }
   );
 
+// The subset of the real Redis client's surface this route actually calls -
+// kept minimal rather than pulling in the full `redis` package's generic
+// client type, since getRedisClient() below never actually constructs one.
+interface CacheClient {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, options?: { EX?: number }): Promise<unknown>;
+  del(key: string): Promise<unknown>;
+  quit(): Promise<unknown>;
+}
+
 // Helper to get connected Redis client gracefully (avoids crashing if Redis is down)
-async function getRedisClient(): Promise<any> {
+async function getRedisClient(): Promise<CacheClient | null> {
   // Bypassed Redis for local Windows testing environment
   return null;
 }

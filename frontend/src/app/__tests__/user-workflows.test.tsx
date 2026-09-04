@@ -1,9 +1,8 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import DashboardPage from '../dashboard/page';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
 
 // ==================== SETUP MOCKS ====================
 
@@ -44,12 +43,12 @@ describe('User Workflow Scenarios', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: mockUser,
       role: 'user',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -533,12 +532,12 @@ describe('Error Recovery Workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: mockUser,
       role: 'user',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
   });
 
   // ==================== Network Timeout ====================

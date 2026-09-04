@@ -42,8 +42,20 @@ def check_for_technical_leaks(draft: str) -> bool:
             
     return False
 
-def run_policy_checks(draft: str | None, retrieved_context: list[dict], pii_found: list) -> dict:
-    """Run free output-policy checks before any optional judge call."""
+def run_policy_checks(
+    draft: str | None,
+    retrieved_context: list[dict],
+    pii_found: list,
+    expected_placeholders: frozenset[str] = frozenset(),
+) -> dict:
+    """Run free output-policy checks before any optional judge call.
+
+    expected_placeholders are the surrogate_node's own Faker stand-ins for the
+    customer's name/email (see redaction_tool.mask_pii_reversible) - the draft
+    is expected to contain these verbatim so the customer can be addressed by
+    name. They're stripped before the leak scan so this check still catches
+    any *other*, unsanctioned PII without flagging our own placeholders.
+    """
     if draft is None:
         return {"passed": False, "failed_rules": ["draft_generation_failed"]}
     failed: list[str] = []
@@ -51,7 +63,11 @@ def run_policy_checks(draft: str | None, retrieved_context: list[dict], pii_foun
         failed.append("empty_draft")
     if len(draft) > 2000:
         failed.append("draft_too_long")
-    if mask_pii(SECTION_MARKER_PATTERN.sub(" ", draft))[1]:
+    scan_text = SECTION_MARKER_PATTERN.sub(" ", draft)
+    for placeholder in expected_placeholders:
+        if placeholder:
+            scan_text = scan_text.replace(placeholder, " ")
+    if mask_pii(scan_text)[1]:
         failed.append("pii_in_draft")
     context_text = " ".join(item.get("text", "").lower() for item in retrieved_context)
     if any(phrase in draft.lower() and phrase not in context_text for phrase in OVERCOMMITMENTS):
@@ -115,7 +131,12 @@ async def validation_node(state: TicketState) -> TicketState:
     results: dict[str, dict] = {}
     drafts = state.get("agent_drafts", {})
     for domain, draft in drafts.items():
-        rules = run_policy_checks(draft, state.get("retrieved_context", {}).get(domain, []), state.get("pii_found", []))
+        rules = run_policy_checks(
+            draft,
+            state.get("retrieved_context", {}).get(domain, []),
+            state.get("pii_found", []),
+            frozenset(state.get("pii_shadow_map", {}).keys()),
+        )
         result = {**rules, "judge_ran": False, "judge_skipped": False, "judge_reason": "none"}
         if draft is not None:
             should_judge, reason = decide_judge_call(state.get("rag_top_score", {}), domain)

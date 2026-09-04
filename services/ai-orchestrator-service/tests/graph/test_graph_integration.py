@@ -42,6 +42,7 @@ def _install_stubs(monkeypatch, calls: dict[str, int]) -> None:
     monkeypatch.setattr(graph_builder, "classification_node", classify); monkeypatch.setattr(graph_builder, "routing_node", route)
     monkeypatch.setattr(graph_builder, "technical_agent_node", technical); monkeypatch.setattr(graph_builder, "billing_agent_node", billing)
     monkeypatch.setattr(graph_builder, "validation_node", validation); monkeypatch.setattr(graph_builder, "reflection_node", reflection_node)
+    monkeypatch.setattr(graph_builder, "response_judge_node", no_op)
     monkeypatch.setattr(graph_builder, "escalation_node", escalation_node); monkeypatch.setattr(graph_builder, "handoff_node", handoff_node)
 
 
