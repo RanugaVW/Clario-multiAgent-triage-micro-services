@@ -1,0 +1,196 @@
+{
+  "run_id": "76eb307d",
+  "supabase_project": "https://mdvfvtpbwqhccmaarpli.supabase.co",
+  "nextjs_target": "http://localhost:3000",
+  "summary": {
+    "total": 23,
+    "passed": 23,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "id": "A1",
+      "area": "RLS",
+      "description": "Customer B cannot SELECT customer A's ticket via PostgREST",
+      "passed": true,
+      "evidence": "HTTP 200, rows returned=0",
+      "severity": "info"
+    },
+    {
+      "id": "A2",
+      "area": "RLS",
+      "description": "Customer A CAN select their own ticket (positive control)",
+      "passed": true,
+      "evidence": "HTTP 200, rows returned=1",
+      "severity": "info"
+    },
+    {
+      "id": "A3",
+      "area": "RLS",
+      "description": "Anonymous (no session) cannot SELECT any row from tickets",
+      "passed": true,
+      "evidence": "HTTP 200, rows returned=0",
+      "severity": "info"
+    },
+    {
+      "id": "A4",
+      "area": "RLS",
+      "description": "Staff (admin role) CAN select a ticket that isn't theirs (positive control)",
+      "passed": true,
+      "evidence": "HTTP 200, rows returned=1",
+      "severity": "info"
+    },
+    {
+      "id": "A5",
+      "area": "RLS",
+      "description": "Customer B cannot SELECT customer A's public.users row",
+      "passed": true,
+      "evidence": "HTTP 200, rows returned=0",
+      "severity": "info"
+    },
+    {
+      "id": "A6",
+      "area": "RLS",
+      "description": "Customer B cannot INSERT a ticket with user_id spoofed to customer A",
+      "passed": true,
+      "evidence": "HTTP 403: {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"new row violates row-level security policy for table \\\"tickets\\\"\"}",
+      "severity": "info"
+    },
+    {
+      "id": "A7",
+      "area": "RLS",
+      "description": "Staff (admin role) CAN select from human_reviews (positive control)",
+      "passed": true,
+      "evidence": "HTTP 200, rows returned=5",
+      "severity": "info"
+    },
+    {
+      "id": "A7b",
+      "area": "RLS",
+      "description": "Non-staff (plain customer) JWT cannot select from human_reviews",
+      "passed": true,
+      "evidence": "HTTP 200, rows returned=0",
+      "severity": "info"
+    },
+    {
+      "id": "A7c",
+      "area": "RLS",
+      "description": "Anonymous (no session) cannot select from human_reviews",
+      "passed": true,
+      "evidence": "HTTP 200, rows returned=0",
+      "severity": "info"
+    },
+    {
+      "id": "A7d",
+      "area": "schema-drift",
+      "description": "supabase_schema.sql documents the human_reviews staff-read policy (previously: live DB had one, the checked-in schema file didn't)",
+      "passed": true,
+      "evidence": "supabase_schema.sql contains a CREATE POLICY for human_reviews near its ENABLE ROW LEVEL SECURITY line",
+      "severity": "info"
+    },
+    {
+      "id": "B1",
+      "area": "API-authz",
+      "description": "GET /api/tickets with no Authorization header at all",
+      "passed": true,
+      "evidence": "HTTP 401, 0 tickets returned to an UNAUTHENTICATED request (no cookie, no bearer token, no API key of any kind beyond what a public browser tab has). The disposable canary ticket from this run was absent in the response. Per-row fields observed: raw_text=absent, customer_email=absent. Full response body is NOT persisted to disk or printed - this count and field-presence check is the only evidence kept, to avoid writing real customers' unredacted PII into a test report.",
+      "severity": "critical"
+    },
+    {
+      "id": "B2",
+      "area": "API-authz",
+      "description": "GET /api/user_tickets?userId=<victim> with no proof of being that user (IDOR)",
+      "passed": true,
+      "evidence": "HTTP 401, request supplied ONLY customer B's userId (a UUID with no other secret) and no Authorization header whatsoever, and the route returned 0 row(s) with HTTP 200 rather than 401/403. The route filters by the supplied userId but never verifies the caller IS that user.",
+      "severity": "critical"
+    },
+    {
+      "id": "B3",
+      "area": "API-authz",
+      "description": "PUT /api/tickets (forge a resolution) against the canary ticket, no auth",
+      "passed": true,
+      "evidence": "HTTP 401: {\"error\":\"Authentication required\"}",
+      "severity": "info"
+    },
+    {
+      "id": "B4",
+      "area": "API-authz",
+      "description": "POST /api/customer_feedback with no auth, only a userId+ticketId pair (chained with B2)",
+      "passed": true,
+      "evidence": "HTTP 401: {\"error\":\"Authentication required\"}. Ownership of the ticket BY that userId is checked server-side, but nothing verifies the REQUEST came from that user.",
+      "severity": "info"
+    },
+    {
+      "id": "B5",
+      "area": "API-authz",
+      "description": "DELETE /api/tickets?id=<canary>, no auth (destructive action)",
+      "passed": true,
+      "evidence": "HTTP 401, ticket still in DB after call: True",
+      "severity": "info"
+    },
+    {
+      "id": "B6",
+      "area": "API-authz",
+      "description": "GET /api/tickets WITH a valid staff session still works (positive control)",
+      "passed": true,
+      "evidence": "HTTP 200, canary present=True",
+      "severity": "info"
+    },
+    {
+      "id": "B7",
+      "area": "API-authz",
+      "description": "GET /api/user_tickets?userId=<self> WITH the matching session still works (positive control)",
+      "passed": true,
+      "evidence": "HTTP 200, own ticket present=True",
+      "severity": "info"
+    },
+    {
+      "id": "B8",
+      "area": "API-authz",
+      "description": "POST /api/customer_feedback WITH the ticket owner's own session still works (positive control)",
+      "passed": true,
+      "evidence": "HTTP 200: {\"data\":null}",
+      "severity": "info"
+    },
+    {
+      "id": "B9",
+      "area": "API-authz",
+      "description": "PUT /api/tickets WITH a valid staff session still works (positive control)",
+      "passed": true,
+      "evidence": "HTTP 200: {\"success\":true}",
+      "severity": "info"
+    },
+    {
+      "id": "B10",
+      "area": "API-authz",
+      "description": "DELETE /api/tickets?id=<canary2> WITH a valid staff session still works (positive control)",
+      "passed": true,
+      "evidence": "HTTP 200, ticket gone=True",
+      "severity": "info"
+    },
+    {
+      "id": "C1",
+      "area": "PII-redaction",
+      "description": "mask_pii() strips name/email/phone/card from a realistic multi-PII ticket",
+      "passed": true,
+      "evidence": "pii_found types=['credit_card', 'email', 'gpe', 'org', 'person', 'phone'], leaked_raw_values_in_output=none",
+      "severity": "info"
+    },
+    {
+      "id": "C2",
+      "area": "PII-redaction",
+      "description": "mask_pii_reversible() never gives phone/card a reversible stand-in (only PERSON/EMAIL are reversible; everything else must stay a bracket token)",
+      "passed": true,
+      "evidence": "leaked_raw_values=none, shadow_map_covers=['Kalana', 'Kalana Wijesuriya', 'kalana.w+billing@clario-test.dev']",
+      "severity": "info"
+    },
+    {
+      "id": "C3",
+      "area": "PII-redaction",
+      "description": "Every add_precedent() call site passes redacted_text (never raw_text) into ChromaDB",
+      "passed": true,
+      "evidence": "168:            add_precedent(ticket.ticket_id, redacted_text, redacted_response, domain); 374:        add_precedent(request.ticket_id, redacted_text, redacted_response, request.domain)",
+      "severity": "info"
+    }
+  ]
+}
