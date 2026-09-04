@@ -95,3 +95,44 @@ def test_reversible_mask_gives_a_self_introduced_name_a_stand_in_too() -> None:
     text, shadow_map, _ = mask_pii_reversible("Hi I'm Deshan, I need help logging in.")
     assert "Deshan" not in text
     assert shadow_map and list(shadow_map.values()) == ["Deshan"]
+
+
+# Real bug, found live: every generated customer response opens with
+# "Hi <Name>," / "Hello <Name>," / "Dear <Name>," - missed by both spaCy
+# NER and SELF_INTRO_PATTERN above (neither matches this phrasing), so a
+# real customer's name in a stored draft response went unmasked even with
+# both other detectors in place.
+@pytest.mark.parametrize(("greeting", "name"), [
+    ("Hi Vidushan, thank you for reaching out.", "Vidushan"),
+    ("Hello Warusha, we have resolved your issue.", "Warusha"),
+    ("Dear Kalana Wijesuriya, your refund is processed.", "Kalana Wijesuriya"),
+])
+def test_mask_pii_catches_the_name_in_a_generated_response_greeting(greeting: str, name: str) -> None:
+    text, _ = mask_pii(greeting)
+    assert name not in text
+    assert "[REDACTED_PERSON]" in text
+
+
+def test_greeting_pattern_does_not_swallow_a_self_introduction_that_follows_it() -> None:
+    """"Hi I'm Deshan," must resolve to just "Deshan", not "I'm Deshan" -
+    the greeting pattern's own capitalized-word match ("I'm") must not
+    shadow the more specific self-introduction match."""
+    text, shadow_map, _ = mask_pii_reversible("Hi I'm Deshan, I need help logging in.")
+    assert "Deshan" not in text
+    assert list(shadow_map.values()) == ["Deshan"]
+
+
+def test_mask_pii_does_not_flag_a_bracketed_section_marker_as_an_org() -> None:
+    """Real bug, found live: a stored precedent came back as
+    "[[REDACTED_ORG] not load local model...]" - spaCy NER read the words
+    inside a structural [ALL CAPS] section marker as an ORG entity and
+    mangled the marker itself. A real ORG mention elsewhere must still be
+    caught."""
+    text, found = mask_pii(
+        "[INTERNAL TECHNICAL REPORT]\nCould not load local model. Emulate via Microsoft Azure.\n\n"
+        "[CUSTOMER RESPONSE]\nThanks for reaching out."
+    )
+    assert "[INTERNAL TECHNICAL REPORT]" in text
+    assert "[CUSTOMER RESPONSE]" in text
+    assert "Microsoft Azure" not in text
+    assert {p["type"] for p in found} == {"org"}

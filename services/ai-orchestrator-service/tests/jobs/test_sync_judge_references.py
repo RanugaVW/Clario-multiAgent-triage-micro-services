@@ -62,13 +62,36 @@ def test_syncs_an_upward_override_as_a_new_reference(monkeypatch) -> None:
     assert summary == {"considered": 1, "synced": 1, "skipped": 0}
     assert len(calls) == 1
     assert calls[0]["ticket_id"] == "ticket-1"
-    assert calls[0]["resolution_text"] == "Please clear your cache and cookies."
     assert calls[0]["domain"] == "technical"
     assert calls[0]["priority"] == "High"
     assert calls[0]["category"] == "Technical"
     assert calls[0]["doc_id"] == "admin_override_override-1"
     # The raw ticket text must never reach the reference pool unredacted.
     assert calls[0]["issue_text"].startswith("[REDACTED]")
+    # Real bug, found live: only the issue side used to be redacted here.
+    # draft_text is an admin-approved response to ONE customer and can carry
+    # that customer's real name - select_few_shots() then hands it, unmasked,
+    # straight into the judge LLM's prompt for every OTHER customer's ticket
+    # it happens to match. Same failure mode as the cache/RAG precedent leak,
+    # different pipeline - the resolution side must be redacted too.
+    assert calls[0]["resolution_text"].startswith("[REDACTED]")
+
+
+def test_resolution_text_pii_never_reaches_the_reference_pool_unmasked(monkeypatch) -> None:
+    calls = []
+    monkeypatch.setattr(sjr, "upsert_reference", lambda **kw: calls.append(kw))
+    override = _override(
+        overall_score=5,
+        previous_overall=2,
+        ticket_drafts={"draft_text": "Hi Deshan, I've refunded your payment to jane.doe@example.com."},
+    )
+    _stub_client(monkeypatch, [override])
+
+    sjr.sync_judge_references()
+
+    assert len(calls) == 1
+    assert "Deshan" not in calls[0]["resolution_text"]
+    assert "jane.doe@example.com" not in calls[0]["resolution_text"]
 
 
 def test_skips_a_downward_override(monkeypatch) -> None:

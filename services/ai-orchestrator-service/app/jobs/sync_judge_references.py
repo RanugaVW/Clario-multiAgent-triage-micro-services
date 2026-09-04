@@ -104,11 +104,18 @@ def _sync_one(override: dict) -> bool:
         return False
 
     redacted_issue, _ = mask_pii(raw_text)
+    # Real bug, found live: this only masked the issue side. The draft_text
+    # side is an admin-approved response to ONE customer - it can carry that
+    # customer's real name (e.g. "Hi Deshan, ...") - and select_few_shots()
+    # hands it, unmasked, straight into the judge LLM's prompt for every
+    # OTHER customer's ticket it happens to match. Same failure mode as the
+    # cache/RAG precedent leaks, different pipeline.
+    redacted_resolution, _ = mask_pii(resolution_text)
 
     upsert_reference(
         ticket_id=ticket["id"],
         issue_text=redacted_issue,
-        resolution_text=resolution_text,
+        resolution_text=redacted_resolution,
         domain=evaluation.get("domain") or "technical",
         priority=evaluation.get("priority_at_evaluation") or "Unknown",
         category=evaluation.get("category_at_evaluation") or "Unknown",
