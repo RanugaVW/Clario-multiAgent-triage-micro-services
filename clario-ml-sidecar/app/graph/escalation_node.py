@@ -24,10 +24,27 @@ def decide_escalation(
 ) -> tuple[bool, list[str]]:
     """Return whether review is mandatory and every specific reason that applies."""
     reasons: list[str] = []
-    if priority == "Urgent":
-        reasons.append("urgent_priority")
-    if sentiment == "Strongly Negative":
-        reasons.append("strongly_negative_sentiment")
+    # The local classifier (Llama-3.2 adapter, see app/tools/local_llm.py)
+    # was empirically confirmed to top out at "Critical" priority and
+    # "Negative" sentiment - it does not produce "Urgent" or "Strongly
+    # Negative" (a previous, differently-trained adapter's tiers). These
+    # triggers were updated to match what the classifier actually emits,
+    # so mandatory human review for the most severe tickets still fires.
+    if priority == "Critical":
+        reasons.append("critical_priority")
+    if sentiment == "Negative":
+        reasons.append("negative_sentiment")
+    # routing_node's own fallback for "no usable technical/billing signal at
+    # all" (see decide_routing's final `return "escalation"`) sends the
+    # ticket straight to this node, skipping every specialist agent - so
+    # agent_drafts is always empty here. Without this check, decide_escalation
+    # could find zero *other* triggers (priority/sentiment/confidence all
+    # unremarkable) and report escalated=False - which left main.py with no
+    # draft and no final_response, yet still wrote status="resolved"
+    # unconditionally, showing the customer an empty "Resolved" ticket with
+    # nothing in it. Found live via the admin console on a real ticket.
+    if routing_decision == "escalation":
+        reasons.append("no_usable_routing_signal")
     if routing_decision == "both" and confidence is not None and confidence < 0.6:
         reasons.append("low_confidence_dual_domain")
     if failure_type == "dependency_failure":
