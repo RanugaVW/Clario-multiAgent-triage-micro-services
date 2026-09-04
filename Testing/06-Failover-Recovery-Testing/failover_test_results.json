@@ -1,0 +1,138 @@
+{
+  "run_id": "e02f2206",
+  "summary": {
+    "total": 16,
+    "passed": 16,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "id": "A1",
+      "area": "CircuitBreaker",
+      "description": "Breaker opens after failure_threshold failures and then short-circuits",
+      "passed": true,
+      "evidence": "after 1 failure: allow_request=True; after 2nd failure: state=open, allow_request=False",
+      "severity": "info"
+    },
+    {
+      "id": "A2",
+      "area": "CircuitBreaker",
+      "description": "After cooldown, a half-open probe that SUCCEEDS closes the breaker",
+      "passed": true,
+      "evidence": "probe_allowed=True, state_during_probe=half_open, state_after_success=closed",
+      "severity": "info"
+    },
+    {
+      "id": "A3",
+      "area": "CircuitBreaker",
+      "description": "A FAILED half-open probe re-opens the breaker (not left half-open/closed)",
+      "passed": true,
+      "evidence": "state after a failed half-open probe: open",
+      "severity": "info"
+    },
+    {
+      "id": "A4",
+      "area": "CircuitBreaker",
+      "description": "Only ONE concurrent probe is allowed while half-open (no probe pile-up)",
+      "passed": true,
+      "evidence": "first_probe=True, second_probe=False",
+      "severity": "info"
+    },
+    {
+      "id": "A5",
+      "area": "CircuitBreaker",
+      "description": "The rolling window forgets failures once window_size newer outcomes replace them",
+      "passed": true,
+      "evidence": "outcomes deque=[True, True, True], state=closed (2 failures were recorded but never adjacent to a 3rd within the window)",
+      "severity": "info"
+    },
+    {
+      "id": "B1",
+      "area": "Chroma-degradation",
+      "description": "cache_check_node() degrades gracefully (no exception, cache_hit=False) when Chroma is unreachable",
+      "passed": true,
+      "evidence": "did not crash; cache_hit=False",
+      "severity": "info"
+    },
+    {
+      "id": "B1b",
+      "area": "Chroma-degradation",
+      "description": "Fix: cache_check_node's Chroma failures now report to the chroma_rag breaker (previously invisible to it - only retrieve_context() reported), so a sustained Chroma outage now trips it and short-circuits the cache-check path too",
+      "passed": true,
+      "evidence": "chroma_rag breaker outcomes changed by a cache_check_node call: before=[False], after=[False, False]",
+      "severity": "info"
+    },
+    {
+      "id": "B2",
+      "area": "Chroma-degradation",
+      "description": "retrieve_context() trips the chroma_rag breaker after real failures and then short-circuits instead of re-attempting the broken connection",
+      "passed": true,
+      "evidence": "real (slow) failures before trip: 5 (threshold=5); short-circuited afterward: True; short-circuited call took 0.0000s (no real connection attempt)",
+      "severity": "info"
+    },
+    {
+      "id": "B3",
+      "area": "Chroma-degradation",
+      "description": "technical_agent_node degrades gracefully end-to-end when the chroma_rag breaker is open, with zero LLM calls made",
+      "passed": true,
+      "evidence": "failure_type=dependency_failure, draft=None, low_relevance=True",
+      "severity": "info"
+    },
+    {
+      "id": "C1",
+      "area": "Partial-state",
+      "description": "A Supabase failure partway through persistence (on ticket_drafts, which now runs BEFORE the tickets.status update) must NOT leave the ticket claiming 'resolved' while its supporting rows are missing",
+      "passed": true,
+      "evidence": "background_orchestration returned normally (exception swallowed internally, exc leaking out to caller=None); resulting DB state: {'status': 'received', 'classifications': 1, 'drafts': 0, 'resolutions': 0}",
+      "severity": "info"
+    },
+    {
+      "id": "C2",
+      "area": "Partial-state",
+      "description": "A failure on the FIRST persistence call (ticket_classifications) leaves the ticket completely untouched (still 'received', no orphaned rows) - contrast with C1",
+      "passed": true,
+      "evidence": "exception raised: None; resulting DB state: {'status': 'received', 'classifications': 0, 'drafts': 0, 'resolutions': 0}",
+      "severity": "info"
+    },
+    {
+      "id": "C3",
+      "area": "Partial-state",
+      "description": "Positive control: with no injected failure, background_orchestration persists every row correctly for a real disposable ticket",
+      "passed": true,
+      "evidence": "exception: None; resulting DB state: {'status': 'resolved', 'classifications': 1, 'drafts': 1, 'resolutions': 1}",
+      "severity": "info"
+    },
+    {
+      "id": "C4",
+      "area": "Partial-state",
+      "description": "A failure on the LAST persistence call (tickets.update) leaves every supporting row written but the status stuck at 'received' - safe/recoverable (data exists, just needs its status reconciled), not corrupt like C1's old behavior",
+      "passed": true,
+      "evidence": "exception raised: None; resulting DB state: {'status': 'received', 'classifications': 1, 'drafts': 1, 'resolutions': 1}",
+      "severity": "info"
+    },
+    {
+      "id": "D1",
+      "area": "Worker-resilience",
+      "description": "Fix: a ticket 'in flight' when the worker crashes (simulated by BLMOVE-ing it into the processing list and then never finishing) is NOT lost - it's still sitting in the processing list, recoverable on the next startup",
+      "passed": true,
+      "evidence": "message moved=True, main queue length after simulated crash=0, processing list length=1 (the message exists here, unlike a bare BRPOP where it would exist nowhere)",
+      "severity": "info"
+    },
+    {
+      "id": "D2",
+      "area": "Worker-resilience",
+      "description": "Fix: the real app.worker._recover_stale_messages(), run exactly as it is at worker startup, requeues a message left in-flight by a previous run's crash",
+      "passed": true,
+      "evidence": "main queue after recovery contains the crashed message: True, processing list now empty: True",
+      "severity": "info"
+    },
+    {
+      "id": "D3",
+      "area": "Worker-resilience",
+      "description": "Normal completion (BLMOVE then the real finally:-block lrem) leaves both the main queue and the processing list empty - no leak on the happy path",
+      "passed": true,
+      "evidence": "main queue length=0, processing list length=0",
+      "severity": "info"
+    }
+  ]
+}
