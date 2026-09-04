@@ -1,28 +1,52 @@
-"""Classification taxonomy: locks in the categories the adapter was fine-tuned on.
+"""Classification taxonomy and JSON-repair coverage for the Llama-3.2 adapter.
 
 classify_ticket_local() itself isn't exercised here - it requires loading the
-real ~1B-param Gemma-3 model. Empirically verified against the live adapter
-(gemma3-lms-ticket-adapter-final) that it correctly classifies into every one
-of these six categories when the prompt asks for them, rather than the
-coarser Technical/Billing/Account/General/Other set it was previously
-constrained to.
+real ~3B-param Llama-3.2 model on a GPU. PRIORITY_LABELS/SENTIMENT_LABELS and
+_repair_json_quoting() were both derived from probing the live adapter
+directly against real ticket text (see app/tools/local_llm.py's comments):
+its trained sentiment scale tops out at "Negative" (confirmed live - even
+when explicitly offered "Strongly Negative" as an option, it produced
+malformed output rather than a correct "Strongly Negative" classification),
+and it reliably emits bare/partially-quoted JSON string values often enough
+that _repair_json_quoting() is load-bearing, not defensive.
 """
 
 import pytest
 
 from app.agents.shared.prompt_templates import build_specialist_prompt
-from app.tools.local_llm import FINE_GRAINED_CATEGORIES, DraftGenerationError, generate_draft
+from app.tools.local_llm import (
+    PRIORITY_LABELS,
+    SENTIMENT_LABELS,
+    DraftGenerationError,
+    _repair_json_quoting,
+    generate_draft,
+)
 
 
-def test_fine_grained_categories_match_the_adapters_training_taxonomy() -> None:
-    assert FINE_GRAINED_CATEGORIES == (
-        "Login Issue",
-        "Payment Problem",
-        "Account Suspension",
-        "Bug Report",
-        "Refund Request",
-        "Subscription Cancellation",
-    )
+def test_priority_and_sentiment_labels_match_the_adapters_training_taxonomy() -> None:
+    assert PRIORITY_LABELS == ("Low", "Medium", "High", "Critical")
+    assert SENTIMENT_LABELS == ("Positive", "Neutral", "Negative")
+
+
+@pytest.mark.parametrize(("raw", "expected"), [
+    # Fully unquoted values - the most common real failure mode.
+    (
+        '{"priority": High, "sentiment": Negative, "category": Login}',
+        '{"priority": "High", "sentiment": "Negative", "category": "Login"}',
+    ),
+    # A stray trailing quote with no leading one, on a multi-word value.
+    (
+        '{"priority": "High", "sentiment": Negative, "category": General Support"}',
+        '{"priority": "High", "sentiment": "Negative", "category": "General Support"}',
+    ),
+    # Already fully valid - must be a no-op (idempotent).
+    (
+        '{"priority": "Medium", "sentiment": "Neutral", "category": "Refund Request"}',
+        '{"priority": "Medium", "sentiment": "Neutral", "category": "Refund Request"}',
+    ),
+])
+def test_repair_json_quoting_fixes_the_adapters_real_output_shapes(raw: str, expected: str) -> None:
+    assert _repair_json_quoting(raw) == expected
 
 
 # generate_draft() calls the real Gemini API (google.genai), not the heavy
