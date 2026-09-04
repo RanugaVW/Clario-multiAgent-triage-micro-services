@@ -1,0 +1,17 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/ranuga-weerasekara/Desktop/clario/Testing/08-Selenium-Functional-Testing/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ranuga-weerasekara/Desktop/clario/Testing/08-Selenium-Functional-Testing
+plugins: anyio-4.15.0
+collecting ... collected 8 items
+
+test_functional_e2e.py::test_login_page_renders_the_real_form PASSED     [ 12%]
+test_functional_e2e.py::test_login_rejects_wrong_password PASSED         [ 25%]
+test_functional_e2e.py::test_customer_login_redirects_to_dashboard PASSED [ 37%]
+test_functional_e2e.py::test_admin_login_redirects_to_admin_console PASSED [ 50%]
+test_functional_e2e.py::test_unauthenticated_visitor_cannot_reach_admin_console PASSED [ 62%]
+test_functional_e2e.py::test_logout_clears_the_session PASSED            [ 75%]
+test_functional_e2e.py::test_customer_can_submit_a_real_ticket_via_the_form PASSED [ 87%]
+test_functional_e2e.py::test_admin_can_find_and_open_a_ticket PASSED     [100%]
+
+========================= 8 passed in 82.69s (0:01:22) =========================
