@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DashboardPage from '../dashboard/page';
@@ -45,7 +45,7 @@ vi.mock('../../lib/supabase', () => ({
 
 // fetchHistory() goes through fetchJson(), which checks the content-type header
 // before parsing, and the /api/user_tickets route wraps the rows in { data }.
-const mockTicketHistoryResponse = (tickets: any[] = []) => {
+const mockTicketHistoryResponse = (tickets: unknown[] = []) => {
   return {
     ok: true,
     headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
@@ -99,12 +99,12 @@ describe('E2E Ticket Submission Pipeline', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: mockAuthUser,
       role: 'user',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     // Default mock for fetch
     global.fetch = vi.fn().mockImplementation((url) => {
@@ -146,17 +146,18 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Verify API Gateway was called correctly
     await waitFor(() => {
-      const fetchCalls = (global.fetch as any).mock.calls;
+      const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
-        (call: any[]) =>
-          call[0].includes('/api/tickets') && call[1]?.method === 'POST'
+        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
       );
 
       expect(gatewayCall).toBeDefined();
-      expect(gatewayCall[1].headers['Authorization']).toBe('Bearer test-access-token-12345');
-      expect(gatewayCall[1].headers['Content-Type']).toBe('application/json');
+      const init = gatewayCall![1] as RequestInit;
+      const headers = init.headers as Record<string, string>;
+      expect(headers['Authorization']).toBe('Bearer test-access-token-12345');
+      expect(headers['Content-Type']).toBe('application/json');
 
-      const payload = JSON.parse(gatewayCall[1].body);
+      const payload = JSON.parse(init.body as string);
       expect(payload.rawText).toBe('Payment failed but money was taken from my account');
       expect(payload.subject).toBe('Support Ticket');
       expect(payload.imageBase64).toBeUndefined();
@@ -244,14 +245,13 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Verify API call
     await waitFor(() => {
-      const fetchCalls = (global.fetch as any).mock.calls;
+      const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
-        (call: any[]) =>
-          call[0].includes('/api/tickets') && call[1]?.method === 'POST'
+        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
       );
 
       if (gatewayCall) {
-        const payload = JSON.parse(gatewayCall[1].body);
+        const payload = JSON.parse((gatewayCall[1] as RequestInit).body as string);
         expect(payload.rawText).toBe('Issue with error screenshot attached');
         // Note: imageBase64 will be present if file was uploaded
       }
@@ -386,12 +386,12 @@ describe('E2E Ticket Submission Pipeline', () => {
 
   // ==================== TEST 7: Unauthenticated User Redirect ====================
   it('should redirect unauthenticated user to login', async () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: null,
       role: null,
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
 
@@ -403,12 +403,12 @@ describe('E2E Ticket Submission Pipeline', () => {
 
   // ==================== TEST 8: Admin User Redirect ====================
   it('should show admin panel button for admin users', async () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: { id: 'admin-123', email: 'admin@clario.com' },
       role: 'admin',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     global.fetch = vi.fn().mockResolvedValue(mockTicketHistoryResponse());
 
@@ -424,12 +424,12 @@ describe('E2E Ticket Submission Pipeline', () => {
 
   // ==================== TEST 9: Agent User Navigation ====================
   it('should show agent workspace button for agent users', async () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: { id: 'agent-123', email: 'agent@clario.com' },
       role: 'agent',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     global.fetch = vi.fn().mockResolvedValue(mockTicketHistoryResponse());
 
@@ -449,8 +449,8 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     const mockTickets = [createMockTicket('ticket-001', 0)];
 
-    global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/customer_tickets/ticket-001') && (url as any).method === 'DELETE') {
+    global.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+      if (url.includes('/customer_tickets/ticket-001') && options?.method === 'DELETE') {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ success: true }),
@@ -534,10 +534,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     });
 
     const textArea = screen.getByPlaceholderText(/Describe the issue.../i) as HTMLTextAreaElement;
-    
-    // Get initial text
-    const initialText = textArea.value;
-    
+
     // Clear and type new text
     await user.clear(textArea);
     await user.type(textArea, 'Test issue for clearing');
@@ -565,7 +562,7 @@ describe('E2E Ticket Submission Pipeline', () => {
   it('should logout user and refresh page', async () => {
     const user = userEvent.setup();
     const mockRefresh = vi.fn();
-    (useRouter as any).mockReturnValue({ push: vi.fn(), refresh: mockRefresh });
+    vi.mocked(useRouter).mockReturnValue({ push: vi.fn(), refresh: mockRefresh } as unknown as ReturnType<typeof useRouter>);
 
     global.fetch = vi.fn().mockResolvedValue(mockTicketHistoryResponse());
 
@@ -586,12 +583,12 @@ describe('E2E Ticket Submission Pipeline', () => {
 
   // ==================== TEST 14: Loading State ====================
   it('should show loading spinner while authenticating', () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: null,
       role: null,
       loading: true,
       roleLoading: true,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
 

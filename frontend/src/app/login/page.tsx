@@ -121,7 +121,7 @@ export default function Login() {
           <div className="mt-8 text-center text-sm">
             <p className="text-white/40 mb-1">Role is automatically assigned from your profile.</p>
             <p className="text-white/60">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <a href="/register" className="text-white hover:text-[#E8A33D] font-medium transition-colors underline underline-offset-4 decoration-white/20">
                 Create one now
               </a>

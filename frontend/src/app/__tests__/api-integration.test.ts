@@ -249,8 +249,8 @@ describe('API Integration - Ticket Submission', () => {
         body: JSON.stringify(MOCK_TICKET_SUBMISSION),
       });
       expect.fail('Should have thrown an error');
-    } catch (error: any) {
-      expect(error.message).toBe('Network error');
+    } catch (error: unknown) {
+      expect(error instanceof Error ? error.message : error).toBe('Network error');
     }
   });
 });
@@ -350,7 +350,7 @@ describe('API Integration - Ticket History', () => {
     // Check that tickets are sorted (mock data is already sorted newest first)
     expect(data.length).toBeGreaterThan(0);
     // Verify all tickets have created_at timestamps
-    data.forEach((ticket: any) => {
+    data.forEach((ticket: { created_at?: unknown }) => {
       expect(ticket.created_at).toBeDefined();
     });
   });
@@ -623,8 +623,8 @@ describe('Edge Cases and Error Scenarios', () => {
         body: JSON.stringify(MOCK_TICKET_SUBMISSION),
       });
       expect.fail('Should have thrown timeout error');
-    } catch (error: any) {
-      expect(error.message).toContain('timeout');
+    } catch (error: unknown) {
+      expect(error instanceof Error ? error.message : error).toContain('timeout');
     }
   });
 

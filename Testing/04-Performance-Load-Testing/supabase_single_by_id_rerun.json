@@ -1,0 +1,5 @@
+{
+  "purpose": "Re-ran Stage C2's 'single by id' benchmark standalone, immediately after the main run, to check whether that run's severe tail latency (p95 10886.7ms, max 59717.2ms) was reproducible or a one-off.",
+  "raw_timings_ms": [107.2, 123.0, 84.1, 97.8, 491.7, 62.5, 82.5, 96.1, 70.5, 118.2, 80.9, 80.8, 186.8, 97.8, 64.9, 81.4, 82.4, 61.5, 91.9, 80.8],
+  "result": "Not reproducible - every one of these 20 calls landed in the normal 60-500ms range. See TEST_REPORT.md Finding #2 for the conclusion."
+}
