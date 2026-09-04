@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { requireUser } from '../../../lib/apiAuth';
 
 // Read these lazily (inside functions) rather than as module-level constants. Static
 // imports execute before a test file's own top-level statements, so a module-level
@@ -30,28 +31,32 @@ const MISSING_KEY_RESPONSE = () =>
   );
 
 export async function POST(request: Request) {
+  const caller = await requireUser(request);
+  if (!caller) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+
   const supabase = getSupabase();
   if (!supabase) return MISSING_KEY_RESPONSE();
 
   const body = await request.json();
-  const { ticketId, userId, score, comment } = body as {
-    ticketId?: string; userId?: string; score?: number; comment?: string;
+  const { ticketId, score, comment } = body as {
+    ticketId?: string; score?: number; comment?: string;
   };
 
-  if (!ticketId || !userId) {
-    return NextResponse.json({ error: 'Missing ticketId or userId' }, { status: 400 });
+  if (!ticketId) {
+    return NextResponse.json({ error: 'Missing ticketId' }, { status: 400 });
   }
   if (typeof score !== 'number' || !Number.isInteger(score) || score < 1 || score > 5) {
     return NextResponse.json({ error: 'score must be an integer between 1 and 5' }, { status: 400 });
   }
 
-  // Service role bypasses RLS, so ownership must be checked here -
-  // mirrors how GET /api/user_tickets scopes by userId itself.
+  // Service role bypasses RLS, so ownership must be checked here - against
+  // the VERIFIED caller's id, never a client-supplied userId (a customer
+  // can only ever rate their own ticket, no staff-on-behalf-of exception).
   const { data: ticket, error: ticketError } = await supabase
     .from('tickets')
     .select('id')
     .eq('id', ticketId)
-    .eq('user_id', userId)
+    .eq('user_id', caller.id)
     .single();
 
   if (ticketError || !ticket) {
