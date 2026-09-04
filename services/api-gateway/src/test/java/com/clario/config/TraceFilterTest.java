@@ -14,7 +14,7 @@ import static org.mockito.Mockito.*;
 class TraceFilterTest {
 
     @Test
-    void a_post_to_api_tickets_with_a_correlation_id_publishes_a_received_event() throws Exception {
+    void a_post_to_api_tickets_with_a_correlation_id_publishes_a_received_event_keyed_by_the_correlation_id() throws Exception {
         TraceEventPublisher publisher = mock(TraceEventPublisher.class);
         TraceFilter filter = new TraceFilter(publisher);
 
@@ -25,7 +25,10 @@ class TraceFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        verify(publisher).publish(eq("unknown"), eq("c1"), eq("received"), eq("done"), anyMap());
+        // Keyed by the correlation id (not the literal "unknown") so this
+        // event lands in the same relay timeline as the frontend's own
+        // "submit" event, which is also keyed by the correlation id.
+        verify(publisher).publish(eq("c1"), eq("c1"), eq("received"), eq("done"), anyMap());
         verify(chain).doFilter(request, response);
     }
 
