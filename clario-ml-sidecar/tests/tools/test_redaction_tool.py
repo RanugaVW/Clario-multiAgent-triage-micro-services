@@ -1,5 +1,7 @@
 """mask_pii redacts irreversibly; mask_pii_reversible gives PERSON/EMAIL a fake stand-in."""
 
+import pytest
+
 from app.tools.redaction_tool import mask_pii, mask_pii_reversible
 
 
@@ -61,3 +63,35 @@ def test_reversible_mask_round_trips_back_to_the_original_value() -> None:
     for fake_value, real_value in shadow_map.items():
         text = text.replace(fake_value, real_value)
     assert text == original
+
+
+# Real bug, found live: spaCy's en_core_web_md missed "Deshan" as a PERSON
+# entity entirely in "Hi I'm Deshan..." - the name flowed unmasked through
+# the whole pipeline and ended up stored verbatim in a cached RAG precedent,
+# later served to a different customer by that name. The self-introduction
+# pattern below is a second, independent detector for exactly this phrasing,
+# not dependent on spaCy's name-diversity training data.
+def test_mask_pii_catches_a_self_introduced_name_ner_previously_missed() -> None:
+    text, pii_found = mask_pii("Hi I'm Deshan. I logged into the system previously with my password.")
+    assert "Deshan" not in text
+    assert "[REDACTED_PERSON]" in text
+    assert {p["type"] for p in pii_found} == {"person"}
+
+
+@pytest.mark.parametrize("intro", [
+    "I'm Deshan",
+    "I am Deshan",
+    "My name is Deshan",
+    "my name is Deshan Athukorarala",
+    "This is Deshan",
+])
+def test_mask_pii_catches_every_common_self_introduction_phrasing(intro: str) -> None:
+    text, _ = mask_pii(f"{intro}, I need help logging in.")
+    assert "Deshan" not in text
+    assert "[REDACTED_PERSON]" in text
+
+
+def test_reversible_mask_gives_a_self_introduced_name_a_stand_in_too() -> None:
+    text, shadow_map, _ = mask_pii_reversible("Hi I'm Deshan, I need help logging in.")
+    assert "Deshan" not in text
+    assert shadow_map and list(shadow_map.values()) == ["Deshan"]
