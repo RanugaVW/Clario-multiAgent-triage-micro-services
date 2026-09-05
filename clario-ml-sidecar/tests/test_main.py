@@ -54,3 +54,27 @@ async def test_background_orchestration_falls_back_to_direct_image_call_when_cle
 
     mock_fallback.assert_awaited_once_with("ZmFrZQ==")
     assert "fallback error text" in initial_state["raw_text"]
+
+
+@pytest.mark.asyncio
+async def test_background_orchestration_uploads_the_attachment_and_records_its_path():
+    ticket = TicketRequest(ticket_id="t3", raw_text="issue text", image_base64="ZmFrZQ==")
+    initial_state = {"raw_text": ticket.raw_text, "ticket_id": ticket.ticket_id}
+
+    with patch("app.tools.tesseract_ocr.extract_raw_text", return_value=""), \
+         patch("app.tools.gemini_ocr.extract_error_from_ocr_text", new=AsyncMock(return_value="")), \
+         patch("app.tools.gemini_ocr.extract_error_text", new=AsyncMock(return_value="err")), \
+         patch("app.main.graph") as mock_graph, \
+         patch("app.main.supabase_client") as mock_supabase:
+        mock_graph.ainvoke = AsyncMock(return_value={**initial_state, "final_response": None})
+        await background_orchestration(ticket, initial_state, start_time=0.0)
+
+    upload_call = mock_supabase.storage.from_.return_value.upload.call_args
+    assert upload_call is not None
+    uploaded_path = upload_call.args[0]
+    assert uploaded_path.startswith("t3/original.")
+
+    update_calls = [c for c in mock_supabase.table.return_value.update.call_args_list
+                    if "image_storage_path" in c.args[0]]
+    assert len(update_calls) == 1
+    assert update_calls[0].args[0]["image_storage_path"] == uploaded_path

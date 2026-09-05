@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 import os
 from pathlib import Path
@@ -195,7 +196,19 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 ).eq("id", ticket.ticket_id).execute()
             except Exception as e:
                 logger.error(f"Failed to update ticket {ticket.ticket_id} with OCR text: {e}")
-            
+
+            try:
+                image_bytes = base64.b64decode(ticket.image_base64)
+                storage_path = f"{ticket.ticket_id}/original.png"
+                supabase_client.storage.from_("ticket-attachments").upload(
+                    storage_path, image_bytes, {"content-type": "image/png", "upsert": "true"}
+                )
+                supabase_client.table("tickets").update(
+                    {"image_storage_path": storage_path}
+                ).eq("id", ticket.ticket_id).execute()
+            except Exception as e:
+                logger.error(f"Failed to upload attachment for ticket {ticket.ticket_id}: {e}")
+
         task = asyncio.create_task(graph.ainvoke(initial_state))
         async with active_tasks_lock:
             active_tasks[ticket.ticket_id] = task
