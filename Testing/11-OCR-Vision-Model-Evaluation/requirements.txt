@@ -1,1 +1,14 @@
 pytesseract==0.3.13
+
+# Required by Qwen2VLVideoProcessor (transformers), even for still-image use -
+# without it, AutoProcessor.from_pretrained() fails with an ImportError that
+# local_ocr.py's broad except reports as "Failed to import
+# transformers/bitsandbytes", which is misleading (torch/transformers/
+# bitsandbytes are all present; only torchvision is missing).
+#
+# Pinned to exactly match clario-ml-sidecar's torch==2.13.0 (see its
+# requirements.txt) - installing plain "torchvision" lets pip's resolver pick
+# whatever's newest, which may require a newer torch and silently pull in a
+# 500MB+ torch upgrade. Confirm the pairing before bumping either version:
+# https://pypi.org/pypi/torchvision/<version>/json -> info.requires_dist
+torchvision==0.28.0
