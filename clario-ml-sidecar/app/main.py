@@ -24,7 +24,6 @@ async def lifespan(app: FastAPI):
     """Preload heavy ML models in the background to reduce latency on the first request."""
     import threading
     from app.tools.local_llm import _load_model as load_llm
-    from app.tools.local_ocr import _load_model_singleton as load_ocr
     from apscheduler.schedulers.background import BackgroundScheduler
     from app.jobs.sync_judge_references import sync_judge_references
 
@@ -32,7 +31,6 @@ async def lifespan(app: FastAPI):
         try:
             logger.info("Preloading ML Models at startup...")
             load_llm()
-            load_ocr()
             logger.info("ML Models preloaded successfully.")
         except Exception as e:
             logger.error(f"Failed to preload models: {e}")
@@ -176,8 +174,8 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
         from app.tools.redaction_tool import mask_pii
         from app.tools.rag_tool import add_precedent
         if ticket.image_base64:
-            from app.tools.local_ocr import process_image_async
-            ocr_text = await process_image_async(ticket.image_base64)
+            from app.tools.gemini_ocr import extract_error_text
+            ocr_text = await extract_error_text(ticket.image_base64)
             # Sync the extracted text back to the database so the Admin can see it
             initial_state["raw_text"] += f"\n\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\n{ocr_text}"
             try:
