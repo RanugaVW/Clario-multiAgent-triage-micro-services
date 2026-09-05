@@ -1,7 +1,8 @@
+com/clario/tracing/RestTemplateConfig.class
 com/clario/ClarioApplication.class
 com/clario/repositories/TicketRepository.class
 com/clario/services/TicketService.class
-com/clario/config/CorsConfig.class
+com/clario/tracing/TraceEventPublisher.class
 com/clario/controllers/CreateTicketRequest.class
 com/clario/controllers/TicketController.class
 com/clario/entities/Ticket.class
