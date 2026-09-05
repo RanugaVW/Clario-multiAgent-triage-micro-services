@@ -142,6 +142,7 @@ export type Ticket = {
   // tickets.customer_email is never populated at ticket-creation time; this
   // is the real fallback, fetched via the user_id FK (see fetchFullData).
   users?: { email: string | null } | null;
+  image_storage_path?: string | null;
 };
 
 // ─── Virtual AI Agent Definitions (from architecture doc) ─────────────────────
@@ -698,6 +699,16 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   // state value itself, so the effect below doesn't depend on (and
   // re-trigger from) the very state it sets.
   const fetchInFlightRef = useRef(false);
+  const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!expanded || signedImageUrl) return;
+    const path = fullData?.image_storage_path ?? ticket.image_storage_path;
+    if (!path) return;
+    supabase.storage.from('ticket-attachments').createSignedUrl(path, 3600).then(({ data }) => {
+      if (data?.signedUrl) setSignedImageUrl(data.signedUrl);
+    });
+  }, [expanded, signedImageUrl, fullData?.image_storage_path, ticket.image_storage_path]);
 
   const draft = fullData?.ticket_drafts?.[0] || ticket.ticket_drafts?.[0];
   const classification = fullData?.ticket_classifications?.[0] || ticket.ticket_classifications?.[0];
@@ -966,6 +977,13 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                 <pre className="text-xs text-[#8A8F98] whitespace-pre-wrap font-mono bg-white/[0.03] rounded-xl p-3 border border-white/10">
                   {textParts[1].trim()}
                 </pre>
+              </div>
+            )}
+
+            {signedImageUrl && (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <span className="text-xs text-[#8A8F98] block mb-3">Attached screenshot</span>
+                <img src={signedImageUrl} alt="Customer's attached screenshot" className="max-w-full rounded-lg border border-white/10" />
               </div>
             )}
 
