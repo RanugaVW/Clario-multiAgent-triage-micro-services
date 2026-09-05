@@ -27,3 +27,22 @@ def extract_raw_text(image_base64: str) -> str:
     except Exception as e:
         logger.warning(f"Tesseract extraction failed: {e}")
         return ""
+
+
+def check_tesseract_available() -> bool:
+    """Probes for the tesseract binary once (e.g. at startup) so a missing
+    installation is a loud, visible log line instead of a per-ticket silent
+    degrade to the image-to-Gemini fallback - see main.py's lifespan."""
+    try:
+        import pytesseract
+        pytesseract.get_tesseract_version()
+        return True
+    except Exception as e:
+        logger.error(
+            f"Tesseract binary not found or not runnable ({e}) - every ticket "
+            "attachment will silently fall through to the direct-image Gemini "
+            "fallback until this is fixed. Install the tesseract-ocr system "
+            "package (see Testing/11-OCR-Vision-Model-Evaluation/README.md's "
+            "one-time setup, or the Dockerfile for the production install)."
+        )
+        return False

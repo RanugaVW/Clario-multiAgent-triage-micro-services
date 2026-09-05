@@ -56,10 +56,11 @@ async def extract_error_text(image_base64: str) -> str:
             contents=[image, _ERROR_EXTRACTION_PROMPT],
             config=types.GenerateContentConfig(temperature=0.0),
         )
-        return response.text.strip()
+        text = response.text.strip()
+        return "" if text == "NO_ERROR_TEXT_FOUND" else text
     except Exception as e:
         logger.error(f"Gemini OCR extraction failed: {e}")
-        return f"OCR Extraction Failed: {e}"
+        return ""
 
 
 async def extract_error_from_ocr_text(masked_ocr_text: str, masked_customer_text: str) -> str:
