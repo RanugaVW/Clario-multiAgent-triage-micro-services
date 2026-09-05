@@ -32,6 +32,8 @@ async def lifespan(app: FastAPI):
         try:
             logger.info("Preloading ML Models at startup...")
             load_llm()
+            from app.tools.tesseract_ocr import check_tesseract_available
+            check_tesseract_available()
             logger.info("ML Models preloaded successfully.")
         except Exception as e:
             logger.error(f"Failed to preload models: {e}")
@@ -189,15 +191,17 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 # direct-image call. Accepted, explicit exception to the
                 # "no image ever leaves the machine" rule - see spec's
                 # "Accepted risk" section.
+                logger.warning(f"OCR cleanup found nothing for ticket {ticket.ticket_id}; falling back to direct-image Gemini call")
                 ocr_text = await gemini_ocr.extract_error_text(ticket.image_base64)
-            # Sync the extracted text back to the database so the Admin can see it
-            initial_state["raw_text"] += f"\n\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\n{ocr_text}"
-            try:
-                supabase_client.table("tickets").update(
-                    {"raw_text": initial_state["raw_text"]}
-                ).eq("id", ticket.ticket_id).execute()
-            except Exception as e:
-                logger.error(f"Failed to update ticket {ticket.ticket_id} with OCR text: {e}")
+            if ocr_text.strip():
+                # Sync the extracted text back to the database so the Admin can see it
+                initial_state["raw_text"] += f"\n\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\n{ocr_text}"
+                try:
+                    supabase_client.table("tickets").update(
+                        {"raw_text": initial_state["raw_text"]}
+                    ).eq("id", ticket.ticket_id).execute()
+                except Exception as e:
+                    logger.error(f"Failed to update ticket {ticket.ticket_id} with OCR text: {e}")
 
             try:
                 image_bytes = base64.b64decode(ticket.image_base64)
@@ -460,7 +464,17 @@ async def delete_customer_ticket(ticket_id: str, force: bool = False, user = Dep
             logger.info(f"Cancelled active task for ticket {ticket_id}")
 
         if force:
-            # Hard delete for admins
+            # Hard delete for admins - remove the Storage attachment first,
+            # since the 3-day cleanup job can only find attachments still
+            # referenced by a tickets row; once this row is gone, an
+            # orphaned object would never be deleted.
+            try:
+                ticket_row = supabase_client.table('tickets').select('image_storage_path').eq('id', ticket_id).execute()
+                path = (ticket_row.data or [{}])[0].get('image_storage_path')
+                if path:
+                    supabase_client.storage.from_('ticket-attachments').remove([path])
+            except Exception as e:
+                logger.error(f"Failed to remove Storage attachment for ticket {ticket_id}: {e}")
             supabase_client.table('tickets').delete().eq('id', ticket_id).execute()
         else:
             # Soft delete from user side by clearing ownership. Used to write

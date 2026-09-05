@@ -78,3 +78,26 @@ async def test_background_orchestration_uploads_the_attachment_and_records_its_p
                     if "image_storage_path" in c.args[0]]
     assert len(update_calls) == 1
     assert update_calls[0].args[0]["image_storage_path"] == uploaded_path
+
+
+@pytest.mark.asyncio
+async def test_background_orchestration_leaves_raw_text_untouched_when_neither_ocr_attempt_finds_anything():
+    ticket = TicketRequest(ticket_id="t4", raw_text="issue text", image_base64="ZmFrZQ==")
+    initial_state = {"raw_text": ticket.raw_text, "ticket_id": ticket.ticket_id}
+
+    with patch("app.tools.tesseract_ocr.extract_raw_text", return_value=""), \
+         patch("app.tools.gemini_ocr.extract_error_from_ocr_text", new=AsyncMock(return_value="")), \
+         patch("app.tools.gemini_ocr.extract_error_text", new=AsyncMock(return_value="")), \
+         patch("app.main.graph") as mock_graph, \
+         patch("app.main.supabase_client") as mock_supabase:
+        mock_graph.ainvoke = AsyncMock(return_value={**initial_state, "final_response": None})
+        await background_orchestration(ticket, initial_state, start_time=0.0)
+
+    assert initial_state["raw_text"] == "issue text"
+    assert "[OCR EXTRACTED TEXT FROM ATTACHMENT]" not in initial_state["raw_text"]
+
+    raw_text_update_calls = [
+        c for c in mock_supabase.table.return_value.update.call_args_list
+        if "raw_text" in c.args[0]
+    ]
+    assert raw_text_update_calls == []

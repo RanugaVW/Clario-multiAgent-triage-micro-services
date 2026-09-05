@@ -57,7 +57,7 @@ async def test_extract_error_text_returns_the_models_stripped_text(monkeypatch) 
 
 
 @pytest.mark.asyncio
-async def test_extract_error_text_degrades_to_an_error_string_instead_of_raising(monkeypatch) -> None:
+async def test_extract_error_text_degrades_to_empty_string_instead_of_raising(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.tools.gemini_ocr.genai.Client",
         lambda: _FakeClient(RuntimeError("rate limited")),
@@ -65,7 +65,19 @@ async def test_extract_error_text_degrades_to_an_error_string_instead_of_raising
 
     result = await extract_error_text(_tiny_image_base64())
 
-    assert "rate limited" in result
+    assert result == ""
+
+
+@pytest.mark.asyncio
+async def test_extract_error_text_normalizes_no_error_text_found_sentinel_to_empty_string(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.tools.gemini_ocr.genai.Client",
+        lambda: _FakeClient("NO_ERROR_TEXT_FOUND"),
+    )
+
+    result = await extract_error_text(_tiny_image_base64())
+
+    assert result == ""
 
 
 @pytest.mark.asyncio

@@ -8,7 +8,7 @@ from io import BytesIO
 
 from PIL import Image
 
-from app.tools.tesseract_ocr import extract_raw_text
+from app.tools.tesseract_ocr import check_tesseract_available, extract_raw_text
 
 
 def _tiny_image_base64() -> str:
@@ -25,3 +25,22 @@ def test_extract_raw_text_returns_a_string_for_a_valid_image() -> None:
 def test_extract_raw_text_returns_empty_string_for_garbage_input() -> None:
     result = extract_raw_text("not-valid-base64-image-data")
     assert result == ""
+
+
+def test_check_tesseract_available_returns_true_when_binary_is_runnable(monkeypatch) -> None:
+    import pytesseract
+
+    monkeypatch.setattr(pytesseract, "get_tesseract_version", lambda: "5.3.0")
+
+    assert check_tesseract_available() is True
+
+
+def test_check_tesseract_available_returns_false_and_does_not_raise_when_binary_is_missing(monkeypatch) -> None:
+    import pytesseract
+
+    def _raise():
+        raise pytesseract.TesseractNotFoundError()
+
+    monkeypatch.setattr(pytesseract, "get_tesseract_version", _raise)
+
+    assert check_tesseract_available() is False
