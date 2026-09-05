@@ -1,4 +1,7 @@
 /home/ranuga-weerasekara/Desktop/clario/services/api-gateway/src/main/java/com/clario/config/CorsConfig.java
+/home/ranuga-weerasekara/Desktop/clario/services/api-gateway/src/main/java/com/clario/tracing/RestTemplateConfig.java
 /home/ranuga-weerasekara/Desktop/clario/services/api-gateway/src/main/java/com/clario/ClarioApplication.java
+/home/ranuga-weerasekara/Desktop/clario/services/api-gateway/src/main/java/com/clario/config/TraceFilter.java
 /home/ranuga-weerasekara/Desktop/clario/services/api-gateway/src/main/java/com/clario/config/SecurityConfig.java
 /home/ranuga-weerasekara/Desktop/clario/services/api-gateway/src/main/java/com/clario/config/JwtDebugFilter.java
+/home/ranuga-weerasekara/Desktop/clario/services/api-gateway/src/main/java/com/clario/tracing/TraceEventPublisher.java

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Depends, Header, BackgroundTasks
@@ -51,9 +52,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Clario Agent Orchestration", lifespan=lifespan)
 
+# Defaults to the local dev frontend; override for deployments where the
+# frontend is served from somewhere else (e.g. an EC2-hosted demo talking
+# back to this service on the developer's machine).
+_CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+    ).split(",")
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=_CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
