@@ -40,3 +40,16 @@ def test_one_failed_deletion_does_not_stop_the_others(monkeypatch) -> None:
     doa.delete_old_attachments()  # must not raise
 
     assert fake_client.storage.from_.return_value.remove.call_count == 2
+
+
+def test_failed_initial_fetch_does_not_raise_and_processes_nothing(monkeypatch) -> None:
+    fake_client = MagicMock()
+    fake_client.table.return_value.select.return_value.not_.is_.return_value.lt.return_value.execute.side_effect = (
+        RuntimeError("network down")
+    )
+    monkeypatch.setattr(doa, "_get_supabase", lambda: fake_client)
+
+    doa.delete_old_attachments()  # must not raise
+
+    fake_client.storage.from_.return_value.remove.assert_not_called()
+    fake_client.table.return_value.update.assert_not_called()
