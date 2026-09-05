@@ -44,6 +44,9 @@ public class SecurityConfig {
     @Value("${jwt.legacy.secret}")
     private String legacySecret;
 
+    @Value("${clario.cors.allowed-origins:http://localhost:3000}")
+    private String allowedOrigins;
+
     @Bean
     public JwtDecoder jwtDecoder() {
         // HS256 decoder using the legacy Supabase shared secret
@@ -74,7 +77,7 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type", "apikey", "X-Trace-Correlation-Id"));
         configuration.setAllowCredentials(true);
