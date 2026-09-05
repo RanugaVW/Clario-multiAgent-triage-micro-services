@@ -28,13 +28,16 @@ public class TicketController {
     }
 
     @PostMapping
-    public ResponseEntity<Ticket> createTicket(@RequestBody CreateTicketRequest request, @RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<Ticket> createTicket(
+            @RequestBody CreateTicketRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-Trace-Correlation-Id", required = false) String correlationId) {
         String userId = extractUserIdFromToken(authHeader);
         if (userId == null) {
             userId = "00000000-0000-0000-0000-000000000000";
         }
-        
-        Ticket ticket = ticketService.createTicket(request.getRawText(), request.getSubject(), UUID.fromString(userId), request.getImageBase64());
+
+        Ticket ticket = ticketService.createTicket(request.getRawText(), request.getSubject(), UUID.fromString(userId), request.getImageBase64(), correlationId);
         return ResponseEntity.accepted().body(ticket);
     }
 
