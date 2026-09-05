@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 import os
 from pathlib import Path
@@ -24,7 +25,6 @@ async def lifespan(app: FastAPI):
     """Preload heavy ML models in the background to reduce latency on the first request."""
     import threading
     from app.tools.local_llm import _load_model as load_llm
-    from app.tools.local_ocr import _load_model_singleton as load_ocr
     from apscheduler.schedulers.background import BackgroundScheduler
     from app.jobs.sync_judge_references import sync_judge_references
 
@@ -32,7 +32,8 @@ async def lifespan(app: FastAPI):
         try:
             logger.info("Preloading ML Models at startup...")
             load_llm()
-            load_ocr()
+            from app.tools.tesseract_ocr import check_tesseract_available
+            check_tesseract_available()
             logger.info("ML Models preloaded successfully.")
         except Exception as e:
             logger.error(f"Failed to preload models: {e}")
@@ -45,6 +46,8 @@ async def lifespan(app: FastAPI):
     # this lifespan) or a restart mid-cycle is harmless.
     scheduler = BackgroundScheduler()
     scheduler.add_job(sync_judge_references, "interval", hours=24, id="sync_judge_references")
+    from app.jobs.delete_old_attachments import delete_old_attachments
+    scheduler.add_job(delete_old_attachments, "interval", hours=6, id="delete_old_attachments")
     scheduler.start()
 
     yield
@@ -176,17 +179,42 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
         from app.tools.redaction_tool import mask_pii
         from app.tools.rag_tool import add_precedent
         if ticket.image_base64:
-            from app.tools.local_ocr import process_image_async
-            ocr_text = await process_image_async(ticket.image_base64)
-            # Sync the extracted text back to the database so the Admin can see it
-            initial_state["raw_text"] += f"\n\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\n{ocr_text}"
+            from app.tools import tesseract_ocr
+            from app.tools import gemini_ocr
+
+            raw_ocr_text = tesseract_ocr.extract_raw_text(ticket.image_base64)
+            masked_ocr_text, _ = mask_pii(raw_ocr_text)
+            masked_customer_text, _ = mask_pii(ticket.raw_text)
+            ocr_text = await gemini_ocr.extract_error_from_ocr_text(masked_ocr_text, masked_customer_text)
+            if not ocr_text.strip():
+                # Primary path found nothing usable - fall back to the
+                # direct-image call. Accepted, explicit exception to the
+                # "no image ever leaves the machine" rule - see spec's
+                # "Accepted risk" section.
+                logger.warning(f"OCR cleanup found nothing for ticket {ticket.ticket_id}; falling back to direct-image Gemini call")
+                ocr_text = await gemini_ocr.extract_error_text(ticket.image_base64)
+            if ocr_text.strip():
+                # Sync the extracted text back to the database so the Admin can see it
+                initial_state["raw_text"] += f"\n\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\n{ocr_text}"
+                try:
+                    supabase_client.table("tickets").update(
+                        {"raw_text": initial_state["raw_text"]}
+                    ).eq("id", ticket.ticket_id).execute()
+                except Exception as e:
+                    logger.error(f"Failed to update ticket {ticket.ticket_id} with OCR text: {e}")
+
             try:
+                image_bytes = base64.b64decode(ticket.image_base64)
+                storage_path = f"{ticket.ticket_id}/original.png"
+                supabase_client.storage.from_("ticket-attachments").upload(
+                    storage_path, image_bytes, {"content-type": "image/png", "upsert": "true"}
+                )
                 supabase_client.table("tickets").update(
-                    {"raw_text": initial_state["raw_text"]}
+                    {"image_storage_path": storage_path}
                 ).eq("id", ticket.ticket_id).execute()
             except Exception as e:
-                logger.error(f"Failed to update ticket {ticket.ticket_id} with OCR text: {e}")
-            
+                logger.error(f"Failed to upload attachment for ticket {ticket.ticket_id}: {e}")
+
         task = asyncio.create_task(graph.ainvoke(initial_state))
         async with active_tasks_lock:
             active_tasks[ticket.ticket_id] = task
@@ -436,7 +464,17 @@ async def delete_customer_ticket(ticket_id: str, force: bool = False, user = Dep
             logger.info(f"Cancelled active task for ticket {ticket_id}")
 
         if force:
-            # Hard delete for admins
+            # Hard delete for admins - remove the Storage attachment first,
+            # since the 3-day cleanup job can only find attachments still
+            # referenced by a tickets row; once this row is gone, an
+            # orphaned object would never be deleted.
+            try:
+                ticket_row = supabase_client.table('tickets').select('image_storage_path').eq('id', ticket_id).execute()
+                path = (ticket_row.data or [{}])[0].get('image_storage_path')
+                if path:
+                    supabase_client.storage.from_('ticket-attachments').remove([path])
+            except Exception as e:
+                logger.error(f"Failed to remove Storage attachment for ticket {ticket_id}: {e}")
             supabase_client.table('tickets').delete().eq('id', ticket_id).execute()
         else:
             # Soft delete from user side by clearing ownership. Used to write
