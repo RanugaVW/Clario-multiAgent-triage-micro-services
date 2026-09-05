@@ -32,13 +32,19 @@ def _get_supabase() -> Client:
 def delete_old_attachments() -> None:
     supabase = _get_supabase()
     cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).isoformat()
-    result = (
-        supabase.table("tickets")
-        .select("id, image_storage_path")
-        .not_.is_("image_storage_path", "null")
-        .lt("created_at", cutoff)
-        .execute()
-    )
+
+    try:
+        result = (
+            supabase.table("tickets")
+            .select("id, image_storage_path")
+            .not_.is_("image_storage_path", "null")
+            .lt("created_at", cutoff)
+            .execute()
+        )
+    except Exception as e:
+        logger.error(f"Failed to fetch tickets for attachment cleanup: {e}")
+        return
+
     for row in result.data or []:
         ticket_id = row["id"]
         path = row["image_storage_path"]
