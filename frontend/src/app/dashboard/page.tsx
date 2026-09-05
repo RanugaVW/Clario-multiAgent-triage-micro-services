@@ -62,6 +62,7 @@ type TicketWithResolution = {
   // ticket_id carries a UNIQUE constraint, so PostgREST embeds this as a
   // to-one relation (a bare object or null) rather than an array.
   customer_feedback?: { score: number } | null;
+  image_storage_path?: string | null;
 };
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -472,8 +473,17 @@ function DashboardNavItem({ active, onClick, icon, label }: {
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 
-function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolution; onDelete: (id: string) => void; userId: string }) {
+export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolution; onDelete: (id: string) => void; userId: string }) {
   const [expanded, setExpanded] = useState(false);
+  const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!expanded || signedImageUrl || !ticket.image_storage_path) return;
+    supabase.storage.from('ticket-attachments').createSignedUrl(ticket.image_storage_path, 3600).then(({ data }) => {
+      if (data?.signedUrl) setSignedImageUrl(data.signedUrl);
+    });
+  }, [expanded, signedImageUrl, ticket.image_storage_path]);
+
   const finalResolution = ticket.resolutions?.find(r => r.escalated === false);
   const isFullyResolved = ticket.status === 'resolved' || !!finalResolution;
   const isEscalated = !isFullyResolved && (ticket.status === 'escalated' || ticket.resolutions?.some(r => r.escalated));
@@ -557,6 +567,13 @@ function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolut
               <UserMetaItem label="Handled by" value={handledBy} />
             </div>
           </div>
+
+          {signedImageUrl && (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <span className="text-xs text-[#8A8F98] block mb-3">Your attached screenshot</span>
+              <img src={signedImageUrl} alt="Your attached screenshot" className="max-w-full rounded-lg border border-white/10" />
+            </div>
+          )}
 
           <div>
             <div className="mb-2 flex items-center justify-between">
