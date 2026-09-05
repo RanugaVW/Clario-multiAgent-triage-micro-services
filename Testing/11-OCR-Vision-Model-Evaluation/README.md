@@ -54,8 +54,16 @@ brew install tesseract
 `clario-ml-sidecar/README.md`) — this phase reuses it rather than keeping a
 separate one, since it needs to import `local_ocr.py` directly and that
 already depends on `torch`/`transformers`/`bitsandbytes`/Pillow/`google-genai`.
-`run_evaluation.sh` installs this phase's one extra dependency
-(`pytesseract`) into that same venv.
+`run_evaluation.sh` installs this phase's extra dependencies (`pytesseract`,
+`torchvision`) into that same venv.
+
+To actually exercise the local Qwen2-VL-2B-Instruct model (rather than
+having every image silently fall back to Gemini), you need a CUDA GPU with
+~2GB+ free VRAM. Without one, `local_ocr.py`'s own fallback still makes the
+run succeed — every image just reports `vision_backend` as
+`gemini-3.1-flash-lite-fallback` instead of `qwen2-vl-local`, and the report
+becomes a Tesseract-vs-Gemini comparison instead. The first real run also
+downloads ~4.5GB of model weights from Hugging Face on first use.
 
 ## Providing sample images
 
