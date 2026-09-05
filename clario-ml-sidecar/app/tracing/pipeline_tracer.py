@@ -172,7 +172,16 @@ def _summarize_handoff(state: dict) -> dict:
 
 
 def _summarize_resolve(state: dict) -> dict:
-    return {"final_response_present": state.get("final_response") is not None}
+    # resolve_node is where surrogate's fake stand-ins (see _summarize_surrogate)
+    # get swapped back for the customer's real values, right before handoff -
+    # surfacing the count (never the values themselves, real or fake) is the
+    # only visible proof in the trace that the restoration half of the PII
+    # round-trip actually ran, not just the masking half.
+    shadow_map = state.get("pii_shadow_map") or {}
+    return {
+        "final_response_present": state.get("final_response") is not None,
+        "pii_restored_count": len(shadow_map),
+    }
 
 
 _SUMMARIZERS: dict[str, Callable[[dict], dict]] = {

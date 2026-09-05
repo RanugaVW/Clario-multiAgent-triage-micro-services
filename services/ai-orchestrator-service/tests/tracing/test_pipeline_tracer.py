@@ -229,3 +229,26 @@ async def test_sync_node_under_a_real_langgraph_ainvoke_actually_emits_events(mo
     assert ("cache_check", "finished") in steps_and_statuses
     assert ("classification", "started") in steps_and_statuses
     assert ("classification", "finished") in steps_and_statuses
+
+
+def test_resolve_summarizer_shows_the_pii_restoration_count_never_the_values(monkeypatch) -> None:
+    """resolve_node swaps surrogate's fake stand-ins back for the customer's
+    real values right before handoff - this is the only place in the trace
+    that proves the restoration half of the PII round-trip actually ran,
+    not just the masking half (see _summarize_surrogate)."""
+    tracer = _reload_tracer(monkeypatch, "true")
+    state = {
+        "final_response": "Hi Kavindu, thanks for reaching out.",
+        "pii_shadow_map": {"Krista Byrd": "Kavindu"},
+    }
+    detail = tracer._SUMMARIZERS["resolve"](state)
+    assert detail == {"final_response_present": True, "pii_restored_count": 1}
+    assert "Kavindu" not in str(detail)
+    assert "Krista Byrd" not in str(detail)
+
+
+def test_resolve_summarizer_handles_no_pii_to_restore(monkeypatch) -> None:
+    tracer = _reload_tracer(monkeypatch, "true")
+    state = {"final_response": "Thanks for reaching out.", "pii_shadow_map": {}}
+    detail = tracer._SUMMARIZERS["resolve"](state)
+    assert detail == {"final_response_present": True, "pii_restored_count": 0}
