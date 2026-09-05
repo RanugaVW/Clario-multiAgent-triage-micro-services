@@ -1,0 +1,150 @@
+<!-- Visualizer/viewer/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ticket Pipeline Tracer</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: #0f1115; color: #e6e6e6; }
+  #tickets { width: 320px; overflow-y: auto; border-right: 1px solid #333; padding: 12px; box-sizing: border-box; }
+  #timeline { flex: 1; overflow-y: auto; padding: 24px; box-sizing: border-box; }
+  .ticket-row { padding: 8px; margin-bottom: 6px; border-radius: 6px; cursor: pointer; background: #1a1d24; }
+  .ticket-row:hover { background: #24283a; }
+  .ticket-row.selected { background: #2d3a55; }
+  .ticket-id { font-family: monospace; font-size: 12px; opacity: 0.7; }
+  .step-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 10px; border-radius: 6px; background: #1a1d24; }
+  .step-row.started { opacity: 0.6; }
+  .marker { width: 10px; height: 10px; border-radius: 50%; margin-right: 12px; flex-shrink: 0; }
+  .marker.finished, .marker.done { background: #4caf50; }
+  .marker.started { background: #f0ad4e; }
+  .step-name { font-weight: 600; margin-right: 10px; }
+  .step-detail { font-family: monospace; font-size: 12px; opacity: 0.75; white-space: pre-wrap; }
+  .ticket-meta, .step-meta { font-family: monospace; font-size: 11px; opacity: 0.55; margin-top: 2px; }
+  .step-meta { margin-left: auto; padding-left: 12px; white-space: nowrap; }
+  .step-main { display: flex; align-items: flex-start; }
+  h2 { font-size: 14px; text-transform: uppercase; opacity: 0.6; }
+</style>
+</head>
+<body>
+  <div id="tickets"><h2>Recent tickets</h2><div id="ticket-list"></div></div>
+  <div id="timeline"><h2>Select a ticket</h2><div id="steps"></div></div>
+
+<script>
+const RELAY_URL = "http://localhost:8700";
+let selectedTicketId = null;
+let ws = null;
+// Timestamp (relay-stamped seconds) of the previously rendered event in the
+// currently open timeline, so each row after the first can show elapsed
+// time since the step before it. Reset whenever a different ticket is
+// selected.
+let lastEventTimestamp = null;
+
+// All of these render text derived from relay-supplied data (ticket_id,
+// service, step, status, detail, timestamps) into the DOM. The relay is
+// unauthenticated and accepts any local POST, so that data is untrusted -
+// every dynamic value below goes in via textContent/createTextNode, never
+// interpolated into an innerHTML string. Only static structural markup
+// (elements, classes) is created directly.
+
+function formatTime(unixSeconds) {
+  if (typeof unixSeconds !== "number") return "";
+  return new Date(unixSeconds * 1000).toLocaleTimeString();
+}
+
+function formatElapsed(seconds) {
+  if (typeof seconds !== "number" || seconds < 0) return "";
+  const ms = seconds * 1000;
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return `${mins}m ${secs}s`;
+}
+
+async function refreshTicketList() {
+  const res = await fetch(`${RELAY_URL}/trace/tickets`);
+  const tickets = await res.json();
+  const listEl = document.getElementById("ticket-list");
+  listEl.innerHTML = "";
+  tickets.sort((a, b) => b.last_seen - a.last_seen);
+  const now = Date.now() / 1000;
+  for (const t of tickets) {
+    const row = document.createElement("div");
+    row.className = "ticket-row" + (t.ticket_id === selectedTicketId ? " selected" : "");
+
+    const idEl = document.createElement("div");
+    idEl.className = "ticket-id";
+    idEl.textContent = t.ticket_id;
+
+    const statusEl = document.createElement("div");
+    statusEl.textContent = `${t.latest_step} · ${t.latest_status}`;
+
+    const metaEl = document.createElement("div");
+    metaEl.className = "ticket-meta";
+    metaEl.textContent = `submitted ${formatTime(t.first_seen)} · elapsed ${formatElapsed(now - t.first_seen)}`;
+
+    row.appendChild(idEl);
+    row.appendChild(statusEl);
+    row.appendChild(metaEl);
+    row.onclick = () => selectTicket(t.ticket_id);
+    listEl.appendChild(row);
+  }
+}
+
+function selectTicket(ticketId) {
+  selectedTicketId = ticketId;
+  lastEventTimestamp = null;
+  document.getElementById("steps").innerHTML = "";
+  document.querySelector("#timeline h2").textContent = `Ticket ${ticketId}`;
+  if (ws) ws.close();
+  ws = new WebSocket(`${RELAY_URL.replace("http", "ws")}/trace/ws?ticket_id=${encodeURIComponent(ticketId)}`);
+  ws.onmessage = (msg) => renderStep(JSON.parse(msg.data));
+  refreshTicketList();
+}
+
+function renderStep(event) {
+  const stepsEl = document.getElementById("steps");
+  const row = document.createElement("div");
+  row.className = `step-row ${event.status}`;
+
+  const marker = document.createElement("div");
+  marker.className = `marker ${event.status}`;
+
+  const mainEl = document.createElement("div");
+  mainEl.className = "step-main";
+
+  const textEl = document.createElement("div");
+  const nameEl = document.createElement("div");
+  nameEl.className = "step-name";
+  nameEl.textContent = `${event.service} / ${event.step} — ${event.status}`;
+
+  const detailEl = document.createElement("div");
+  detailEl.className = "step-detail";
+  const hasDetail = event.detail && Object.keys(event.detail).length;
+  detailEl.textContent = hasDetail ? JSON.stringify(event.detail, null, 2) : "";
+
+  textEl.appendChild(nameEl);
+  textEl.appendChild(detailEl);
+  mainEl.appendChild(marker);
+  mainEl.appendChild(textEl);
+
+  const metaEl = document.createElement("div");
+  metaEl.className = "step-meta";
+  const timeText = formatTime(event.timestamp);
+  const elapsedText = lastEventTimestamp !== null
+    ? ` · +${formatElapsed(event.timestamp - lastEventTimestamp)}`
+    : "";
+  metaEl.textContent = `${timeText}${elapsedText}`;
+  lastEventTimestamp = event.timestamp;
+
+  row.appendChild(mainEl);
+  row.appendChild(metaEl);
+  stepsEl.appendChild(row);
+  stepsEl.scrollTop = stepsEl.scrollHeight;
+}
+
+refreshTicketList();
+setInterval(refreshTicketList, 3000);
+</script>
+</body>
+</html>

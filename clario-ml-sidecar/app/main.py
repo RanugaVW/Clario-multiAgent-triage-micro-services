@@ -13,6 +13,7 @@ from typing import Optional
 
 from app.graph.graph_builder import build_graph
 from app.graph.handoff_node import build_handoff_package
+from app.tracing import pipeline_tracer
 
 logger = logging.getLogger(__name__)
 from contextlib import asynccontextmanager
@@ -154,6 +155,11 @@ active_tasks = {}
 active_tasks_lock = asyncio.Lock()
 
 async def background_orchestration(ticket: TicketRequest, initial_state: dict, start_time: float):
+    # Capture the loop actually running this pipeline (both the /process_ticket
+    # background-task path and the worker.py path call this function) so
+    # emit() can reschedule onto it from a sync node's executor thread
+    # (which has no loop of its own) - see pipeline_tracer.bind_loop.
+    pipeline_tracer.bind_loop()
     try:
         import time
         from app.tools.redaction_tool import mask_pii
@@ -174,7 +180,12 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
         async with active_tasks_lock:
             active_tasks[ticket.ticket_id] = task
         final_state = await task
-        
+        # The graph (including handoff, if escalation triggered it) has now
+        # fully run - this is the point the spec calls "visible to user":
+        # the pipeline's own work is done and whatever it produced is about
+        # to be persisted/surfaced.
+        pipeline_tracer.emit(ticket.ticket_id, "ai-orchestrator-service", "visible_to_user", "done")
+
         # Inject processing time into telemetry payload
         final_state["processing_time_ms"] = round((time.time() - start_time) * 1000, 2)
     except asyncio.CancelledError:
