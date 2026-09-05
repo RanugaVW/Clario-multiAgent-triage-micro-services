@@ -1,15 +1,18 @@
 """Gemini-based OCR extraction: both direct image and text-only cleanup paths."""
 
-import pytest
+import base64
+from io import BytesIO
 
-from app.tools.gemini_ocr import extract_error_from_ocr_text
+import pytest
+from PIL import Image
+
+from app.tools.gemini_ocr import extract_error_from_ocr_text, extract_error_text
 
 
 class _FakeResponse:
     def __init__(self, text_or_error):
         if isinstance(text_or_error, Exception):
             self._error = text_or_error
-            self.text = None
         else:
             self._error = None
             self.text = text_or_error
@@ -33,6 +36,36 @@ class _FakeModels:
 class _FakeClient:
     def __init__(self, text_or_error):
         self.models = _FakeModels(text_or_error)
+
+
+def _tiny_image_base64() -> str:
+    buf = BytesIO()
+    Image.new("RGB", (2, 2), color="white").save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+@pytest.mark.asyncio
+async def test_extract_error_text_returns_the_models_stripped_text(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.tools.gemini_ocr.genai.Client",
+        lambda: _FakeClient("  ConnectionError: timed out at 0x892  "),
+    )
+
+    result = await extract_error_text(_tiny_image_base64())
+
+    assert result == "ConnectionError: timed out at 0x892"
+
+
+@pytest.mark.asyncio
+async def test_extract_error_text_degrades_to_an_error_string_instead_of_raising(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.tools.gemini_ocr.genai.Client",
+        lambda: _FakeClient(RuntimeError("rate limited")),
+    )
+
+    result = await extract_error_text(_tiny_image_base64())
+
+    assert "rate limited" in result
 
 
 @pytest.mark.asyncio
