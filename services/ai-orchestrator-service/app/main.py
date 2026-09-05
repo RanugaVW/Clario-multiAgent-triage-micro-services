@@ -24,7 +24,6 @@ async def lifespan(app: FastAPI):
     """Preload heavy ML models in the background to reduce latency on the first request."""
     import threading
     from app.tools.local_llm import _load_model as load_llm
-    from app.tools.local_ocr import _load_model_singleton as load_ocr
     from apscheduler.schedulers.background import BackgroundScheduler
     from app.jobs.sync_judge_references import sync_judge_references
 
@@ -32,7 +31,6 @@ async def lifespan(app: FastAPI):
         try:
             logger.info("Preloading ML Models at startup...")
             load_llm()
-            load_ocr()
             logger.info("ML Models preloaded successfully.")
         except Exception as e:
             logger.error(f"Failed to preload models: {e}")
@@ -176,8 +174,19 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
         from app.tools.redaction_tool import mask_pii
         from app.tools.rag_tool import add_precedent
         if ticket.image_base64:
-            from app.tools.local_ocr import process_image_async
-            ocr_text = await process_image_async(ticket.image_base64)
+            from app.tools import tesseract_ocr
+            from app.tools import gemini_ocr
+
+            raw_ocr_text = tesseract_ocr.extract_raw_text(ticket.image_base64)
+            masked_ocr_text, _ = mask_pii(raw_ocr_text)
+            masked_customer_text, _ = mask_pii(ticket.raw_text)
+            ocr_text = await gemini_ocr.extract_error_from_ocr_text(masked_ocr_text, masked_customer_text)
+            if not ocr_text.strip():
+                # Primary path found nothing usable - fall back to the
+                # direct-image call. Accepted, explicit exception to the
+                # "no image ever leaves the machine" rule - see spec's
+                # "Accepted risk" section.
+                ocr_text = await gemini_ocr.extract_error_text(ticket.image_base64)
             # Sync the extracted text back to the database so the Admin can see it
             initial_state["raw_text"] += f"\n\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\n{ocr_text}"
             try:
