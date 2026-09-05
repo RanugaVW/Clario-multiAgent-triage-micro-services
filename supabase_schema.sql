@@ -63,6 +63,7 @@ CREATE TABLE public.tickets (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+ALTER TABLE public.tickets ADD COLUMN image_storage_path TEXT;
 
 -- ==========================================
 -- 3. TICKET CLASSIFICATIONS
@@ -193,5 +194,30 @@ CREATE POLICY "Customers can insert tickets" ON public.tickets
 CREATE POLICY "Staff can view all tickets" ON public.tickets 
     FOR SELECT USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
 
-CREATE POLICY "Staff can update tickets" ON public.tickets 
+CREATE POLICY "Staff can update tickets" ON public.tickets
     FOR UPDATE USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
+
+-- ==========================================
+-- 10. TICKET ATTACHMENT STORAGE
+-- ==========================================
+-- Private bucket - every read is RLS-gated, mirroring the exact
+-- customer/staff check already used on public.tickets above. Path
+-- convention: {ticket_id}/original.<ext>. Uploads happen server-side only
+-- (ai-orchestrator-service, service-role key) - see
+-- app/main.py's background_orchestration.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('ticket-attachments', 'ticket-attachments', false)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Customers view own ticket attachments" ON storage.objects
+    FOR SELECT USING (
+        bucket_id = 'ticket-attachments'
+        AND (SELECT user_id FROM public.tickets
+             WHERE id::text = (storage.foldername(name))[1]) = auth.uid()
+    );
+
+CREATE POLICY "Staff view all ticket attachments" ON storage.objects
+    FOR SELECT USING (
+        bucket_id = 'ticket-attachments'
+        AND (SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent')
+    );
