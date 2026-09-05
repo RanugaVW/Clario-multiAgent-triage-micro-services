@@ -44,6 +44,8 @@ async def lifespan(app: FastAPI):
     # this lifespan) or a restart mid-cycle is harmless.
     scheduler = BackgroundScheduler()
     scheduler.add_job(sync_judge_references, "interval", hours=24, id="sync_judge_references")
+    from app.jobs.delete_old_attachments import delete_old_attachments
+    scheduler.add_job(delete_old_attachments, "interval", hours=6, id="delete_old_attachments")
     scheduler.start()
 
     yield
