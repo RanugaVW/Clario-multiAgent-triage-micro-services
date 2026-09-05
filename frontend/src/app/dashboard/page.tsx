@@ -178,7 +178,7 @@ export default function Home() {
       }
 
       let ticketUuid = crypto.randomUUID();
-      const GATEWAY_URL = 'http://localhost:8080';
+      const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       const TRACE_RELAY_URL = process.env.NEXT_PUBLIC_TRACE_RELAY_URL || 'http://localhost:8700';
       const traceEnabled = process.env.NEXT_PUBLIC_TRACE_ENABLED === 'true';
       const correlationId = crypto.randomUUID();
