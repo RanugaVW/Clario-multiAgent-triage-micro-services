@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "architecture-diagram-creator": {
+      "source": "mhattingpete/claude-skills-marketplace",
+      "sourceType": "github",
+      "skillPath": "visual-documentation-plugin/skills/architecture-diagram-creator/SKILL.md",
+      "computedHash": "89f22b4e6e485cea0178b11e3d7ff4feabdd489141429a40c4d6fc768bb828e7"
+    }
+  }
+}
