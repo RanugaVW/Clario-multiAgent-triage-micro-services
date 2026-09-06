@@ -6,6 +6,7 @@ _REASONING = {
     "urgent_priority": "This ticket is marked urgent and needs priority human handling.",
     "strongly_negative_sentiment": "The customer sentiment indicates a sensitive interaction requiring review.",
     "low_confidence_dual_domain": "Classification confidence was low and both specialist domains may be relevant.",
+    "hr_process_required": "This ticket involves an HR-sensitive process and must always be reviewed by a human.",
     "dependency_failure": "A required service was unavailable, so the response could not be verified safely.",
     "dual_domain_low_relevance": "Neither the Technical nor Billing knowledge base had strong matches for this ticket - needs human judgement on domain and resolution.",
     "misroute_unresolved": "The ticket was retried with the other specialist but remains off-topic or unsupported.",

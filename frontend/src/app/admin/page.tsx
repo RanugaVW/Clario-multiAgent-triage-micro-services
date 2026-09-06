@@ -974,7 +974,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
             {humanReviewNotes && (
               <div className="mt-4 pt-3 border-t border-white/10">
                 <span className="text-xs text-[#FB923C] block mb-2">Why this needs review</span>
-                <p className="text-sm text-[#ECECEC] leading-relaxed font-sans">{humanReviewNotes}</p>
+                <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">{humanReviewNotes}</p>
               </div>
             )}
           </div>
