@@ -45,8 +45,8 @@ def canonicalize_ticket_text(text: str) -> str:
 
 def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
     """Return up to k domain-filtered KB matches with cosine-similarity scores."""
-    if domain not in {"technical", "billing"}:
-        raise ValueError("domain must be 'technical' or 'billing'")
+    if domain not in {"technical", "billing", "hr"}:
+        raise ValueError("domain must be 'technical', 'billing', or 'hr'")
     breaker = get_breaker("chroma_rag")
     if not breaker.allow_request():
         raise CircuitBreakerOpenError("chroma_rag circuit breaker is open")
