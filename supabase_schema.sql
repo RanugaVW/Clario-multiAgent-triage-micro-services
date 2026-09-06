@@ -63,6 +63,7 @@ CREATE TABLE public.tickets (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+ALTER TABLE public.tickets ADD COLUMN image_storage_path TEXT;
 
 -- ==========================================
 -- 3. TICKET CLASSIFICATIONS
@@ -167,6 +168,17 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.human_reviews ENABLE ROW LEVEL SECURITY;
 
+-- Staff can view all human review (handoff) records. Confirmed live in
+-- production via Testing/05-Security-Access-Control-Testing (checks A7/A7b/A7c):
+-- this table previously had RLS enabled with no policy checked into this
+-- file at all, even though a real staff-only policy demonstrably exists in
+-- the deployed database (staff JWTs got real rows, non-staff/anonymous got
+-- none). Recorded here now so this file matches production - written to
+-- match the exact staff-check expression used by every other staff policy
+-- in this schema (public.tickets, customer_feedback, response_evaluations).
+CREATE POLICY "Staff can view all human reviews" ON public.human_reviews
+    FOR SELECT USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
+
 -- 1. Users can only see their own profile. Admins/Agents can see all.
 CREATE POLICY "Users can view own profile" ON public.users 
     FOR SELECT USING (auth.uid() = id OR (SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
@@ -182,5 +194,30 @@ CREATE POLICY "Customers can insert tickets" ON public.tickets
 CREATE POLICY "Staff can view all tickets" ON public.tickets 
     FOR SELECT USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
 
-CREATE POLICY "Staff can update tickets" ON public.tickets 
+CREATE POLICY "Staff can update tickets" ON public.tickets
     FOR UPDATE USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
+
+-- ==========================================
+-- 10. TICKET ATTACHMENT STORAGE
+-- ==========================================
+-- Private bucket - every read is RLS-gated, mirroring the exact
+-- customer/staff check already used on public.tickets above. Path
+-- convention: {ticket_id}/original.<ext>. Uploads happen server-side only
+-- (ai-orchestrator-service, service-role key) - see
+-- app/main.py's background_orchestration.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('ticket-attachments', 'ticket-attachments', false)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Customers view own ticket attachments" ON storage.objects
+    FOR SELECT USING (
+        bucket_id = 'ticket-attachments'
+        AND (SELECT user_id FROM public.tickets
+             WHERE id::text = (storage.foldername(name))[1]) = auth.uid()
+    );
+
+CREATE POLICY "Staff view all ticket attachments" ON storage.objects
+    FOR SELECT USING (
+        bucket_id = 'ticket-attachments'
+        AND (SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent')
+    );

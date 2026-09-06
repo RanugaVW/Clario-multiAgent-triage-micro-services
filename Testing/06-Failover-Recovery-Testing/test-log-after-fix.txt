@@ -1,0 +1,52 @@
+=== Clario Failover & Recovery Test Run e02f2206 ===
+
+--- Section A: CircuitBreaker state-machine correctness ---
+[PASS] A1 (info) - Breaker opens after failure_threshold failures and then short-circuits
+       evidence: after 1 failure: allow_request=True; after 2nd failure: state=open, allow_request=False
+[PASS] A2 (info) - After cooldown, a half-open probe that SUCCEEDS closes the breaker
+       evidence: probe_allowed=True, state_during_probe=half_open, state_after_success=closed
+[PASS] A3 (info) - A FAILED half-open probe re-opens the breaker (not left half-open/closed)
+       evidence: state after a failed half-open probe: open
+[PASS] A4 (info) - Only ONE concurrent probe is allowed while half-open (no probe pile-up)
+       evidence: first_probe=True, second_probe=False
+[PASS] A5 (info) - The rolling window forgets failures once window_size newer outcomes replace them
+       evidence: outcomes deque=[True, True, True], state=closed (2 failures were recorded but never adjacent to a 3rd within the window)
+
+--- Section B: Graceful degradation when ChromaDB is unreachable ---
+Cache check failed: Permission denied (os error 13)
+[PASS] B1 (info) - cache_check_node() degrades gracefully (no exception, cache_hit=False) when Chroma is unreachable
+       evidence: did not crash; cache_hit=False
+Cache check failed: 'RustBindingsAPI' object has no attribute 'bindings'
+[PASS] B1b (info) - Fix: cache_check_node's Chroma failures now report to the chroma_rag breaker (previously invisible to it - only retrieve_context() reported), so a sustained Chroma outage now trips it and short-circuits the cache-check path too
+       evidence: chroma_rag breaker outcomes changed by a cache_check_node call: before=[False], after=[False, False]
+[PASS] B2 (info) - retrieve_context() trips the chroma_rag breaker after real failures and then short-circuits instead of re-attempting the broken connection
+       evidence: real (slow) failures before trip: 5 (threshold=5); short-circuited afterward: True; short-circuited call took 0.0000s (no real connection attempt)
+[PASS] B3 (info) - technical_agent_node degrades gracefully end-to-end when the chroma_rag breaker is open, with zero LLM calls made
+       evidence: failure_type=dependency_failure, draft=None, low_relevance=True
+
+--- Section C: Partial/corrupt state on mid-persistence Supabase failure ---
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights:  81%|████████  | 83/103 [00:00<00:00, 804.15it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 859.06it/s]
+Failed to save to Supabase for ticket 61de5f9a-6f93-4851-838b-2bd26d65af89: simulated Supabase outage on table 'ticket_drafts'
+Failed to save to Supabase for ticket 16731364-3ab7-43da-9554-2b746ef776f0: simulated Supabase outage on table 'ticket_classifications'
+Failed to save to Supabase for ticket 2aeeda91-ea45-456d-a5d2-4be6ed389b34: simulated Supabase outage on table 'tickets'
+WARNING:RedisWorker:Recovered 1 ticket(s) left in-flight by a previous run; requeued for retry.
+[PASS] C1 (info) - A Supabase failure partway through persistence (on ticket_drafts, which now runs BEFORE the tickets.status update) must NOT leave the ticket claiming 'resolved' while its supporting rows are missing
+       evidence: background_orchestration returned normally (exception swallowed internally, exc leaking out to caller=None); resulting DB state: {'status': 'received', 'classifications': 1, 'drafts': 0, 'resolutions': 0}
+[PASS] C2 (info) - A failure on the FIRST persistence call (ticket_classifications) leaves the ticket completely untouched (still 'received', no orphaned rows) - contrast with C1
+       evidence: exception raised: None; resulting DB state: {'status': 'received', 'classifications': 0, 'drafts': 0, 'resolutions': 0}
+[PASS] C3 (info) - Positive control: with no injected failure, background_orchestration persists every row correctly for a real disposable ticket
+       evidence: exception: None; resulting DB state: {'status': 'resolved', 'classifications': 1, 'drafts': 1, 'resolutions': 1}
+[PASS] C4 (info) - A failure on the LAST persistence call (tickets.update) leaves every supporting row written but the status stuck at 'received' - safe/recoverable (data exists, just needs its status reconciled), not corrupt like C1's old behavior
+       evidence: exception raised: None; resulting DB state: {'status': 'received', 'classifications': 1, 'drafts': 1, 'resolutions': 1}
+
+--- Section D: Worker resilience to crashes mid-flight ---
+[PASS] D1 (info) - Fix: a ticket 'in flight' when the worker crashes (simulated by BLMOVE-ing it into the processing list and then never finishing) is NOT lost - it's still sitting in the processing list, recoverable on the next startup
+       evidence: message moved=True, main queue length after simulated crash=0, processing list length=1 (the message exists here, unlike a bare BRPOP where it would exist nowhere)
+[PASS] D2 (info) - Fix: the real app.worker._recover_stale_messages(), run exactly as it is at worker startup, requeues a message left in-flight by a previous run's crash
+       evidence: main queue after recovery contains the crashed message: True, processing list now empty: True
+[PASS] D3 (info) - Normal completion (BLMOVE then the real finally:-block lrem) leaves both the main queue and the processing list empty - no leak on the happy path
+       evidence: main queue length=0, processing list length=0
+
+=== SUMMARY: 16/16 checks passed ===
+
+Full results written to /home/ranuga-weerasekara/Desktop/clario/Testing/06-Failover-Recovery-Testing/failover_test_results.json

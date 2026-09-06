@@ -1,0 +1,60 @@
+=== Clario Failover & Recovery Test Run b2256254 ===
+
+--- Section A: CircuitBreaker state-machine correctness ---
+[PASS] A1 (info) - Breaker opens after failure_threshold failures and then short-circuits
+       evidence: after 1 failure: allow_request=True; after 2nd failure: state=open, allow_request=False
+[PASS] A2 (info) - After cooldown, a half-open probe that SUCCEEDS closes the breaker
+       evidence: probe_allowed=True, state_during_probe=half_open, state_after_success=closed
+[PASS] A3 (info) - A FAILED half-open probe re-opens the breaker (not left half-open/closed)
+       evidence: state after a failed half-open probe: open
+[PASS] A4 (info) - Only ONE concurrent probe is allowed while half-open (no probe pile-up)
+       evidence: first_probe=True, second_probe=False
+[PASS] A5 (info) - The rolling window forgets failures once window_size newer outcomes replace them
+       evidence: outcomes deque=[True, True, True], state=closed (2 failures were recorded but never adjacent to a 3rd within the window)
+
+--- Section B: Graceful degradation when ChromaDB is unreachable ---
+Cache check failed: Permission denied (os error 13)
+[PASS] B1 (info) - cache_check_node() degrades gracefully (no exception, cache_hit=False) when Chroma is unreachable
+       evidence: did not crash; cache_hit=False
+Cache check failed: 'RustBindingsAPI' object has no attribute 'bindings'
+[PASS] B1b (low) - Finding: cache_check_node's Chroma failures are invisible to the chroma_rag breaker (only retrieve_context() reports to it) - a sustained Chroma outage would never trip a breaker on the cache-check path, so every single ticket keeps paying the real (failing) connection-attempt cost forever instead of short-circuiting
+       evidence: chroma_rag breaker outcomes unchanged by 2 cache_check_node calls: before=[], after=[]
+[PASS] B2 (info) - retrieve_context() trips the chroma_rag breaker after real failures and then short-circuits instead of re-attempting the broken connection
+       evidence: real (slow) failures before trip: 5 (threshold=5); short-circuited afterward: True; short-circuited call took 0.0000s (no real connection attempt)
+[PASS] B3 (info) - technical_agent_node degrades gracefully end-to-end when the chroma_rag breaker is open, with zero LLM calls made
+       evidence: failure_type=dependency_failure, draft=None, low_relevance=True
+
+--- Section C: Partial/corrupt state on mid-persistence Supabase failure ---
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights:  76%|███████▌  | 78/103 [00:00<00:00, 772.22it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 980.97it/s]
+Failed to save to Supabase: simulated Supabase outage on table 'ticket_drafts'
+Failed to save to Supabase: simulated Supabase outage on table 'tickets'
+[FAIL] C1 (high) - Finding: a Supabase failure partway through persistence (on ticket_drafts) leaves the ticket marked 'resolved' with real classification data but ZERO draft/resolution rows - background_orchestration's own try/except (main.py:172-284) swallows the error into one generic 'Failed to save to Supabase' log line with no ticket id and no retry, so nothing surfaces this to an operator; an admin viewing the ticket just sees a resolved ticket with no actual resolution content
+       evidence: background_orchestration returned normally (exception swallowed internally, exc leaking out to caller=None); resulting DB state: {'status': 'resolved', 'classifications': 1, 'drafts': 0, 'resolutions': 0}
+[PASS] C2 (info) - A failure on the FIRST persistence call (tickets.update) leaves the ticket untouched (still 'received', no orphaned rows) - contrast with C1
+       evidence: exception raised: None; resulting DB state: {'status': 'received', 'classifications': 0, 'drafts': 0, 'resolutions': 0}
+[PASS] C3 (info) - Positive control: with no injected failure, background_orchestration persists every row correctly for a real disposable ticket
+       evidence: exception: None; resulting DB state: {'status': 'resolved', 'classifications': 1, 'drafts': 1, 'resolutions': 1}
+
+--- Section D: Worker resilience to crashes mid-flight ---
+[FAIL] D1 (medium) - Finding: BRPOP is destructive - once a message is popped, it is gone from Redis immediately, before any processing happens. If the worker process dies between the BRPOP and finishing background_orchestration (crash, OOM, restart, deploy), that ticket is never processed and is unrecoverable from the queue - it stays in Supabase in whatever state it was already in (e.g. 'received') forever, with nothing to ever retry it
+       evidence: popped message=True, queue length immediately after pop=0 (the message is provably gone from Redis - it exists nowhere else)
+[PASS] D2 (medium) - worker.py has no dead-letter queue or requeue logic anywhere - a ticket whose processing raises is simply dropped, identically to a crash (D1)
+       evidence: grep for lpush/rpush/dead in app/worker.py: 0 matches; queue length after simulating the exact except-block behavior: 0
+
+=== SUMMARY: 12/14 checks passed ===
+2 did not pass (real findings, not necessarily bugs - see severity/evidence):
+  - C1 [high] Finding: a Supabase failure partway through persistence (on ticket_drafts) leaves the ticket marked 'resolved' with real classification data but ZERO draft/resolution rows - background_orchestration's own try/except (main.py:172-284) swallows the error into one generic 'Failed to save to Supabase' log line with no ticket id and no retry, so nothing surfaces this to an operator; an admin viewing the ticket just sees a resolved ticket with no actual resolution content
+  - D1 [medium] Finding: BRPOP is destructive - once a message is popped, it is gone from Redis immediately, before any processing happens. If the worker process dies between the BRPOP and finishing background_orchestration (crash, OOM, restart, deploy), that ticket is never processed and is unrecoverable from the queue - it stays in Supabase in whatever state it was already in (e.g. 'received') forever, with nothing to ever retry it
+
+Full results written to /home/ranuga-weerasekara/Desktop/clario/Testing/06-Failover-Recovery-Testing/failover_test_results.json
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar
+plugins: langsmith-0.10.5, Faker-20.1.0, anyio-4.14.2
+collecting ... collected 2 items
+
+tests/tools/test_circuit_breaker.py::test_breaker_opens_and_short_circuits_after_threshold PASSED [ 50%]
+tests/tools/test_circuit_breaker.py::test_half_open_success_closes_breaker PASSED [100%]
+
+============================== 2 passed in 0.05s ===============================

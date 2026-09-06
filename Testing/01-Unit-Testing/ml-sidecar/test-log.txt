@@ -1,0 +1,150 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar
+plugins: langsmith-0.10.5, Faker-20.1.0, anyio-4.14.2
+collecting ... collected 92 items
+
+test_cache.py::test_caching PASSED                                       [  1%]
+tests/agents/test_billing_agent.py::test_billing_agent_creates_a_policy_compliant_draft SKIPPED [  2%]
+tests/agents/test_specialist_nodes.py::test_technical_agent_records_none_and_low_relevance_on_draft_failure PASSED [  3%]
+tests/agents/test_specialist_nodes.py::test_billing_agent_injects_prior_critique_and_records_draft PASSED [  4%]
+tests/agents/test_technical_agent.py::test_technical_agent_creates_a_grounded_draft SKIPPED [  5%]
+tests/graph/test_decide_judge_call.py::test_low_score_always_triggers_per_domain PASSED [  6%]
+tests/graph/test_decide_judge_call.py::test_high_score_sampling_rate_is_deterministic PASSED [  7%]
+tests/graph/test_escalation_node.py::test_each_escalation_branch[kwargs0-urgent_priority] PASSED [  8%]
+tests/graph/test_escalation_node.py::test_each_escalation_branch[kwargs1-strongly_negative_sentiment] PASSED [  9%]
+tests/graph/test_escalation_node.py::test_each_escalation_branch[kwargs2-low_confidence_dual_domain] PASSED [ 10%]
+tests/graph/test_escalation_node.py::test_each_escalation_branch[kwargs3-dependency_failure] PASSED [ 11%]
+tests/graph/test_escalation_node.py::test_each_escalation_branch[kwargs4-misroute_unresolved] PASSED [ 13%]
+tests/graph/test_escalation_node.py::test_each_escalation_branch[kwargs5-reflection_cap_reached] PASSED [ 14%]
+tests/graph/test_escalation_node.py::test_both_domain_low_relevance_has_specific_reason PASSED [ 15%]
+tests/graph/test_escalation_node.py::test_node_writes_human_review_audit_fields PASSED [ 16%]
+tests/graph/test_graph_integration.py::test_clean_technical PASSED       [ 17%]
+tests/graph/test_graph_integration.py::test_clean_billing PASSED         [ 18%]
+tests/graph/test_graph_integration.py::test_ambiguous_payment_routes_both_initially FAILED [ 19%]
+tests/graph/test_graph_integration.py::test_single_misroute_flips_once_and_passes PASSED [ 20%]
+tests/graph/test_graph_integration.py::test_dual_low_relevance_never_reinvokes_routing FAILED [ 21%]
+tests/graph/test_graph_integration.py::test_quality_reflects_exactly_twice_then_escalates PASSED [ 22%]
+tests/graph/test_handoff_node.py::test_handoff_includes_dual_domain_diagnostics_and_reasoning PASSED [ 23%]
+tests/graph/test_reflection_node.py::test_reflection_appends_validation_critique_and_increments PASSED [ 25%]
+tests/graph/test_reflection_node.py::test_reflection_rejects_invalid_failure_types_and_cap PASSED [ 26%]
+tests/graph/test_resolve_node.py::test_restores_real_name_into_every_domain_draft PASSED [ 27%]
+tests/graph/test_resolve_node.py::test_restores_real_name_into_final_response_when_set PASSED [ 28%]
+tests/graph/test_resolve_node.py::test_leaves_final_response_none_when_escalated PASSED [ 29%]
+tests/graph/test_resolve_node.py::test_empty_shadow_map_is_a_no_op PASSED [ 30%]
+tests/graph/test_resolve_node.py::test_missing_shadow_map_key_is_also_a_no_op PASSED [ 31%]
+tests/graph/test_response_judge_node.py::test_scores_every_domain_with_a_draft PASSED [ 32%]
+tests/graph/test_response_judge_node.py::test_skips_domains_with_no_draft PASSED [ 33%]
+tests/graph/test_response_judge_node.py::test_no_drafts_short_circuits_without_judge_evaluations_key PASSED [ 34%]
+tests/graph/test_response_judge_node.py::test_cache_hit_ticket_redacts_raw_text_before_judging PASSED [ 35%]
+tests/graph/test_response_judge_node.py::test_judge_failure_is_swallowed_not_raised PASSED [ 36%]
+tests/graph/test_routing_node.py::test_first_pass_routes_technical_billing_low_confidence_and_missing_category FAILED [ 38%]
+tests/graph/test_routing_node.py::test_ambiguous_payment_failure_routes_to_both_on_first_pass FAILED [ 39%]
+tests/graph/test_routing_node.py::test_reroute_flips_domain_without_rederiving_routing PASSED [ 40%]
+tests/graph/test_routing_node.py::test_reroute_of_both_is_rejected_defensively PASSED [ 41%]
+tests/graph/test_run_policy_checks.py::test_sanctioned_placeholder_does_not_trip_pii_in_draft PASSED [ 42%]
+tests/graph/test_run_policy_checks.py::test_unsanctioned_pii_still_trips_pii_in_draft PASSED [ 43%]
+tests/graph/test_run_policy_checks.py::test_no_placeholders_preserves_prior_behavior PASSED [ 44%]
+tests/graph/test_run_policy_checks.py::test_clean_draft_passes_with_no_placeholders_needed PASSED [ 45%]
+tests/graph/test_surrogate_node.py::test_writes_redacted_text_pii_found_and_shadow_map_without_touching_raw_text PASSED [ 46%]
+tests/graph/test_surrogate_node.py::test_no_pii_yields_an_empty_shadow_map PASSED [ 47%]
+tests/graph/test_validation_node.py::test_draft_failure_is_dependency_failure PASSED [ 48%]
+tests/graph/test_validation_node.py::test_both_low_relevance_escalates_without_reroute PASSED [ 50%]
+tests/graph/test_validation_node.py::test_single_misroute_requests_exactly_one_flip PASSED [ 51%]
+tests/graph/test_validation_node.py::test_already_rerouted_misroute_does_not_retry_again PASSED [ 52%]
+tests/graph/test_validation_node.py::test_policy_and_quality_failures_are_distinguished PASSED [ 53%]
+tests/jobs/test_sync_judge_references.py::test_syncs_an_upward_override_as_a_new_reference PASSED [ 54%]
+tests/jobs/test_sync_judge_references.py::test_skips_a_downward_override PASSED [ 55%]
+tests/jobs/test_sync_judge_references.py::test_skips_an_unchanged_override PASSED [ 56%]
+tests/jobs/test_sync_judge_references.py::test_skips_when_draft_or_ticket_data_is_missing PASSED [ 57%]
+tests/jobs/test_sync_judge_references.py::test_one_bad_override_does_not_stop_the_batch PASSED [ 58%]
+tests/jobs/test_sync_judge_references.py::test_fetch_failure_returns_empty_summary_without_raising PASSED [ 59%]
+tests/scripts/test_run_pairwise_evaluation.py::test_build_initial_state_matches_process_ticket_shape PASSED [ 60%]
+tests/scripts/test_run_pairwise_evaluation.py::test_evaluate_one_ticket_inserts_a_row_per_domain PASSED [ 61%]
+tests/scripts/test_run_pairwise_evaluation.py::test_evaluate_one_ticket_skips_when_no_draft_produced PASSED [ 63%]
+tests/scripts/test_run_pairwise_evaluation.py::test_evaluate_one_ticket_skips_cache_hit_without_calling_judge_or_inserting PASSED [ 64%]
+tests/scripts/test_run_pairwise_evaluation.py::test_summarize_computes_overall_and_per_category_counts_and_mean_scores PASSED [ 65%]
+tests/scripts/test_run_pairwise_evaluation.py::test_summarize_handles_no_rows PASSED [ 66%]
+tests/scripts/test_run_pairwise_evaluation.py::test_run_continues_past_a_failing_row PASSED [ 67%]
+tests/scripts/test_run_pairwise_evaluation.py::test_run_reports_skipped_not_processed_when_no_draft_produced PASSED [ 68%]
+tests/scripts/test_run_pairwise_evaluation.py::test_run_counts_mixed_skip_and_processed_rows PASSED [ 69%]
+tests/scripts/test_seed_validation_refs.py::test_seed_from_csv_upserts_valid_rows_and_skips_incomplete_ones PASSED [ 70%]
+tests/test_main.py::test_health PASSED                                   [ 71%]
+tests/test_main.py::test_root_serves_local_ticket_interface PASSED       [ 72%]
+tests/tools/test_circuit_breaker.py::test_breaker_opens_and_short_circuits_after_threshold PASSED [ 73%]
+tests/tools/test_circuit_breaker.py::test_half_open_success_closes_breaker PASSED [ 75%]
+tests/tools/test_local_llm.py::test_fine_grained_categories_match_the_adapters_training_taxonomy PASSED [ 76%]
+tests/tools/test_rag_tool.py::test_rag_tool_returns_relevant_grounded_context SKIPPED [ 77%]
+tests/tools/test_redaction_tool.py::test_mask_pii_redacts_person_and_email_without_leaking_the_value PASSED [ 78%]
+tests/tools/test_redaction_tool.py::test_mask_pii_redacts_phone_and_card_generically PASSED [ 79%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_replaces_name_with_a_realistic_stand_in PASSED [ 80%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_gives_email_a_realistic_stand_in_too PASSED [ 81%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_still_redacts_phone_and_card_generically PASSED [ 82%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_reuses_the_same_stand_in_for_repeated_mentions PASSED [ 83%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_round_trips_back_to_the_original_value PASSED [ 84%]
+tests/tools/test_response_judge.py::test_parse_response_raises_on_malformed_json_instead_of_faking_a_score PASSED [ 85%]
+tests/tools/test_response_judge.py::test_parse_response_parses_valid_json_normally PASSED [ 86%]
+tests/tools/test_response_judge.py::test_evaluate_raises_after_every_retry_is_exhausted PASSED [ 88%]
+tests/tools/test_response_judge.py::test_evaluate_retries_a_malformed_json_response_instead_of_returning_it_as_a_score PASSED [ 89%]
+tests/tools/test_response_judge.py::test_evaluate_still_returns_a_real_score_for_an_empty_draft PASSED [ 90%]
+tests/tools/test_response_judge.py::test_gemini_is_the_default_provider PASSED [ 91%]
+tests/tools/test_response_judge.py::test_evaluate_scores_a_draft_via_the_openai_path PASSED [ 92%]
+tests/tools/test_response_judge.py::test_evaluate_raises_after_every_retry_is_exhausted_on_openai_too PASSED [ 93%]
+tests/tools/test_response_judge.py::test_compare_draft_to_reference_agrees_across_both_passes PASSED [ 94%]
+tests/tools/test_response_judge.py::test_compare_draft_to_reference_reconciles_disagreement_to_tie PASSED [ 95%]
+tests/tools/test_response_judge.py::test_parse_pairwise_response_raises_on_malformed_json PASSED [ 96%]
+tests/tools/test_response_judge.py::test_parse_pairwise_response_defaults_unrecognized_winner_to_tie PASSED [ 97%]
+tests/tools/test_response_judge.py::test_parse_pairwise_response_defaults_missing_reasoning PASSED [ 98%]
+tests/tools/test_response_judge.py::test_compare_draft_to_reference_raises_after_retries_exhausted PASSED [100%]
+
+=================================== FAILURES ===================================
+_________________ test_ambiguous_payment_routes_both_initially _________________
+tests/graph/test_graph_integration.py:67: in test_ambiguous_payment_routes_both_initially
+    assert result["routing_decision"] == "both" and calls["routing"] == 1
+E   AssertionError: assert ('technical' == 'both'
+E     
+E     - both
+E     + technical)
+_______________ test_dual_low_relevance_never_reinvokes_routing ________________
+tests/graph/test_graph_integration.py:78: in test_dual_low_relevance_never_reinvokes_routing
+    assert "dual_domain_low_relevance" in result["escalation_reasons"] and calls["routing"] == 1
+E   AssertionError: assert ('dual_domain_low_relevance' in ['misroute_unresolved'])
+_ test_first_pass_routes_technical_billing_low_confidence_and_missing_category _
+tests/graph/test_routing_node.py:25: in test_first_pass_routes_technical_billing_low_confidence_and_missing_category
+    assert routing_node(_state(classification_confidence=0.5))["routing_decision"] == "both"
+E   AssertionError: assert 'escalation' == 'both'
+E     
+E     - both
+E     + escalation
+_________ test_ambiguous_payment_failure_routes_to_both_on_first_pass __________
+tests/graph/test_routing_node.py:33: in test_ambiguous_payment_failure_routes_to_both_on_first_pass
+    assert result["routing_decision"] == "both"
+E   AssertionError: assert 'technical' == 'both'
+E     
+E     - both
+E     + technical
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+.venv/lib/python3.12/site-packages/supabase/_sync/client.py:309
+  /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/lib/python3.12/site-packages/supabase/_sync/client.py:309: DeprecationWarning: The 'timeout' parameter is deprecated. Please configure it in the http client instead.
+    return SyncPostgrestClient(
+
+.venv/lib/python3.12/site-packages/supabase/_sync/client.py:309
+  /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/lib/python3.12/site-packages/supabase/_sync/client.py:309: DeprecationWarning: The 'verify' parameter is deprecated. Please configure it in the http client instead.
+    return SyncPostgrestClient(
+
+.venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/graph/test_graph_integration.py::test_ambiguous_payment_routes_both_initially
+FAILED tests/graph/test_graph_integration.py::test_dual_low_relevance_never_reinvokes_routing
+FAILED tests/graph/test_routing_node.py::test_first_pass_routes_technical_billing_low_confidence_and_missing_category
+FAILED tests/graph/test_routing_node.py::test_ambiguous_payment_failure_routes_to_both_on_first_pass
+============ 4 failed, 85 passed, 3 skipped, 17 warnings in 21.01s =============

@@ -50,12 +50,12 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: mockUser,
       role: 'user',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -88,7 +88,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     const textarea = screen.getByPlaceholderText(/Describe the issue.../i);
     expect(textarea).toBeInTheDocument();
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     expect(submitButton).toBeInTheDocument();
   });
 
@@ -130,12 +130,12 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Test submission');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalled();
-      const call = mockFetch.mock.calls.find((c: any) => c[0].includes('/api/tickets'));
+      const call = mockFetch.mock.calls.find((c) => c[0].includes('/api/tickets'));
       expect(call).toBeDefined();
     });
   });
@@ -153,7 +153,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Success test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -174,7 +174,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Tracking ID test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -201,15 +201,15 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Auth test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
-      const call = mockFetch.mock.calls.find((c: any) =>
+      const call = mockFetch.mock.calls.find((c) =>
         c[0].includes('/api/tickets') && c[1]?.method === 'POST'
       );
       expect(call).toBeDefined();
-      expect(call[1].headers['Authorization']).toContain('Bearer');
+      expect(call![1].headers['Authorization']).toContain('Bearer');
     });
   });
 
@@ -233,14 +233,14 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, testText);
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
-      const call = mockFetch.mock.calls.find((c: any) =>
+      const call = mockFetch.mock.calls.find((c) =>
         c[0].includes('/api/tickets') && c[1]?.method === 'POST'
       );
-      const payload = JSON.parse(call[1].body);
+      const payload = JSON.parse(call![1].body);
       expect(payload.rawText).toBe(testText);
       expect(payload.subject).toBe('Support Ticket');
     });
@@ -266,7 +266,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Error test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -311,7 +311,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Copy test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -319,7 +319,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     }, { timeout: 3000 });
 
     // Find and click copy button
-    const copyButton = screen.getByTitle('Copy to clipboard');
+    const copyButton = screen.getByRole('button', { name: /copy id/i });
     await user.click(copyButton);
 
     await waitFor(() => {
@@ -347,7 +347,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Full workflow test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     // Step 4: See success
@@ -361,12 +361,12 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
 
   // ==================== Test 13: Admin Navigation ====================
   it('should show admin panel for admin users', async () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: mockUser,
       role: 'admin',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
 
@@ -381,12 +381,12 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
 
   // ==================== Test 14: Agent Navigation ====================
   it('should show agent workspace for agent users', async () => {
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: mockUser,
       role: 'agent',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
 
@@ -418,14 +418,14 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Endpoint test');
 
-    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
     await waitFor(() => {
-      const call = mockFetch.mock.calls.find((c: any) =>
+      const call = mockFetch.mock.calls.find((c) =>
         c[0].includes('/api/tickets') && c[1]?.method === 'POST'
       );
-      expect(call[0]).toContain('http://localhost:8080/api/tickets');
+      expect(call![0]).toContain('http://localhost:8080/api/tickets');
     });
   });
 });

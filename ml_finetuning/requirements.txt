@@ -5,9 +5,11 @@ langdetect>=1.0.9
 spacy>=3.7
 google-genai>=1.0
 python-dotenv>=1.0
+httpx==0.28.1
 bitsandbytes
 peft
 trl
 accelerate
 datasets
 transformers
+pytest==9.1.1

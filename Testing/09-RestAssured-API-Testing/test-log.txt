@@ -1,0 +1,44 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------------< com.clario.testing:rest-assured-api-tests >--------------
+[INFO] Building rest-assured-api-tests 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ rest-assured-api-tests ---
+[INFO] skip non existing resourceDirectory /home/ranuga-weerasekara/Desktop/clario/Testing/09-RestAssured-API-Testing/src/main/resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ rest-assured-api-tests ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ rest-assured-api-tests ---
+[INFO] skip non existing resourceDirectory /home/ranuga-weerasekara/Desktop/clario/Testing/09-RestAssured-API-Testing/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ rest-assured-api-tests ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 4 source files with javac [debug target 17] to target/test-classes
+[WARNING] system modules path not set in conjunction with -source 17
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ rest-assured-api-tests ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.clario.apitest.TicketsApiIntegrationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.046 s -- in com.clario.apitest.TicketsApiIntegrationTest
+[INFO] Running com.clario.apitest.UserTicketsAndFeedbackIntegrationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.370 s -- in com.clario.apitest.UserTicketsAndFeedbackIntegrationTest
+[INFO] Running com.clario.apitest.SidecarIntegrationTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.591 s -- in com.clario.apitest.SidecarIntegrationTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  11.541 s
+[INFO] Finished at: 2026-09-04T20:40:17+05:30
+[INFO] ------------------------------------------------------------------------

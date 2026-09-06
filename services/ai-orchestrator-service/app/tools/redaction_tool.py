@@ -6,18 +6,66 @@ import re
 from functools import lru_cache
 
 import spacy
+from faker import Faker
 
 EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 PHONE_PATTERN = re.compile(r"(?<!\w)(?:\+?\d[\d .()\-]{7,}\d)(?!\w)")
 CARD_PATTERN = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
+# Support-ticket self-introductions ("Hi I'm Deshan", "My name is Deshan
+# Athukorarala") are the single most common place a real name appears in
+# this domain, and spaCy's en_core_web_md was confirmed live to sometimes
+# miss real names here entirely (e.g. "Deshan" tagged as nothing at all) -
+# found because that exact miss let a customer's real name leak verbatim
+# into a cached RAG precedent later served to other customers. This is a
+# second, independent detector for the same "person" kind, layered on top
+# of NER rather than replacing it: a deterministic pattern match on the
+# specific phrasing support tickets actually use, so a name NER's training
+# data underrepresents is still caught.
+SELF_INTRO_PATTERN = re.compile(
+    r"\b(?:I'?m|I\s+am|[Mm]y\s+name\s+is|[Tt]his\s+is)\s+"
+    r"([A-Z][a-zA-Z'-]+(?:\s+[A-Z][a-zA-Z'-]+){0,2})"
+)
+# Every generated customer response opens with "Hi <Name>," / "Hello <Name>,"
+# / "Dear <Name>," - confirmed live this is missed by both NER and
+# SELF_INTRO_PATTERN above (neither matches this phrasing), so a real
+# customer's name in a stored draft (e.g. the judge-reference sync job's
+# resolution_text) went unmasked despite both other detectors being in
+# place. A capitalized non-name after "Hi"/"Hello" (e.g. "Hi Team,") is a
+# rare, safe over-redaction, not a leak.
+GREETING_NAME_PATTERN = re.compile(
+    r"\b(?:Hi|Hello|Dear)\s+(?!I'?m\b|I\s+am\b)"
+    r"([A-Z][a-zA-Z'-]+(?:\s+[A-Z][a-zA-Z'-]+){0,2})\s*[,!]"
+)
+# Drafts are structured with bracketed all-caps section markers such as
+# [CUSTOMER RESPONSE] or [INTERNAL TECHNICAL REPORT]. spaCy's NER reads the
+# words inside those brackets as an ORG entity (confirmed live: a stored
+# precedent came back as "[[REDACTED_ORG] not load local model...]" - the
+# marker itself got redacted and mangled). Any ORG span that falls entirely
+# inside one of these markers is dropped before redaction, so real ORG
+# mentions elsewhere in the text are still caught.
+SECTION_MARKER_PATTERN = re.compile(r"\[[A-Z][A-Z0-9 /_-]*\]")
 REGEX_PATTERNS = (("email", EMAIL_PATTERN), ("credit_card", CARD_PATTERN), ("phone", PHONE_PATTERN))
 NER_LABELS = {"PERSON", "GPE", "ORG"}
+
+# Types that get a realistic, reversible stand-in (see mask_pii_reversible)
+# instead of a bracket token. Limited to what a response might legitimately
+# need to address the customer by - there's no legitimate reason for a
+# response to ever echo back a phone number or card number.
+REVERSIBLE_TYPES = {"person", "email"}
 
 
 @lru_cache(maxsize=1)
 def _nlp() -> spacy.language.Language:
-    """Load the required spaCy English NER model once per process."""
-    return spacy.load("en_core_web_sm")
+    """Load the required spaCy English NER model once per process.
+
+    Uses the medium model, not the small one: en_core_web_sm misclassifies
+    plenty of real names as ORG rather than PERSON (e.g. "Kalana Wijesuriya"),
+    which would silently skip both redaction quality and the reversible
+    stand-in mask_pii_reversible needs for personalization. `en_core_web_md`
+    gets these right. Install with:
+        python -m spacy download en_core_web_md
+    """
+    return spacy.load("en_core_web_md")
 
 
 def _non_overlapping(spans: list[tuple[int, int, str]]) -> list[tuple[int, int, str]]:
@@ -29,8 +77,14 @@ def _non_overlapping(spans: list[tuple[int, int, str]]) -> list[tuple[int, int, 
     return sorted(selected)
 
 
-def mask_pii(text: str) -> tuple[str, list[dict]]:
-    """Mask PII and return only PII type and original offsets, never its value."""
+def _detect_spans(text: str) -> list[tuple[int, int, str]]:
+    """Find every PII span (regex + spaCy NER + self-intro name pattern),
+    longest-and-earliest-wins on overlap."""
+    marker_spans = [(m.start(), m.end()) for m in SECTION_MARKER_PATTERN.finditer(text)]
+
+    def _inside_a_section_marker(start: int, end: int) -> bool:
+        return any(start >= m_start and end <= m_end for m_start, m_end in marker_spans)
+
     spans = [
         (match.start(), match.end(), kind)
         for kind, pattern in REGEX_PATTERNS
@@ -39,9 +93,22 @@ def mask_pii(text: str) -> tuple[str, list[dict]]:
     spans.extend(
         (entity.start_char, entity.end_char, entity.label_.lower())
         for entity in _nlp()(text).ents
-        if entity.label_ in NER_LABELS
+        if entity.label_ in NER_LABELS and not _inside_a_section_marker(entity.start_char, entity.end_char)
     )
-    selected = _non_overlapping(spans)
+    spans.extend(
+        (match.start(1), match.end(1), "person")
+        for match in SELF_INTRO_PATTERN.finditer(text)
+    )
+    spans.extend(
+        (match.start(1), match.end(1), "person")
+        for match in GREETING_NAME_PATTERN.finditer(text)
+    )
+    return _non_overlapping(spans)
+
+
+def mask_pii(text: str) -> tuple[str, list[dict]]:
+    """Mask PII and return only PII type and original offsets, never its value."""
+    selected = _detect_spans(text)
     masked_parts: list[str] = []
     cursor = 0
     for start, end, kind in selected:
@@ -50,3 +117,40 @@ def mask_pii(text: str) -> tuple[str, list[dict]]:
     masked_parts.append(text[cursor:])
     pii_found = [{"type": kind, "start_char": start, "end_char": end} for start, end, kind in selected]
     return "".join(masked_parts), pii_found
+
+
+def mask_pii_reversible(text: str) -> tuple[str, dict[str, str], list[dict]]:
+    """Like mask_pii, but PERSON/EMAIL get a realistic Faker stand-in instead
+    of a bracket token, so a downstream LLM can address the customer
+    naturally without ever seeing their real name or email. Everything else
+    (GPE/ORG/PHONE/CREDIT_CARD) is redacted exactly as mask_pii does.
+
+    The same real value always maps to the same stand-in within one call, so
+    repeated mentions of a name stay coherent in the generated text.
+
+    Returns (text_with_stand_ins, shadow_map, pii_found). shadow_map is
+    {fake_value: real_value}, for resolve_node to restore the real values
+    into the final draft once validation/judging - which must never see real
+    PII - have already run on the stand-in version.
+    """
+    selected = _detect_spans(text)
+    faker = Faker()
+    fake_by_real: dict[str, str] = {}
+    shadow_map: dict[str, str] = {}
+    masked_parts: list[str] = []
+    cursor = 0
+    for start, end, kind in selected:
+        if kind in REVERSIBLE_TYPES:
+            real_value = text[start:end]
+            if real_value not in fake_by_real:
+                fake_value = faker.name() if kind == "person" else faker.email()
+                fake_by_real[real_value] = fake_value
+                shadow_map[fake_value] = real_value
+            replacement = fake_by_real[real_value]
+        else:
+            replacement = f"[REDACTED_{kind.upper()}]"
+        masked_parts.extend((text[cursor:start], replacement))
+        cursor = end
+    masked_parts.append(text[cursor:])
+    pii_found = [{"type": kind, "start_char": start, "end_char": end} for start, end, kind in selected]
+    return "".join(masked_parts), shadow_map, pii_found

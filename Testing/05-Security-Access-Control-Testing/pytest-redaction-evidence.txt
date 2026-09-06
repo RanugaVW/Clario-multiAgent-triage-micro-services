@@ -1,0 +1,29 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar
+plugins: langsmith-0.10.5, Faker-20.1.0, anyio-4.14.2
+collecting ... collected 14 items
+
+tests/tools/test_redaction_tool.py::test_mask_pii_redacts_person_and_email_without_leaking_the_value PASSED [  7%]
+tests/tools/test_redaction_tool.py::test_mask_pii_redacts_phone_and_card_generically PASSED [ 14%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_replaces_name_with_a_realistic_stand_in PASSED [ 21%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_gives_email_a_realistic_stand_in_too PASSED [ 28%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_still_redacts_phone_and_card_generically PASSED [ 35%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_reuses_the_same_stand_in_for_repeated_mentions PASSED [ 42%]
+tests/tools/test_redaction_tool.py::test_reversible_mask_round_trips_back_to_the_original_value PASSED [ 50%]
+tests/graph/test_response_judge_node.py::test_scores_every_domain_with_a_draft PASSED [ 57%]
+tests/graph/test_response_judge_node.py::test_skips_domains_with_no_draft PASSED [ 64%]
+tests/graph/test_response_judge_node.py::test_no_drafts_short_circuits_without_judge_evaluations_key PASSED [ 71%]
+tests/graph/test_response_judge_node.py::test_cache_hit_ticket_redacts_raw_text_before_judging PASSED [ 78%]
+tests/graph/test_response_judge_node.py::test_judge_failure_is_swallowed_not_raised PASSED [ 85%]
+tests/graph/test_response_judge_node.py::test_successful_evaluation_adds_its_real_attempt_count_to_llm_call_count PASSED [ 92%]
+tests/graph/test_response_judge_node.py::test_failed_evaluation_still_adds_its_real_attempt_count_to_llm_call_count PASSED [100%]
+
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 14 passed, 14 warnings in 13.38s =======================

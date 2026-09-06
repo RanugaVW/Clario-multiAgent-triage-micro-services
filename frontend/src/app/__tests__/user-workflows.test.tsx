@@ -1,9 +1,8 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import DashboardPage from '../dashboard/page';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
 
 // ==================== SETUP MOCKS ====================
 
@@ -44,12 +43,12 @@ describe('User Workflow Scenarios', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: mockUser,
       role: 'user',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -78,12 +77,12 @@ describe('User Workflow Scenarios', () => {
     await user.type(textarea, 'First ticket: My password is not working');
 
     // User submits
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // User sees success confirmation
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText('Ticket submitted successfully!')).toBeInTheDocument();
     });
 
     // User can copy their tracking ID
@@ -96,7 +95,14 @@ describe('User Workflow Scenarios', () => {
     const user = userEvent.setup();
     let callCount = 0;
 
-    global.fetch = vi.fn().mockImplementation(() => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/user_tickets')) {
+        return Promise.resolve({
+          ok: true,
+          headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
+          json: () => Promise.resolve({ data: [] }),
+        });
+      }
       callCount++;
       return Promise.resolve({
         ok: true,
@@ -118,27 +124,30 @@ describe('User Workflow Scenarios', () => {
     await user.clear(textarea);
     await user.type(textarea, 'First issue');
 
-    let submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    let submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
       expect(screen.getByText('ticket-1')).toBeInTheDocument();
     });
 
-    // Close success modal and return to submit form
+    // Close success modal (lands on the history tab) and return to submit form
     const viewTicketsBtn = screen.getByRole('button', { name: /View My Tickets/i });
     await user.click(viewTicketsBtn);
 
-    // Second submission
     await waitFor(() => {
-      expect(screen.queryByText('Ticket Submitted Successfully!')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Ticket submitted successfully/i)).not.toBeInTheDocument();
     });
 
+    const newTicketTab = screen.getByRole('button', { name: /New ticket/i });
+    await user.click(newTicketTab);
+
+    // Second submission
     textarea = screen.getByPlaceholderText(/Describe the issue.../i);
     await user.clear(textarea);
     await user.type(textarea, 'Second issue');
 
-    submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
@@ -169,10 +178,11 @@ describe('User Workflow Scenarios', () => {
     ];
 
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/customer_tickets')) {
+      if (url.includes('/api/user_tickets')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(mockHistory),
+          headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
+          json: () => Promise.resolve({ data: mockHistory }),
         });
       }
       return Promise.resolve({
@@ -196,8 +206,8 @@ describe('User Workflow Scenarios', () => {
       expect(screen.getByText(/Login issue/i)).toBeInTheDocument();
     });
 
-    // Verify ticket details are shown
-    expect(screen.getByText('resolved')).toBeInTheDocument();
+    // Verify ticket details are shown (statuses render as plain-language labels)
+    expect(screen.getByText('Resolved')).toBeInTheDocument();
   });
 
   // ==================== Scenario 4: Retry After Error ====================
@@ -205,7 +215,14 @@ describe('User Workflow Scenarios', () => {
     const user = userEvent.setup();
     let attemptCount = 0;
 
-    global.fetch = vi.fn().mockImplementation(() => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/user_tickets')) {
+        return Promise.resolve({
+          ok: true,
+          headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
+          json: () => Promise.resolve({ data: [] }),
+        });
+      }
       attemptCount++;
       if (attemptCount === 1) {
         // First attempt fails
@@ -234,7 +251,7 @@ describe('User Workflow Scenarios', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Test retry');
 
-    let submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    let submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // See error
@@ -246,12 +263,12 @@ describe('User Workflow Scenarios', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Test retry again');
 
-    submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // Success this time
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
     });
 
     expect(attemptCount).toBe(2);
@@ -280,18 +297,12 @@ describe('User Workflow Scenarios', () => {
     expect((textarea as HTMLTextAreaElement).value).toContain('Adding more details');
 
     // The text is not submitted until the button is clicked
-    expect(screen.queryByText('Ticket Submitted Successfully!')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ticket submitted successfully/i)).not.toBeInTheDocument();
   });
 
   // ==================== Scenario 6: Image Upload Workflow ====================
   it('should handle user image upload workflow', async () => {
     const user = userEvent.setup();
-    const mockNavigator = {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-      },
-    };
-    (global.navigator as any).clipboard = mockNavigator.clipboard;
 
     render(<DashboardPage />);
 
@@ -309,27 +320,16 @@ describe('User Workflow Scenarios', () => {
       type: 'image/png',
     });
 
-    const fileInputs = screen.queryAllByRole('button');
-    const uploadButton = fileInputs.find((btn) =>
-      btn.textContent?.includes('Upload')
-    );
-
-    if (uploadButton) {
-      const fileInput = uploadButton.parentElement?.querySelector(
-        'input[type="file"]'
-      ) as HTMLInputElement;
-      if (fileInput) {
-        await user.upload(fileInput, imageFile);
-      }
-    }
+    const fileInput = screen.getByLabelText(/Attach a screenshot/i) as HTMLInputElement;
+    await user.upload(fileInput, imageFile);
 
     // User submits
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // Success
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
     });
   });
 
@@ -370,12 +370,12 @@ describe('User Workflow Scenarios', () => {
     // Wait for tab to be active
     await waitFor(() => {
       const tab = screen.getByRole('button', { name: /My Tickets/i });
-      // Check if it's highlighted (contains active styles)
-      expect(tab.className).toContain('indigo');
+      // Check if it's highlighted (contains the active-tab gold gradient)
+      expect(tab.className).toContain('E8A33D');
     });
 
     // History content should be visible
-    expect(screen.getByText(/Your tickets/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ticket history/i)).toBeInTheDocument();
   });
 
   // ==================== Scenario 9: Sequential Ticket Review ====================
@@ -412,10 +412,11 @@ describe('User Workflow Scenarios', () => {
     ];
 
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/customer_tickets')) {
+      if (url.includes('/api/user_tickets')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(mockTickets),
+          headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
+          json: () => Promise.resolve({ data: mockTickets }),
         });
       }
       return Promise.resolve({
@@ -440,9 +441,9 @@ describe('User Workflow Scenarios', () => {
       expect(screen.getByText(/Second issue/i)).toBeInTheDocument();
     });
 
-    // Can view status
-    expect(screen.getByText('resolved')).toBeInTheDocument();
-    expect(screen.getByText('escalated')).toBeInTheDocument();
+    // Can view status (statuses render as plain-language labels)
+    expect(screen.getByText('Resolved')).toBeInTheDocument();
+    expect(screen.getByText('Needs review')).toBeInTheDocument();
   });
 
   // ==================== Scenario 10: Complete Journey ====================
@@ -461,19 +462,22 @@ describe('User Workflow Scenarios', () => {
             }),
         });
       }
-      if (url.includes('/customer_tickets')) {
+      if (url.includes('/api/user_tickets')) {
         return Promise.resolve({
           ok: true,
+          headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
           json: () =>
-            Promise.resolve([
-              {
-                id: `ticket-journey-${submissionCount}`,
-                raw_text: 'Journey test ticket',
-                created_at: new Date().toISOString(),
-                status: 'processing',
-                resolutions: [],
-              },
-            ]),
+            Promise.resolve({
+              data: [
+                {
+                  id: `ticket-journey-${submissionCount}`,
+                  raw_text: 'Journey test ticket',
+                  created_at: new Date().toISOString(),
+                  status: 'processing',
+                  resolutions: [],
+                },
+              ],
+            }),
         });
       }
       return Promise.resolve({
@@ -496,12 +500,12 @@ describe('User Workflow Scenarios', () => {
     await user.clear(textarea);
     await user.type(textarea, 'My complete journey test issue');
 
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     // Step 3: See success confirmation
     await waitFor(() => {
-      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+      expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
     });
 
     const trackingId = screen.getByText(/ticket-journey/);
@@ -528,12 +532,12 @@ describe('Error Recovery Workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       user: mockUser,
       role: 'user',
       loading: false,
       roleLoading: false,
-    });
+    } as unknown as ReturnType<typeof useAuth>);
   });
 
   // ==================== Network Timeout ====================
@@ -556,11 +560,11 @@ describe('Error Recovery Workflows', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Timeout test');
 
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/error|failed|unable/i)).toBeInTheDocument();
+      expect(screen.getByText(/error|failed|unable|timeout/i)).toBeInTheDocument();
     });
   });
 
@@ -585,7 +589,7 @@ describe('Error Recovery Workflows', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Gateway down test');
 
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
@@ -618,7 +622,7 @@ describe('Error Recovery Workflows', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Auth test');
 
-    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
