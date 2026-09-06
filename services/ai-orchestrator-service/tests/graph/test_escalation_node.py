@@ -13,6 +13,7 @@ from app.graph.escalation_node import decide_escalation, escalation_node
     ({"failure_type": "dependency_failure"}, "dependency_failure"),
     ({"failure_type": "misroute", "routing_decision": "technical", "reroute_attempted": True}, "misroute_unresolved"),
     ({"failure_type": "quality", "reflection_count": 2}, "reflection_cap_reached"),
+    ({"routing_decision": "hr", "priority": "Low", "sentiment": "Neutral", "confidence": 0.95}, "hr_process_required"),
 ])
 def test_each_escalation_branch(kwargs: dict, reason: str) -> None:
     values = {"priority": None, "sentiment": None, "routing_decision": "technical", "confidence": 0.9,
