@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from langgraph.graph import END, START, StateGraph
 
 from app.agents.billing_agent import billing_agent_node
+from app.agents.hr_agent import hr_agent_node
 from app.agents.technical_agent import technical_agent_node
 from app.graph.cache_check_node import cache_check_node
 from app.graph.classification_node import classification_node
@@ -37,7 +38,7 @@ def _after_cache(state: TicketState) -> str:
 def _specialist_target(state: TicketState) -> str:
     return {
         "technical": "technical_agent", "billing": "billing_agent",
-        "both": "both_specialists", "escalation": "escalation",
+        "both": "both_specialists", "escalation": "escalation", "hr": "hr_agent",
     }[state["routing_decision"]]
 
 
@@ -84,6 +85,7 @@ def build_graph():
     graph.add_node("technical_agent", trace_node("technical_agent")(technical_agent_node))
     graph.add_node("billing_agent", trace_node("billing_agent")(billing_agent_node))
     graph.add_node("both_specialists", trace_node("both_specialists")(_both_specialists_node))
+    graph.add_node("hr_agent", trace_node("hr_agent")(hr_agent_node))
     graph.add_node("validation", trace_node("validation")(validation_node))
     graph.add_node("reflection", trace_node("reflection")(reflection_node))
     graph.add_node("response_judge", trace_node("response_judge")(response_judge_node))
@@ -99,6 +101,7 @@ def build_graph():
     graph.add_edge("technical_agent", "validation")
     graph.add_edge("billing_agent", "validation")
     graph.add_edge("both_specialists", "validation")
+    graph.add_edge("hr_agent", "validation")
     graph.add_conditional_edges("validation", _after_validation)
     graph.add_conditional_edges("reflection", _specialist_target)
     graph.add_edge("response_judge", "escalation")
