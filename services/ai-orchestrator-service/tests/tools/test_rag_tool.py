@@ -49,3 +49,25 @@ def test_retrieve_context_filters_out_a_precedent_memory_document_even_if_return
         results = retrieve_context("I need a refund", "billing")
 
     assert results == []
+
+
+def test_retrieve_context_accepts_hr_as_a_valid_domain() -> None:
+    fake_collection = MagicMock()
+    fake_collection.query.return_value = {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+    fake_client = MagicMock()
+    fake_client.get_collection.return_value = fake_collection
+
+    with patch("app.tools.rag_tool.chromadb.PersistentClient", return_value=fake_client), \
+         patch("app.tools.rag_tool._embedding_model") as mock_model:
+        mock_model.return_value.encode.return_value.tolist.return_value = [0.0]
+        # Must not raise ValueError - "hr" is now a valid domain.
+        retrieve_context("My bank slip was rejected", "hr")
+
+    where_clause = fake_collection.query.call_args.kwargs["where"]
+    assert {"domain": "hr"} in where_clause["$and"]
+
+
+def test_retrieve_context_still_rejects_an_unknown_domain() -> None:
+    import pytest
+    with pytest.raises(ValueError, match="domain must be"):
+        retrieve_context("some query", "not_a_real_domain")
