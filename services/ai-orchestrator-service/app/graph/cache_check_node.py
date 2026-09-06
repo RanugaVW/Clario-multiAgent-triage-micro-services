@@ -2,6 +2,7 @@
 
 import chromadb
 from app.graph.state import TicketState
+from app.graph.routing_node import has_hr_hard_trigger
 from app.tools.circuit_breaker import get_breaker
 from app.tools.rag_tool import _chroma_path, _embedding_model, _COLLECTION_NAME, canonicalize_ticket_text
 
@@ -47,8 +48,10 @@ def cache_check_node(state: TicketState) -> TicketState:
             # Cosine distance to similarity score
             score = max(0.0, 1.0 - (float(dists[0]) / 2.0))
             score_threshold = 0.92
-            if score >= score_threshold:
-                # We have a cache hit!
+            if score >= score_threshold and not has_hr_hard_trigger(normalized_text):
+                # We have a cache hit! (HR-flavored tickets never take this
+                # path - they must always reach mandatory human review, even
+                # when a semantically-similar past precedent exists.)
                 document = docs[0]
                 ticket_id = metas[0].get("ticket_id")
                 
