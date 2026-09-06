@@ -33,7 +33,10 @@ class TicketState(TypedDict):
     # classification_node writes; handoff_node reads the model/fallback provenance.
     classification_source: Literal["gemini_stand_in", "gemini_stand_in_fallback", "fine_tuned_model"]
     # routing_node writes; specialist, validation, escalation, and handoff nodes read.
-    routing_decision: Literal["technical", "billing", "both"] | None
+    # "escalation" (routing_node's no-signal fallback) was already a real
+    # runtime value returned by decide_routing() before this change - the
+    # Literal here was already out of date; fixed alongside adding "hr".
+    routing_decision: Literal["technical", "billing", "both", "escalation", "hr"] | None
     # routing_node writes; specialist nodes read to skip retrieval for simple queries (Adaptive RAG).
     rag_required: bool
     # specialist nodes write; validation, reflection, escalation, and handoff nodes read.

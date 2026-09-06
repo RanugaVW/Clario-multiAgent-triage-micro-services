@@ -46,3 +46,31 @@ def test_reroute_flips_domain_without_rederiving_routing() -> None:
 def test_reroute_of_both_is_rejected_defensively() -> None:
     with pytest.raises(ValueError, match="Cannot reroute"):
         routing_node(_state(routing_decision="both", needs_reroute=True))
+
+
+def test_hr_signal_wins_over_lexically_overlapping_billing_score() -> None:
+    # "bank slip" scores billing_score > 0 via the existing "bank" keyword,
+    # and hr_score > 0 via "bank slip" itself - hr must win, not "both" or "billing".
+    result = routing_node(_state(
+        category="Billing Issue",
+        redacted_text="My bank slip was rejected but nobody explained why.",
+    ))
+    assert result["routing_decision"] == "hr"
+
+
+def test_hr_does_not_win_when_it_is_not_the_strict_maximum() -> None:
+    # "locked out" (technical, weight 3) outscores "misclassified" (hr, weight 2) -
+    # hr must not win here; falls through to existing category/keyword logic.
+    result = routing_node(_state(
+        category="Technical",
+        redacted_text="I was locked out and I think my account got misclassified.",
+    ))
+    assert result["routing_decision"] == "technical"
+
+
+def test_hr_never_combines_with_both() -> None:
+    # Pure tech+billing dual-signal, no hr keywords at all - unaffected by the new check.
+    result = routing_node(_state(
+        redacted_text="Payment failed but the money was taken from my bank account"
+    ))
+    assert result["routing_decision"] == "both"

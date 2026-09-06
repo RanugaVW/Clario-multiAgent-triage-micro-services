@@ -9,6 +9,11 @@ TECHNICAL_KEYWORDS = {
     "locked out": 3, "authenticate": 3, "2fa": 3, "verification code": 2,
 }
 BILLING_KEYWORDS = {"payment": 3, "charged": 3, "bank": 2, "refund": 3, "billed": 3, "buying": 2, "billing": 3}
+HR_KEYWORDS = {
+    "bank slip": 3, "medical": 3, "parental consent": 3,
+    "webxpay": 2, "sponsorship": 2, "instructor": 2,
+    "wrong account": 2, "misclassified": 2, "linked to the wrong": 2,
+}
 
 # "Account" qualifies both ways: account *access* is authentication (technical),
 # account *billing* is billing. Match on the qualifier rather than the bare noun.
@@ -49,6 +54,17 @@ def decide_routing(category: str | None, confidence: float | None, text: str) ->
 
     tech_score = _calculate_score(text, TECHNICAL_KEYWORDS)
     billing_score = _calculate_score(text, BILLING_KEYWORDS)
+    hr_score = _calculate_score(text, HR_KEYWORDS)
+
+    # HR is checked before the dual-signal "both" rule below, not after: real
+    # HR tickets are lexically billing-adjacent (BILLING_KEYWORDS already
+    # scores "bank": 2, "payment": 3), so checking HR second would mean most
+    # real HR tickets get swallowed by "both" instead - the HR path would be
+    # effectively unreachable. Must be the strict maximum of the three, not
+    # just present, so a genuine dual technical+billing signal still wins
+    # "both" when HR wording is absent or weaker.
+    if hr_score > 0 and hr_score > tech_score and hr_score > billing_score:
+        return "hr"
 
     # The ticket text itself carries real signal for both domains (e.g. "payment
     # failed" - technical failure wording plus billing wording) - this overrides
