@@ -224,6 +224,27 @@ def _repair_json_quoting(raw: str) -> str:
     return _UNQUOTED_VALUE.sub(_requote, raw)
 
 
+def _sequence_confidence(scores: tuple[torch.Tensor, ...], generated_ids: torch.Tensor) -> float:
+    """Folds per-step token probabilities from a greedy-decoded generation
+    into a single confidence score in [0, 1]. `scores` is the per-step
+    logits tuple HF's generate() returns when called with
+    output_scores=True (one (1, vocab_size) tensor per generated token);
+    `generated_ids` is the corresponding sequence of chosen token ids
+    (same length as `scores`). Since classify_ticket_local() decodes with
+    do_sample=False, each chosen token is its step's argmax - this is a
+    real measure of how sure the model was about its own output, unlike
+    the hardcoded 0.85 this replaces.
+    """
+    if len(generated_ids) == 0:
+        return 0.0
+
+    # TODO(human): for each step, compute the model's probability of the
+    # token it actually chose (softmax over that step's logits, indexed at
+    # generated_ids[i]), then fold the per-step probabilities into one
+    # overall confidence score for the sequence.
+    raise NotImplementedError
+
+
 def classify_ticket_local(text: str) -> dict[str, Any]:
     """Classify a ticket using the fine-tuned Llama-3.2 3B model.
     Returns a dict with: category, priority, sentiment, confidence, source.
@@ -266,9 +287,13 @@ def classify_ticket_local(text: str) -> dict[str, Any]:
                 temperature=0.1,
                 do_sample=False,
                 pad_token_id=_tokenizer.eos_token_id,
+                output_scores=True,
+                return_dict_in_generate=True,
             )
 
-    response = _tokenizer.decode(outputs[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True).strip()
+    new_token_ids = outputs.sequences[0][inputs["input_ids"].shape[-1]:]
+    confidence = _sequence_confidence(outputs.scores, new_token_ids)
+    response = _tokenizer.decode(new_token_ids, skip_special_tokens=True).strip()
 
     # Clean and parse JSON
     try:
@@ -291,7 +316,7 @@ def classify_ticket_local(text: str) -> dict[str, Any]:
             "category": data.get("category", "General"),
             "priority": data.get("priority", "Low"),
             "sentiment": data.get("sentiment", "Neutral"),
-            "confidence": 0.85,
+            "confidence": confidence,
             "source": "llama32_lora"
         }
     except Exception as e:
