@@ -12,6 +12,7 @@ that _repair_json_quoting() is load-bearing, not defensive.
 """
 
 import pytest
+import torch
 
 from app.agents.shared.prompt_templates import build_specialist_prompt
 from app.tools.local_llm import (
@@ -19,6 +20,7 @@ from app.tools.local_llm import (
     SENTIMENT_LABELS,
     DraftGenerationError,
     _repair_json_quoting,
+    _sequence_confidence,
     generate_draft,
 )
 
@@ -47,6 +49,48 @@ def test_priority_and_sentiment_labels_match_the_adapters_training_taxonomy() ->
 ])
 def test_repair_json_quoting_fixes_the_adapters_real_output_shapes(raw: str, expected: str) -> None:
     assert _repair_json_quoting(raw) == expected
+
+
+# _sequence_confidence() replaces classify_ticket_local()'s old hardcoded
+# 0.85/0.0 confidence with a real per-response measure derived from the
+# model's own greedy-decoding logits. These tests pin down its required
+# BEHAVIOR (bounds, monotonicity, degenerate cases) without pinning down
+# which folding formula is used - any reasonable implementation (geometric
+# mean, arithmetic mean, min-probability, ...) must satisfy all of them.
+
+def test_sequence_confidence_returns_zero_for_empty_generation() -> None:
+    assert _sequence_confidence((), torch.tensor([], dtype=torch.long)) == 0.0
+
+
+def test_sequence_confidence_is_one_when_every_step_is_fully_certain() -> None:
+    # Step 1: token 0 has all the probability mass. Step 2: token 1 does.
+    scores = (
+        torch.tensor([[50.0, -50.0]]),
+        torch.tensor([[-50.0, 50.0]]),
+    )
+    generated_ids = torch.tensor([0, 1])
+    assert _sequence_confidence(scores, generated_ids) == pytest.approx(1.0, abs=1e-3)
+
+
+def test_sequence_confidence_is_lower_when_the_chosen_token_was_less_certain() -> None:
+    certain_scores = (torch.tensor([[10.0, 0.0]]),)  # chosen token's prob ~1.0
+    uncertain_scores = (torch.tensor([[0.0, 0.0]]),)  # chosen token's prob = 0.5
+
+    certain = _sequence_confidence(certain_scores, torch.tensor([0]))
+    uncertain = _sequence_confidence(uncertain_scores, torch.tensor([0]))
+
+    assert uncertain < certain
+
+
+def test_sequence_confidence_stays_within_zero_and_one() -> None:
+    scores = (
+        torch.tensor([[3.0, -1.0, 0.5]]),
+        torch.tensor([[-2.0, 4.0, 0.0]]),
+        torch.tensor([[1.0, 1.0, 1.0]]),
+    )
+    generated_ids = torch.tensor([0, 1, 2])
+    confidence = _sequence_confidence(scores, generated_ids)
+    assert 0.0 <= confidence <= 1.0
 
 
 # generate_draft() calls the real Gemini API (google.genai), not the heavy
