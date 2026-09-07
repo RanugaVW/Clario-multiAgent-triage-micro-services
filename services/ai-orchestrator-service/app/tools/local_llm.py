@@ -238,11 +238,17 @@ def _sequence_confidence(scores: tuple[torch.Tensor, ...], generated_ids: torch.
     if len(generated_ids) == 0:
         return 0.0
 
-    # TODO(human): for each step, compute the model's probability of the
-    # token it actually chose (softmax over that step's logits, indexed at
-    # generated_ids[i]), then fold the per-step probabilities into one
-    # overall confidence score for the sequence.
-    raise NotImplementedError
+    # Arithmetic mean of per-step probabilities, not a product/geometric mean:
+    # multiplying probabilities together shrinks with every extra token
+    # regardless of real certainty, so a longer JSON output (more punctuation
+    # and structural tokens, each near-certain) would always look less
+    # confident than a shorter one for no real reason. The mean stays a
+    # per-step average and doesn't carry that length bias.
+    step_probs = [
+        torch.softmax(step_logits[0], dim=-1)[token_id].item()
+        for step_logits, token_id in zip(scores, generated_ids)
+    ]
+    return sum(step_probs) / len(step_probs)
 
 
 def classify_ticket_local(text: str) -> dict[str, Any]:
