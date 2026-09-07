@@ -72,7 +72,7 @@ def run_policy_checks(
     context_text = " ".join(item.get("text", "").lower() for item in retrieved_context)
     if any(phrase in draft.lower() and phrase not in context_text for phrase in OVERCOMMITMENTS):
         failed.append("unsupported_overcommitment")
-    threshold = float(os.getenv("RAG_SCORE_THRESHOLD", "0.3"))
+    threshold = float(os.getenv("RAG_SCORE_THRESHOLD", "0.70"))
     context_is_weak = not retrieved_context or all(float(item.get("score", 0)) < threshold for item in retrieved_context)
     if context_is_weak and FALLBACK_PHRASE.lower() not in draft.lower():
         failed.append("missing_low_context_fallback")
@@ -85,7 +85,7 @@ def run_policy_checks(
 
 def decide_judge_call(rag_top_score: dict, domain: str, random_seed: int | None = None) -> tuple[bool, str]:
     """Gate the per-domain judge by weak retrieval or random sampling."""
-    if float(rag_top_score.get(domain, 0.0)) < float(os.getenv("RAG_SCORE_THRESHOLD", "0.3")):
+    if float(rag_top_score.get(domain, 0.0)) < float(os.getenv("RAG_SCORE_THRESHOLD", "0.70")):
         return True, "low_rag_score"
     sample = random.Random(random_seed).random() if random_seed is not None else random.random()
     return (True, "random_sample") if sample < float(os.getenv("JUDGE_RANDOM_SAMPLE_RATE", "0.175")) else (False, "none")
