@@ -6,4 +6,4 @@ policy citation alone. Ask for the same identifying details (transaction referen
 amount, date) already used elsewhere, without requesting full card numbers or bank credentials,
 and explain that a reviewer will manually confirm the payment before the account is updated.
 
-**Common ways customers describe this:** enrolled but can't see the actual course content; only the dashboard; submitted my bank slip but payment still shows as awaiting approval; paid for one course but no access was given.
+**Common ways customers describe this:** submitted my bank slip but payment still shows as awaiting approval; paid for one course but no access was given; mistakenly charged; accidentally charged.

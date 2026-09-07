@@ -1,0 +1,58 @@
+Ground truth rebuilt from corrected annotator CSVs
+  lms_support_tickets Real - Ranuga.csv
+  lms_support_tickets Real - Sineth.csv
+
+Exact-match agreement (strict): 47/70 = 67.1%
+Any-overlap agreement (reported headline number): 60/70 = 85.7%
+
+Formatting/typo corrections applied (2):
+  Q007 (Sineth): 'sevice_status.md' -> 'service_status.md'
+  Q016 (Sineth): 'course_issue.md' -> 'course_issues.md'
+
+Rows resolved by union (not an exact match, 23 of 70):
+  Q003: Cannot continue learning; no further detail given.
+    Union of disagreeing annotations - Ranuga=['technical']/['service_status.md'] | Sineth=['technical']/['data_sync.md']
+  Q007: The 'Continue' joining bar shows orange instead of green, preventing entry to the course.
+    Union of disagreeing annotations - Ranuga=['technical']/['service_status.md'] | Sineth=['technical']/['data_sync.md', 'service_status.md']
+  Q011: Submitted bank slip for the AI course but status still shows awaiting approval; feels it wasn't received.
+    Union of disagreeing annotations - Ranuga=['hr']/['payment_linkage_escalation.md'] | Sineth=['billing']/['payment_failed.md']
+  Q013: Site keeps showing 'start to learn' instead of modules; the inbrowser compiler shows errors even though the submitted code (printing a welcome message) is correct.
+    Union of disagreeing annotations - Ranuga=['technical']/['integration_error.md'] | Sineth=['technical']/['data_sync.md', 'integration_error.md']
+  Q020: Submitted a project proposal but cannot see it confirmed anywhere.
+    Union of disagreeing annotations - Ranuga=['technical']/['course_issues.md', 'upload_errors.md'] | Sineth=['technical']/['data_sync.md', 'upload_errors.md']
+  Q025: I want to cancel my course subscription and I need written confirmation that I won't be charged again next month.
+    Union of disagreeing annotations - Ranuga=['billing']/['subscription_cancel.md'] | Sineth=['hr']/['course_cancellation.md']
+  Q026: I need to cancel my subscription for the Python course. Money is tight this month and I can't continue paying for it right now.
+    Union of disagreeing annotations - Ranuga=['billing', 'hr']/['subscription_cancel.md'] | Sineth=['hr']/['course_cancellation.md']
+  Q027: I asked for my subscription to be cancelled two weeks ago but I was just charged again this month. Please cancel this properly and refund the extra charge.
+    Union of disagreeing annotations - Ranuga=['billing']/['course_cancellation.md', 'subscription_cancel.md'] | Sineth=['billing']/['refund_status.md', 'subscription_cancel.md']
+  Q031: Support told me last week that I wasn't charged twice, but I'm looking at my bank statement right now and there are clearly two identical charges from your company on the same day.
+    Union of disagreeing annotations - Ranuga=['billing']/['duplicate_charge.md'] | Sineth=['billing']/['chargeback.md', 'duplicate_charge.md']
+  Q033: You said my duplicate payment would be refunded but it's been over a week and I haven't seen anything in my account. Can you show me proof it was actually processed?
+    Union of disagreeing annotations - Ranuga=['billing']/['refund_status.md'] | Sineth=['billing']/['duplicate_charge.md', 'refund_status.md']
+  Q040: I signed up for the AI course last week but I've changed my mind  I don't think it's the right fit for me right now. Can I cancel and get a refund?
+    Union of disagreeing annotations - Ranuga=['hr']/['subscription_cancel.md'] | Sineth=['hr']/['course_cancellation.md']
+  Q041: I already watched a couple of the recorded classes but I've decided the Robotics course isn't for me after all. I'd like to cancel and get my money back please.
+    Union of disagreeing annotations - Ranuga=['billing', 'hr']/['refund_status.md', 'subscription_cancel.md'] | Sineth=['hr']/['course_cancellation.md']
+  Q042: I paid for the course this morning but after thinking it over I don't want to continue anymore. I haven't logged into any classes yet  can I get a full refund?
+    Union of disagreeing annotations - Ranuga=['billing']/['refund_status.md', 'subscription_cancel.md'] | Sineth=['hr']/['course_cancellation.md']
+  Q044: I want to cancel my enrollment because I've decided to focus on my A/Ls instead, and I'd like a refund if that's possible. I'm not sure how to actually request this though.
+    Union of disagreeing annotations - Ranuga=['billing']/['subscription_cancel.md'] | Sineth=['hr']/['course_cancellation.md']
+  Q045: I want to cancel the course I enrolled in last month. I know I've already attended a few sessions, so I'm not expecting a full refund, but is there anything I can get back?
+    Union of disagreeing annotations - Ranuga=['billing', 'hr']/['course_cancellation.md', 'refund_status.md'] | Sineth=['hr']/['course_cancellation.md']
+  Q046: I signed up for this course because of the instructor listed on the course page, but I found out the classes are now being taught by someone else. I don't think the new instructor explains things well, so I'd like to cancel and get a refund.
+    Union of disagreeing annotations - Ranuga=['billing', 'hr']/['course_cancellation.md', 'course_issues.md', 'refund_status.md'] | Sineth=['hr']/['course_cancellation.md', 'course_issues.md']
+  Q048: The instructor teaching my Robotics course right now is honestly not explaining the concepts clearly at all, and I heard this wasn't the instructor originally advertised. I don't want to continue paying for a course I'm not learning anything from  please cancel and refund me.
+    Union of disagreeing annotations - Ranuga=['hr']/['course_issues.md'] | Sineth=['hr']/['course_cancellation.md', 'course_issues.md']
+  Q050: I already messaged about wanting to cancel because of the instructor change last week but nobody replied. I still want to cancel and get my refund.
+    Union of disagreeing annotations - Ranuga=['hr']/['course_issues.md'] | Sineth=['hr']/['course_cancellation.md']
+  Q058: I joined the AI course by mistake when I meant to sign up for Robotics, and I'm worried I'll lose my payment if I try to switch now. Can you please help me move to the correct course without having to pay again?
+    Union of disagreeing annotations - Ranuga=['billing']/['plan_change.md'] | Sineth=['billing', 'hr']/['payment_linkage_escalation.md', 'plan_change.md']
+  Q066: My video keeps buffering and freezing during every live Zoom session for the AI course, even though my internet works fine for everything else. Is this a problem on your end?
+    Union of disagreeing annotations - Ranuga=['technical']/['slow_performance.md'] | Sineth=['technical']/['service_status.md', 'slow_performance.md']
+  Q067: I completed the course over a week ago and was told I'd get a certificate, but I still haven't received anything. Can you check on this for me?
+    Union of disagreeing annotations - Ranuga=['technical']/['data_sync.md'] | Sineth=['technical']/['slow_performance.md']
+  Q070: I submitted the module quiz for the AI course but my results page just shows a blank loading spinner that never finishes. I don't know if I passed or not.
+    Union of disagreeing annotations - Ranuga=['technical']/['slow_performance.md'] | Sineth=['technical']/['data_sync.md', 'slow_performance.md']
+  Q071: I can log into the LMS fine on my laptop but the mobile app just keeps showing an error message whenever I try to log in from my phone. I mostly want to use the app since it's more convenient.
+    Union of disagreeing annotations - Ranuga=['technical']/['app_crash.md'] | Sineth=['technical']/['app_crash.md', 'login_reset.md']

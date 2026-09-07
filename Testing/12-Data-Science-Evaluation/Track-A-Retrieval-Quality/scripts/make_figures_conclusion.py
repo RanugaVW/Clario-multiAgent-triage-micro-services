@@ -16,6 +16,13 @@ the final numbers are transcribed from TEST_REPORT_V2.md §6.5/§6.6 (which
 are themselves generated live from results/v2_summary_metrics.json and
 results/v1_summary_metrics.json) so this script has no import-time
 dependency on the sidecar app.
+
+Figure 14's "70 real tickets" bars were updated once, after TEST_REPORT_V2.md's
+Correction section: the original annotator CSVs behind the 70-ticket ground
+truth were the wrong version, and re-running against the corrected ground
+truth (results/v3_summary_metrics.json) changed Precision@1 and Recall@4.
+The 99-query baseline bars are untouched - that is a separate dataset the
+correction does not affect.
 """
 
 from __future__ import annotations
@@ -110,7 +117,7 @@ fig.suptitle("Track A — Final Evaluation (After All Fixes)", fontsize=14,
 ax.set_title("Precision@1 and Recall@4, both real datasets", fontsize=10.5, color=INK_MUTED, pad=14)
 
 metrics = ["Precision@1", "Recall@4"]
-real_tickets = [75.0, 97.1]
+real_tickets = [71.4, 89.0]
 q99_baseline = [64.4, 86.4]
 x = np.arange(len(metrics)) * 1.3
 w = 0.42

@@ -4,6 +4,8 @@
 
 This page is a short summary for a presentation. It only shows the two evaluations that matter for the story — the very first test and the final test — and only the two numbers that matter most. The full detail behind every number here lives in `TEST_REPORT_V1.md` and `TEST_REPORT_V2.md`.
 
+*(2026-09-08: the "70 real tickets" numbers below were corrected after the original annotator files turned out to be the wrong version — see `TEST_REPORT_V2.md` §0 for the full explanation. The 99-query baseline numbers are unaffected.)*
+
 ---
 
 ## What we were checking
@@ -35,8 +37,8 @@ This is the last evaluation we ran, on two separate real datasets — 70 real su
 
 | Metric | 70 real tickets | 99-query baseline | What it tells us |
 |---|---|---|---|
-| **Precision@1** | **75.0%** | 64.4% | The system's top guess is right most of the time |
-| **Recall@4** | **97.1%** | 86.4% | The right answer is almost always somewhere in the results |
+| **Precision@1** | **71.4%** | 64.4% | The system's top guess is right most of the time |
+| **Recall@4** | **89.0%** | 86.4% | The right answer is almost always somewhere in the results |
 
 Both numbers went up a lot from where we started. We got there by fixing two real problems (old content in the search index, and a confidence check that never said no) and by adding better, more natural customer wording to the knowledge base documents — checked, every time, against both datasets together, not just one.
 
@@ -70,7 +72,7 @@ Say it in this order:
 1. **What we tested.** "We checked whether our system actually finds the right knowledge-base document for a customer's ticket. We measured two things: is its top guess correct, and is the right document in its results at all."
 2. **Where we started.** "In our first test, on 99 questions, the right document was usually in the results somewhere — about 70% of the time — but it was rarely the top pick, only about 20% of the time."
 3. **What we found was wrong, and what we fixed.** "We found two real causes: the search index still had a lot of old, unused content clogging up every search, and the system's own confidence check never once said 'I'm not sure' — it approved everything. We cleaned out the old content and retuned that confidence check, and checked the fix against two separate sets of real data, not just one, so we know it's a real improvement and not a fluke."
-4. **Where we ended up.** "In our final test, the system's top guess is right about 75% of the time on real tickets, and the correct document shows up in its results 97% of the time. On a second, independent set of questions, those numbers are 64% and 86% — still a big improvement, and this second number is the more conservative, trustworthy one. Part of this came from real customer reviews we collected from the web — Trustpilot pages for Udemy, Coursera, Skillshare, and Pluralsight — read directly from the public page, not through a paid API, not just made-up or internal wording."
+4. **Where we ended up.** "In our final test, the system's top guess is right about 71% of the time on real tickets, and the correct document shows up in its results 89% of the time. On a second, independent set of questions, those numbers are 64% and 86% — still a real improvement, and this second number is the more conservative, trustworthy one. Part of this came from real customer reviews we collected from the web — Trustpilot pages for Udemy, Coursera, Skillshare, and Pluralsight — read directly from the public page, not through a paid API, not just made-up or internal wording."
 5. **The one honest gap.** "The one thing we want to be upfront about: part of the reason the 70-ticket score is so high is that some of the knowledge base wording was written with direct knowledge of those exact tickets. So we're not claiming that number as guaranteed performance on totally new tickets — we're reporting the more independent, slightly lower number as the realistic expectation."
 6. **Close it out.** "That's Track A — retrieval quality — complete. Next up is Track B, checking whether tickets get routed to the right team in the first place."
 

@@ -2,15 +2,30 @@
 
 **System evaluated:** `retrieve_context()` and `check_relevance()` in `clario-ml-sidecar/app/tools/rag_tool.py`, run exactly as they run in production (imported directly, not rebuilt for this test).
 **Ground truth:** `data/lms_ticket_ground_truth.csv` — 70 real support tickets, each hand-classified by two people.
-**Source data:** `CSV Files/lms_support_tickets Real - Support Tickets.csv` (71 real tickets) and the two independent answer sheets, `CSV Files/lms_tickets_mapped_Ranuga.csv` and `CSV Files/lms_tickets_mapped_Sineth.csv`.
-**Scripts:** `scripts/eval_retrieval_lms.py` (runs the evaluation), `scripts/make_figures_lms.py` (draws the charts).
+**Source data:** `CSV Files/lms_support_tickets Real - Support Tickets.csv` (71 real tickets) and the two independent answer sheets, `CSV Files/lms_support_tickets Real - Ranuga.csv` and `CSV Files/lms_support_tickets Real - Sineth.csv` (corrected 2026-09-08 — see §0; an earlier, wrong version of these two files was used originally).
+**Scripts:** `scripts/eval_retrieval_lms_v3.py` (runs the corrected evaluation; `scripts/eval_retrieval_lms.py` is the superseded original), `scripts/make_figures_lms_v3.py` (redraws Figures 5/11/12; `scripts/make_figures_lms.py` draws the rest).
 **Status:** Track A is complete. Tracks B–E are still planned (see `DATA_SCIENCE_EVALUATION_PROPOSAL.md`).
+
+---
+
+## 0. Correction (2026-09-08) — ground truth rebuilt from the correct annotator files
+
+The two annotator CSVs originally used to build this report's ground truth (`CSV Files/lms_tickets_mapped_Ranuga.csv` / `..._Sineth.csv`) turned out to be the wrong version. The correct, independently-annotated files were later found — `CSV Files/lms_support_tickets Real - Ranuga.csv` and `... - Sineth.csv` — and `data/lms_ticket_ground_truth.csv` has been rebuilt from them (`scripts/rebuild_real_ground_truth.py`).
+
+**What changed as a direct result, and what didn't:**
+
+- **§2.2's agreement number, its table, and Figure 5** — rebuilt from the corrected files. The agreement rule was also made explicit for the first time: a row counts as agreement if the two annotators' domain sets *and* document sets each share at least one value ("any overlap") — 85.7% (60/70) under that rule, or 67.1% (47/70) under a stricter exact-match rule (both reported below). Every one of the 23 non-exact rows was resolved by taking the **union** of both annotators' answers, not by picking one side — a different, and more mechanical, resolution than the original 3-dispute write-up this section used to contain.
+- **§6.5's "final numbers" table (70-ticket column) and Figures 5, 11, 12, and 14 (in `TRACK_A_CONCLUSION.md`)** — re-run against the corrected ground truth, using the current, final knowledge-base state (§6.8, unchanged) via `scripts/eval_retrieval_lms_v3.py`. This new script also handles something the corrected ground truth introduced that didn't exist before: 12 of the 70 rows now name more than one domain (e.g. `billing,hr`), because union-resolving a disputed row can combine two different domains. `retrieve_context()` only ever accepts one domain per call, so for these rows the script queries every named domain separately and keeps the best-scoring 4 results overall — the same "query each domain, then combine" pattern the real pipeline already uses for `both_specialists` (technical+billing), generalized to whatever domain combination the ground truth names. See the new script's docstring for the full reasoning, including a routing-coverage gap this surfaced (§8).
+- **§1, §3, §6.1–§6.8's own historical narrative and numbers, and Figures 6–10** are **not** re-verified against the corrected ground truth and are left as they were. Those sections describe a sequence of KB-development decisions (stale-content cleanup, threshold tuning, five rounds of wording changes) that were each tested against *some* ground truth at the time and already produced the current, final KB content — re-deriving each historical step against the corrected ground truth would mean deliberately reverting the KB to old, superseded states (old threshold, old wording, stale index content) just to re-measure them, which was explicitly not what this correction is for. The qualitative reasoning in those sections (why stale content hurts, why the threshold was set to 0.70, why certain wording rounds helped or hurt) does not depend on the exact ground truth used and still holds; only sections re-run against the *current* system, listed above, carry the corrected numbers.
+- **`results/v2_*` files are left in place, unmodified**, as the historical record of what was reported before this correction. `results/v3_per_query_results.csv` and `results/v3_summary_metrics.json` are the new, corrected numbers.
+
+**One substantive finding from the correction itself, not just a number update:** the corrected ground truth has *zero* tickets with no relevant document (`n_no_relevant_doc: 0`), versus 2 in the original ground truth — every one of the 70 real tickets now has at least one right answer in the KB. It also surfaced 12 tickets whose correct answer spans more than one domain, 11 of them `billing`+`hr` — a combination today's routing logic has no destination for (only `technical`+`billing`, as `"both"`, exists). That gap is recorded as a new limitation in §8; it's a Track B (routing) finding, not a Track A retrieval defect.
 
 ---
 
 ## 1. Summary
 
-Two people went through 71 real support tickets by hand and independently decided, for each one, which part of Clario's knowledge base should answer it. Their answers matched on **95.7%** of tickets before they even discussed anything — a strong sign the ground truth built from their work is solid.
+Two people went through 71 real support tickets by hand and independently decided, for each one, which part of Clario's knowledge base should answer it. Their answers overlapped on **85.7%** of tickets before they even discussed anything, matching exactly on 67.1% — a reasonable sign the ground truth built from their work is solid. *(See §0: this number was corrected on 2026-09-08 after the originally-used annotator files turned out to be the wrong version.)*
 
 Those hand-made answers were then compared against what Clario's real retrieval system actually returns for the same 70 tickets. The system finds the right answer *somewhere* in its results fairly often (Recall@4 = 63.2%), but rarely puts it in the single top spot the rest of the pipeline actually trusts (Precision@4 = 16.8%). The reason is the same one found in the first baseline test: 40% of everything the system can retrieve from is old content that no longer matches any real knowledge-base file. The new HR knowledge folder, by contrast, is small, clean, and not yet polluted — and it shows: HR tickets got a perfect Recall@4 of 100%.
 
@@ -32,26 +47,21 @@ This is the centrepiece of this track, and it is the strongest kind of evidence 
 2. **Agreement check.** The two answer sheets were compared side by side.
 3. **Comparison against the system.** The agreed answers were then run through the real `retrieve_context()` function, and the system's actual output was checked against what the two people decided by hand.
 
-**Result of step 2 — the agreement rate:**
+**Result of step 2 — the agreement rate** *(corrected — see §0)*:
 
 | | Count | Percent |
 |---|---|---|
-| Both people gave the same answer | 67 of 70 | **95.7%** |
-| The two people disagreed | 3 of 70 | 4.3% |
+| Exact match (same domain set + same document set) | 47 of 70 | 67.1% |
+| Any overlap (domain sets and doc sets each share ≥1 value) | 60 of 70 | **85.7%** |
+| No overlap at all | 10 of 70 | 14.3% |
 
 ![Figure 5 — two-person agreement](figures/05_lms_annotator_agreement.png)
 
-**What this figure shows:** the left panel is the headline number above — how many of the 70 tickets the two people agreed on before talking to each other. The right panel shows *why* the two people so rarely disagreed: their two independent tallies of how many tickets fall into each domain (`billing`, `technical`, `hr`, or "no doc, just escalate it") land within one or two tickets of each other across the board.
+**What this figure shows:** the left panel breaks the 70 tickets into exact matches, partial overlaps, and no-overlap rows — the two narrower categories are what "any overlap" (85.7%) combines. The right panel shows each annotator's independent domain tallies (a multi-domain row counts once per domain it names), which land within a few tickets of each other across the board.
 
-**What to take from it:** a 95.7% agreement rate, reached completely independently, is strong evidence that the domain lines drawn between technical/billing/hr tickets are clear and not a matter of personal judgment — which means the ground truth built from this exercise can be trusted.
+**What to take from it:** an 85.7% any-overlap rate, reached completely independently, is reasonable evidence that the domain lines drawn between technical/billing/hr tickets are broadly clear — though the stricter 67.1% exact-match rate is the more honest number for "the two annotators wrote down literally the same answer," and the gap between the two rates is itself informative: a fair amount of disagreement is about *which additional* domain or document also applies to a ticket, not about the primary one.
 
-**The 3 disagreements, and how each was settled:**
-
-| Ticket | Annotator 1 said | Annotator 2 said | Final answer | Why |
-|---|---|---|---|---|
-| Q039 | `technical` → `login_reset.md` | escalate, no doc | escalate, no doc | The ticket asks *why* an already-fixed account block happened — `login_reset.md` explains how to reset a login, not the cause of a block. Escalating for an explanation is the better fit. |
-| Q053 | `billing` → `refund_status.md` | escalate, no doc | escalate, no doc | The ticket says outright: *"I want this escalated to someone who can actually explain the decision."* The customer is asking for a human, not an article. |
-| Q059 | `billing` → `plan_change.md` | `hr` → `course_issues.md` | `hr` → `course_issues.md` | The ticket is about being enrolled in the wrong course by mistake, not a billing plan change — this matches the HR course-administration document instead. |
+**The 23 non-exact rows were resolved by union, not by picking a side:** rather than adjudicating each disagreement individually (as the original 3-dispute version of this section did), every row that wasn't an exact match has its final `domain` and `relevant_doc_ids` set to the union of both annotators' answers. This is a more mechanical resolution — it treats each annotator as having found a real, additional right answer the other missed, rather than one of them being wrong — and it is why 12 rows in the corrected ground truth now name more than one domain (see §0). The full list of which rows were affected and what each annotator said is in `data/lms_ground_truth_agreement_report.txt`, generated alongside the ground truth by `scripts/rebuild_real_ground_truth.py`.
 
 ### 2.3 What was measured
 
@@ -286,28 +296,30 @@ Everything above used Precision@4 and Recall@4 as the headline pair, because k=4
 
 **A pattern worth understanding, not a problem to hide:** Precision@k gets *smaller* as k grows, on every retrieval system, by definition — with only one correct document to find, spreading it across more slots (k=4) makes it a smaller share of the total than a tighter cutoff (k=1 or k=2) would. Precision@4 is not "worse" than Precision@1 in the sense of a bug; it is answering a stricter question. That is exactly why k=4 stays the headline number in this report: it is not chosen because it is the biggest number, it is chosen because it is the one real deployments actually use. Reporting only Precision@1 and hiding Precision@4 would flatter the system without changing anything about how it actually behaves — so all four are shown here, side by side.
 
-| | 70 real tickets | 99-query baseline |
+**The 70-ticket column below is corrected (§0) — re-run against the rebuilt ground truth, same final KB state as everywhere else in this report.** The 99-query column is untouched; that dataset was never affected by the annotator-CSV mistake.
+
+| | 70 real tickets (corrected) | 99-query baseline |
 |---|---|---|
-| Precision@1 | 75.0% | 64.4% |
-| Precision@2 | 45.6% | 46.6% |
-| Precision@3 | 32.4% | 33.3% |
-| Precision@4 | 25.7% | 25.0% |
-| Recall@1 | 75.0% | 57.6% |
-| Recall@2 | 91.2% | 80.5% |
-| Recall@3 | 97.1% | 86.4% |
-| Recall@4 | 97.1% | 86.4% |
-| F1@1 | 0.750 | 0.599 |
-| F1@4 | 0.406 | 0.382 |
-| MRR | 0.850 | 0.754 |
-| nDCG@4 | 0.881 | 0.775 |
+| Precision@1 | 71.4% | 64.4% |
+| Precision@2 | 48.6% | 46.6% |
+| Precision@3 | 39.5% | 33.3% |
+| Precision@4 | 32.5% | 25.0% |
+| Recall@1 | 54.8% | 57.6% |
+| Recall@2 | 72.4% | 80.5% |
+| Recall@3 | 86.9% | 86.4% |
+| Recall@4 | 89.0% | 86.4% |
+| F1@1 | 0.600 | 0.599 |
+| F1@4 | 0.463 | 0.382 |
+| MRR | 0.831 | 0.754 |
+| nDCG@4 | 0.799 | 0.775 |
 
-(All Precision/Recall/F1 figures here are computed only on queries that have a real answer, so Precision and Recall are directly comparable at each k — this differs slightly from §3.1's "all queries" Precision variant, which is still the correct number for describing raw system behaviour including unanswerable queries. These numbers reflect §6.8, the final knowledge-base state.)
+(All Precision/Recall/F1 figures here are computed only on queries that have a real answer, so Precision and Recall are directly comparable at each k — this differs slightly from §3.1's "all queries" Precision variant, which is still the correct number for describing raw system behaviour including unanswerable queries. The 70-ticket column reflects §6.8's KB content, re-scored against the corrected ground truth via `scripts/eval_retrieval_lms_v3.py`; see §0.)
 
-**Read this table together with §6.4, §6.6, §6.7, and §6.8, not instead of them.** The 70-ticket side's top-1 numbers are close to §6.6's peak (76.5% → 75.0%, a small dip) while its @2/@3 numbers are up. The 99-query side is at its best point anywhere in this report on almost every metric. Both columns are the honest, current, reproducible output of the same system — this table does not pick a favourite between them.
+**Read this table together with §6.4, §6.6, §6.7, and §6.8 for the KB-development story, not for these exact numbers** — those sections' own tables still show the (uncorrected) deltas from when each change was tested, per §0's explanation of what was and wasn't re-run. The corrected numbers change the *shape* of the story a little: Precision@4 is now clearly higher on the 70-ticket set than the 99-query baseline (32.5% vs 25.0%) but Recall@1 and Recall@2 are now slightly *lower* on the 70-ticket set — the corrected ground truth's union-resolved, sometimes multi-document rows make partial credit at small k harder to earn, not easier, since there's more than one document a top-1 or top-2 result would need to match to score at all.
 
 #### Why Precision looks low, in one sentence
 
-Precision@4 counts a hit as "1 correct out of 4 slots" even when the system got it exactly right, because the correct answer is only ever *one* document — the other 3 slots are structurally "wrong" no matter how good the system is. Precision@1 removes that structural penalty: it asks the one question that actually matters to a customer, *"was the system's single best guess correct?"* — and the answer is **75.0% on the 70-ticket set, 64.4% on the 99-query baseline**. That gap between the two datasets is itself the finding of §6.4 — this is not one number, it is two, and they disagree for a real reason.
+Precision@4 counts a hit as "1 correct out of 4 slots" even when the system got it exactly right, because the correct answer is only ever *one* document — the other 3 slots are structurally "wrong" no matter how good the system is. Precision@1 removes that structural penalty: it asks the one question that actually matters to a customer, *"was the system's single best guess correct?"* — and the answer is **71.4% on the 70-ticket set, 64.4% on the 99-query baseline**. The gap between the two datasets is narrower than it looked before this correction, but it still points the same direction as §6.4's finding.
 
 #### Precision or Recall — which one matters more here?
 
@@ -315,24 +327,24 @@ Precision@4 counts a hit as "1 correct out of 4 slots" even when the system got 
 
 **For a presentation, these are the two numbers to lead with — and the honest caveat that has to travel with them:**
 
-| Metric | 70 real tickets | 99-query baseline | Answers |
+| Metric | 70 real tickets (corrected) | 99-query baseline | Answers |
 |---|---|---|---|
-| **Precision@1** | **75.0%** | 64.4% | Is the system's single best guess actually right? |
-| **Recall@4** | **97.1%** | 86.4% | Is the right answer in the system's results at all? |
+| **Precision@1** | **71.4%** | 64.4% | Is the system's single best guess actually right? |
+| **Recall@4** | **89.0%** | 86.4% | Is the right answer in the system's results at all? |
 
-The 70-ticket numbers are the ones this whole evaluation is built around, and they are genuinely strong. Say them with the one-sentence caveat from §6.4: this KB now reflects direct, personal knowledge of exactly this population of real tickets, and a separately-collected real dataset (the 99-query baseline) scores lower on every one of these same metrics — the honest sign that this specific strength has not yet been shown to generalize beyond the tickets it was built to know.
+The 70-ticket numbers are still the stronger of the two on both headline metrics, but by a smaller margin than before this correction. Say them with the one-sentence caveat from §6.4: this KB reflects direct, personal knowledge of much of this real-ticket population, and a separately-collected real dataset (the 99-query baseline) scores a bit lower on Precision@1 — the honest sign that some of this strength has not yet been shown to generalize beyond the tickets it was built to know, though the gap is now modest rather than dramatic.
 
-![Figure 11 — Precision and Recall at each cutoff, final system](figures/11_final_precision_recall_by_k.png)
+![Figure 11 — Precision and Recall at each cutoff, final system (corrected)](figures/11_final_precision_recall_by_k.png)
 
-**What this figure shows:** Precision@k (left) and Recall@k (right) at k=1, 2, 3, and 4, for both datasets side by side, using the current, final knowledge-base content (§6.4).
+**What this figure shows:** Precision@k (left) and Recall@k (right) at k=1, 2, 3, and 4, for both datasets side by side, using the current, final knowledge-base content (§6.4) and, on the 70-ticket side, the corrected ground truth (§0).
 
-**What to take from it:** the Precision bars shrink and the Recall bars grow as k increases on both datasets — that part of the shape is the expected mathematical relationship, not noise. What is *not* the usual shape here is the gap between the two datasets' bars, which is now wider than anywhere else in this report, and runs in the 70-ticket set's favour at every single k. That gap is §6.4's finding, visible directly.
+**What to take from it:** the Precision bars shrink and the Recall bars grow as k increases on both datasets — that part of the shape is the expected mathematical relationship, not noise. Precision now runs in the 70-ticket set's favour at every k, a clearer and more consistent lead than before this correction. Recall tells a mixed story instead: the 70-ticket set is *behind* at k=1 and k=2 (54.8% vs 57.6%, 72.4% vs 80.5%) before pulling ahead at k=3 and k=4. That's a direct consequence of the corrected ground truth's union-resolved rows sometimes naming two correct documents instead of one — a top-1 or top-2 result now has less chance of matching *one specific* document out of two, which lowers Recall at small k without the retrieval system having changed at all.
 
-![Figure 12 — F1, MRR, and nDCG, final system](figures/12_final_f1_mrr_ndcg.png)
+![Figure 12 — F1, MRR, and nDCG, final system (corrected)](figures/12_final_f1_mrr_ndcg.png)
 
-**What this figure shows:** F1@4, MRR, and nDCG@4 for both datasets, using the same final knowledge-base content.
+**What this figure shows:** F1@4, MRR, and nDCG@4 for both datasets, using the same final knowledge-base content and corrected ground truth.
 
-**What to take from it:** every one of these three numbers is higher on the 70-ticket set than on the 99-query baseline, by a clear margin — the same story as Figure 11, told with three different formulas, which is what makes it trustworthy as a pattern rather than a quirk of one metric. This is the final, honest picture of Track A: excellent performance on the exact population of tickets this KB's author knows first-hand, and a real, measured gap on tickets from a different real source.
+**What to take from it:** all three numbers are still higher on the 70-ticket set than on the 99-query baseline, but the margin is narrower than it looked before this correction (MRR: 0.831 vs 0.754; nDCG@4: 0.799 vs 0.775 — closer than the pre-correction 0.881 vs 0.775). This is the corrected, honest picture of Track A: real, measured strength on the tickets this KB's author knows well, and a smaller — but still present — gap on tickets from a different real source than this report previously showed.
 
 ### 6.6 One more legitimate enhancement — and the first wording change to help both datasets at once
 
@@ -407,8 +419,8 @@ Most of this is a genuine improvement on both datasets at once — Precision@1, 
 
 ## 7. What this points to for future work
 
-- The HR domain's early results are worth re-checking once it has more real documents and more real tickets behind it, since 12 tickets and 3 documents is a small sample by design, not by choice.
-- On the 70-ticket set, technical is no longer the weakest domain (Recall@4 = 92.3%, up from 30.8% at the very start) — but this jump lines up with §6.4's finding, so it should be read as "this domain's documents now closely match this specific known ticket population," not as a generalizable fix on its own, until it is re-checked against tickets the KB author has not personally seen.
+- The HR domain's early results are worth re-checking once it has more real documents and more real tickets behind it, since 24 tickets (per the corrected ground truth, §0) and 3 documents is still a small sample by design, not by choice.
+- On the 70-ticket set (corrected ground truth, §0), technical is no longer the weakest domain (Recall@4 = 86.4%, up from 30.8% at the very start) — but this jump lines up with §6.4's finding, so it should be read as "this domain's documents now closely match this specific known ticket population," not as a generalizable fix on its own, until it is re-checked against tickets the KB author has not personally seen.
 - A smarter relevance check — one that looks at the *gap* between the top result and the next-best one, not just the top score alone — is worth exploring, since raw similarity scores alone were shown here to have a real ceiling.
 
 ### 7.1 Two more ideas tried, and reverted, for completeness
@@ -424,10 +436,10 @@ The pattern across both attempts is consistent: this system, on this KB and this
 
 ## 8. Limitations
 
-- Three of the 70 ground-truth rows (4.3%) were disagreements between the two annotators, resolved by a third review rather than by the two annotators discussing it together directly. Each resolution and its reasoning is documented in §2.2 and in the `notes` column of `data/lms_ticket_ground_truth.csv`.
-- The HR domain's strong results come from only 12 tickets and 3 knowledge-base documents — a real result, but a small one, and not yet a stress test.
-- This ground truth does not include any ticket that should route to `"both"` specialists or to plain no-signal escalation, so those two routing outcomes remain untested by this dataset (this matters for Track B, not Track A).
-- The new 0.70 threshold (§6) was chosen using the only two datasets available, both of which are also used to report results — there was no third, fully held-out set to confirm it on. Checking it against two independently-built datasets that agree is meaningfully stronger evidence than tuning on one, but it is not the same guarantee as testing on data nobody has looked at yet.
+- 23 of the 70 ground-truth rows (32.9%) were not an exact match between the two annotators and were resolved by taking the **union** of both answers, not by a third adjudicating review (see §0 and §2.2 — this replaces the original 3-dispute, individually-adjudicated version of this ground truth). A mechanical union resolution is easier to apply consistently across 23 rows than individual adjudication would have been, but it also means the ground truth may credit a query with more correct documents than a genuinely optimal, single "best" answer would — this is a real trade-off of the resolution method, not a hidden flaw.
+- The HR domain's results now come from 24 tickets and 3 knowledge-base documents (up from 12 tickets in the pre-correction ground truth, since union-resolving disputed rows added `hr` to several rows that previously named only `billing`) — still a small document set, and not yet a stress test.
+- The corrected ground truth does include one ticket (Q036) that spans `technical`+`billing`, matching the real `"both"` routing destination — but 11 tickets span `billing`+`hr`, a combination the current `routing_decision` enum has no destination for at all (only `technical`+`billing` exists as `"both"`). This dataset can measure whether *retrieval* would work across that domain pair (§0), but it cannot measure whether these tickets are actually *routed* anywhere that retrieves both — that gap is a Track B (routing) finding this correction surfaced, not a Track A retrieval defect. Plain no-signal escalation is still untested by this dataset.
+- The new 0.70 threshold (§6) was chosen using the only two datasets available at the time, both of which are also used to report results — there was no third, fully held-out set to confirm it on, and it has not been re-tuned against the corrected ground truth. Checking it against two independently-built datasets that agreed was meaningfully stronger evidence than tuning on one, but it is not the same guarantee as testing on data nobody has looked at yet.
 
 ---
 
@@ -435,18 +447,22 @@ The pattern across both attempts is consistent: this system, on this KB and this
 
 | File | Contents |
 |---|---|
-| `data/lms_ticket_ground_truth.csv` | Final 70-row ground truth: query text, domain, correct document(s), and notes on the 3 resolved disagreements |
-| `results/v2_per_query_results.csv` | Every ticket's system output and score, one row per ticket — **reflects the system after all of §6's changes, through §6.8** (the script was re-run in place after each change, so this file no longer matches §3's pre-fix numbers; §3's and §6's numbers are preserved in this report's tables) |
+| `data/lms_ticket_ground_truth.csv` | **Corrected (§0)** final 70-row ground truth: query text, domain(s), correct document(s) (some rows now multi-domain/multi-doc, union-resolved), and notes on the 23 union-resolved rows |
+| `data/lms_ground_truth_agreement_report.txt` | **New (§0).** Exact-match and any-overlap agreement rates, every formatting/typo correction applied, and the full list of union-resolved rows with both annotators' original answers |
+| `scripts/rebuild_real_ground_truth.py` | **New (§0).** Rebuilds the ground truth above from the two corrected annotator CSVs |
+| `results/v2_per_query_results.csv`, `results/v2_summary_metrics.json` | **Superseded, kept as historical record (§0).** The original run, against the wrong annotator-CSV version — reflects the system after all of §6's changes, through §6.8, but scored against ground truth that was later found to be wrong |
+| `scripts/eval_retrieval_lms_v3.py` | **New (§0).** Re-scores the current (§6.8) system against the corrected ground truth, including multi-domain rows |
+| `results/v3_per_query_results.csv`, `results/v3_summary_metrics.json` | **New (§0).** The corrected numbers — same final KB state as `v2`, scored against the corrected ground truth. These are the numbers in §6.5's final table |
 | `ml_finetuning/data/real_responses/real_lms_platform_reviews.csv` | 54 real Trustpilot reviews (Udemy, Coursera, Skillshare, Pluralsight), company replies included where Trustpilot showed one — source data behind §6.7 and §6.8 |
-| `results/v2_summary_metrics.json` | Summary numbers matching the current `v2_per_query_results.csv` — i.e., the fully-updated state, not §3 |
-| `figures/05_lms_annotator_agreement.png` | Figure 5 |
-| `figures/06_lms_headline_metrics.png` | Figure 6 |
-| `figures/07_lms_domain_breakdown.png` | Figure 7 |
-| `figures/08_lms_relevance_gate.png` | Figure 8 |
-| `figures/09_lms_vector_store_composition.png` | Figure 9 (post-cleanup) |
-| `figures/10_lms_before_after_fix.png` | Figure 10 |
-| `figures/11_final_precision_recall_by_k.png` | Figure 11 — final Precision@k / Recall@k (§6.2) |
-| `figures/12_final_f1_mrr_ndcg.png` | Figure 12 — final F1@4 / MRR / nDCG@4 (§6.2) |
+| `figures/05_lms_annotator_agreement.png` | Figure 5 — **regenerated (§0)** from the corrected agreement numbers |
+| `figures/06_lms_headline_metrics.png` | Figure 6 (historical pre-fix snapshot, not re-verified — see §0) |
+| `figures/07_lms_domain_breakdown.png` | Figure 7 (historical pre-fix snapshot, not re-verified — see §0) |
+| `figures/08_lms_relevance_gate.png` | Figure 8 (historical pre-fix snapshot, not re-verified — see §0) |
+| `figures/09_lms_vector_store_composition.png` | Figure 9 (post-cleanup; not ground-truth-dependent, unaffected by §0) |
+| `figures/10_lms_before_after_fix.png` | Figure 10 (historical threshold-tuning snapshot, not re-verified — see §0) |
+| `figures/11_final_precision_recall_by_k.png` | Figure 11 — final Precision@k / Recall@k, **regenerated (§0)** from `v3_summary_metrics.json` |
+| `figures/12_final_f1_mrr_ndcg.png` | Figure 12 — final F1@4 / MRR / nDCG@4, **regenerated (§0)** from `v3_summary_metrics.json` |
+| `scripts/make_figures_lms_v3.py` | **New (§0).** Regenerates exactly Figures 5, 11, and 12 from the corrected data |
 
 Every figure in this report (and in `TEST_REPORT_V1.md`) now carries a "What to say in an interview" caption directly on the image, in plain English, so the chart is presentable on its own without needing this document open alongside it.
 

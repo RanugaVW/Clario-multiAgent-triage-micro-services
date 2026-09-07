@@ -116,16 +116,12 @@ that didn't match any file that still exists in the project.
 through was old, leftover content that shouldn't have still been there."*
 
 ### Figure 5 — `05_lms_annotator_agreement.png`
-**From:** the real-ticket test — this is about the *ground truth itself*, not the system.
-**What it shows:** *(left)* how often two people, working separately, agreed on the
-right answer for each of 70 real tickets, before discussing anything. *(right)* their
-two independent tallies of how many tickets fall into each topic area.
-**Plain English:** two people agreed on 95.7% of tickets without talking to each other
-first — a strong sign the "correct answers" used for the rest of this test are solid,
-not guesswork.
+**From:** the real-ticket test — this is about the *ground truth itself*, not the system. **Corrected 2026-09-08** — see `TEST_REPORT_V2.md` §0.
+**What it shows:** *(left)* how often two people, working separately, landed on an exact match, a partial overlap, or no overlap for each of 70 real tickets, before discussing anything. *(right)* their two independent tallies of how many tickets fall into each topic area.
+**Plain English:** two people's answers matched exactly on 67.1% of tickets, and shared at least some overlap on 85.7% — the other 23 were resolved by combining (union) both answers rather than picking one.
 **Say this in your presentation:** *"Two of us independently labelled all 70 tickets by
-hand, and agreed on 95.7% of them before comparing notes — so we trust this ground
-truth."*
+hand. Domain and document overlapped on 85.7% of them before comparing notes; the rest
+we resolved by taking the union of both answers."*
 
 ### Figure 6 — `06_lms_headline_metrics.png`
 **From:** the real-ticket test, **before any fix**.
@@ -179,19 +175,19 @@ it's real and not a fluke."*
 
 ### Figure 11 — `11_final_precision_recall_by_k.png`
 **From:** the current, final system (every fix in this report applied) — read live from
-the results files, not hardcoded.
+the results files, not hardcoded. **70-ticket numbers corrected 2026-09-08** — see `TEST_REPORT_V2.md` §0.
 **What it shows:** Precision@k and Recall@k at k=1, 2, 3, and 4, for both datasets side
 by side.
 **Plain English:** Precision shrinks and Recall grows as k increases on both datasets —
-that part is expected. What's *not* the usual shape is how much wider the gap between the
-two datasets is here than anywhere else in this report, and it runs the 70-ticket set's
-way at every single k.
+that part is expected. Precision now runs the 70-ticket set's way at every k. Recall is
+mixed: the 70-ticket set is slightly *behind* at k=1/k=2 (some corrected ground-truth rows
+now name two correct documents, which is harder to match with only 1-2 guesses) before
+pulling ahead at k=3/k=4.
 **Say this in your presentation:** *"We report Precision from 1 through 4 — not just the
 one that looks best — and we still lead with @4 because that's the number our system
-actually uses in production. If you only need two numbers: Precision@1 (75.0% / 61.0%)
-is 'was our top pick right,' and Recall@4 (97.1% / 88.1%) is 'is the right answer in
-there at all' — on the 70-ticket set and the 99-query baseline respectively. The gap
-between those two columns matters as much as the numbers themselves."*
+actually uses in production. If you only need two numbers: Precision@1 (71.4% / 64.4%)
+is 'was our top pick right,' and Recall@4 (89.0% / 86.4%) is 'is the right answer in
+there at all' — on the 70-ticket set and the 99-query baseline respectively."*
 
 **Why Precision looks low, and why Recall matters more here (a question worth having a
 real answer to, not just a chart for):** Precision@4 always looks worse than Precision@1,
@@ -201,24 +197,22 @@ metrics, Recall is the one to protect first: if the right document isn't retriev
 all, nothing downstream can fix that; if it's retrieved but ranked 3rd instead of 1st, a
 later step still has a chance to catch it. Recall@4 tells you the ceiling (findable
 almost all the time); Precision@1 tells you how often the system reaches that ceiling on
-the first try. **The honest part:** both are excellent on the 70-ticket set (75.0% /
-97.1%) because the KB was written from direct personal knowledge of exactly this ticket
-population — and both are meaningfully lower on the 99-query baseline (61.0% / 88.1%), a
-separate real dataset the KB author didn't personally describe from memory. That gap is
-the real measure of how much of the 70-ticket result is general improvement versus
-knowing those specific tickets well.
+the first try. **The honest part:** both are still a bit stronger on the 70-ticket set
+(71.4% / 89.0%) than the 99-query baseline (64.4% / 86.4%), because part of the KB was
+written from direct personal knowledge of this ticket population — but the gap is modest
+now, not dramatic, since the correction. That gap is the real measure of how much of the
+70-ticket result is general improvement versus knowing those specific tickets well.
 
 ### Figure 12 — `12_final_f1_mrr_ndcg.png`
-**From:** the current, final system, same live data as Figure 11.
+**From:** the current, final system, same live data as Figure 11. **Corrected 2026-09-08.**
 **What it shows:** F1@4, MRR, and nDCG@4, for both datasets.
 **Plain English:** three different ways of scoring "how good is the ranking" — all three
-land higher on the 70-ticket set than on the 99-query baseline, by a clear margin, every
-time.
+still land a bit higher on the 70-ticket set than on the 99-query baseline, though the
+margin is narrower than it looked before the correction.
 **Say this in your presentation:** *"F1 blends Precision and Recall so neither one can be
-cherry-picked. All three metrics — F1, MRR, and nDCG — agree that the 70-ticket set scores
-higher than the 99-query baseline. That agreement is what makes the gap trustworthy as a
-real pattern: this KB fits its known tickets very well, and we're reporting honestly that
-this specific strength hasn't yet been shown to generalize beyond them."*
+cherry-picked. F1, MRR, and nDCG all still favor the 70-ticket set, by a modest margin —
+we're reporting honestly that this specific strength hasn't yet been shown to generalize
+much beyond the tickets the KB was built to know."*
 
 ---
 

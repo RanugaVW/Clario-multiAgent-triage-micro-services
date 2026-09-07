@@ -1,24 +1,29 @@
-"""Track A retrieval evaluation on the 70-ticket LMS support-ticket ground
-truth (data/lms_ticket_ground_truth.csv).
+"""Track A retrieval evaluation, V3: re-run of eval_retrieval_lms.py against
+the CORRECTED ground truth (data/lms_ticket_ground_truth.csv, rebuilt by
+rebuild_real_ground_truth.py from the two annotators' fixed CSVs).
 
-Unlike the original V1 evaluation (eval_retrieval.py, run against a
-99-query set built partly from real tickets and partly hand-written), this
-ground truth was built by two people independently classifying every real
-ticket in `CSV Files/lms_support_tickets Real - Support Tickets.csv`, then
-comparing their answers (95.7% agreement before discussion; the 3
-disagreements are documented in the `notes` column of the ground-truth
-CSV). No domain substitution is needed here: retrieve_context() now
-accepts "hr" directly (the HR agent was added after the V1 evaluation),
-and every relevant_doc_id in this ground truth already carries its
-domain prefix (e.g. "hr/course_issues.md"), matching the real ChromaDB
-metadata format exactly.
+Only two things differ from eval_retrieval_lms.py (V2):
 
-SUPERSEDED (2026-09-08): the annotator files this ground truth was built
-from turned out to be the wrong version. This script and its v2_* outputs
-are kept as the historical record of what was reported before that was
-caught - see TEST_REPORT_V2.md §0 for the full explanation. The corrected
-re-run is eval_retrieval_lms_v3.py, against a rebuilt data/lms_ticket_
-ground_truth.csv (scripts/rebuild_real_ground_truth.py).
+1. The ground truth this reads is the corrected one - V2's original ground
+   truth was built from the wrong version of the annotator CSVs.
+2. Some ground-truth rows now carry more than one domain (e.g. "billing,hr"),
+   because disputed rows are resolved by UNION rather than picking one
+   annotator - see rebuild_real_ground_truth.py's docstring. retrieve_context()
+   only accepts a single domain per call (mirrors how the real pipeline's
+   "both_specialists" node runs technical_agent then billing_agent
+   sequentially for tech+billing tickets - see graph_builder.py), so for a
+   multi-domain row this script calls retrieve_context() once per domain,
+   merges every returned match, and keeps the top K by score - the same
+   "combine per-domain results" pattern the real pipeline already uses for
+   "both", just generalized to whatever domain combination the ground truth
+   names. This is a fair test of retrieval, but it does surface a real
+   routing-coverage gap: today's routing_decision enum has no destination
+   for e.g. "billing+hr" - only "both" (tech+billing) exists - so a few of
+   these tickets could never actually reach this combined retrieval in
+   production as currently routed. That gap is a Track B finding, not a
+   Track A retrieval defect, and is reported as a limitation, not fixed here.
+
+Metric formulas are otherwise identical to eval_retrieval_lms.py.
 """
 
 from __future__ import annotations
@@ -56,7 +61,20 @@ def relevant_set(cell: str) -> set[str]:
     return {_basename(x) for x in cell.split(";") if x.strip()}
 
 
-# --- Metric formulas (identical to eval_retrieval.py) -----------------------
+def retrieve_multi_domain(query: str, domain_cell: str, k: int) -> list[dict]:
+    """Query every domain named in a (possibly multi-domain) ground-truth
+    cell and merge the results, keeping the best-scoring K overall."""
+    domains = [d.strip() for d in domain_cell.split(",") if d.strip()]
+    best: dict[str, dict] = {}
+    for dom in domains:
+        for m in retrieve_context(query, dom, k=k):
+            sf = m["source_file"]
+            if sf not in best or m["score"] > best[sf]["score"]:
+                best[sf] = m
+    return sorted(best.values(), key=lambda m: m["score"], reverse=True)[:k]
+
+
+# --- Metric formulas (identical to eval_retrieval_lms.py) -------------------
 
 def precision_at_k(ranked_sources: list[str], relevant: set[str], k: int) -> float:
     top = ranked_sources[:k]
@@ -94,8 +112,6 @@ def ndcg_at_k(ranked_sources: list[str], relevant: set[str], k: int) -> float | 
 
 
 def f1_at_k(precision: float | None, recall: float | None) -> float | None:
-    """F1@k = harmonic mean of Precision@k and Recall@k. Undefined when
-    Recall@k is undefined (no relevant doc exists); 0 when both are 0."""
     if precision is None or recall is None:
         return None
     if precision + recall == 0:
@@ -113,10 +129,10 @@ def main() -> None:
     results = []
 
     for row in rows:
-        domain = row["domain"].strip().lower()
+        domain_cell = row["domain"].strip().lower()
         relevant = relevant_set(row["relevant_doc_ids"])
 
-        matches = retrieve_context(row["query_text"], domain, k=K)
+        matches = retrieve_multi_domain(row["query_text"], domain_cell, K)
         ranked_sources = [m["source_file"] for m in matches]
         ranked_basenames = [_basename(s) for s in ranked_sources]
         gate_pass = check_relevance(matches)
@@ -128,7 +144,7 @@ def main() -> None:
 
         results.append({
             "query_id": row["query_id"],
-            "domain": domain,
+            "domain": domain_cell,
             "has_relevant_doc": bool(relevant),
             "relevant_doc_ids": ";".join(sorted(relevant)) if relevant else "none",
             "retrieved_top4": ";".join(ranked_sources),
@@ -152,12 +168,12 @@ def main() -> None:
         results[-1]["f1_at_2"] = f1_at_k(results[-1]["precision_at_2"], results[-1]["recall_at_2"])
         results[-1]["f1_at_3"] = f1_at_k(results[-1]["precision_at_3"], results[-1]["recall_at_3"])
         results[-1]["f1_at_4"] = f1_at_k(results[-1]["precision_at_4"], results[-1]["recall_at_4"])
-        print(f"{row['query_id']}: domain={domain} "
+        print(f"{row['query_id']}: domain={domain_cell} "
               f"gt={results[-1]['relevant_doc_ids']} top4={results[-1]['retrieved_top4']} "
               f"gate={gate_pass} P@4={results[-1]['precision_at_4']:.2f}")
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    with open(RESULTS_DIR / "v2_per_query_results.csv", "w", newline="", encoding="utf-8") as f:
+    with open(RESULTS_DIR / "v3_per_query_results.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(results[0].keys()))
         writer.writeheader()
         writer.writerows(results)
@@ -210,7 +226,9 @@ def main() -> None:
 
     by_domain = {}
     for dom in ("technical", "billing", "hr"):
-        subset = [r for r in results if r["domain"] == dom]
+        # A multi-domain row (e.g. "billing,hr") counts toward every domain
+        # it names, since it's a legitimate ground-truth answer for each.
+        subset = [r for r in results if dom in r["domain"].split(",")]
         subset_rel = [r for r in subset if r["has_relevant_doc"]]
         by_domain[dom] = {
             "n": len(subset),
@@ -221,9 +239,10 @@ def main() -> None:
             "mrr": avg([r["reciprocal_rank"] for r in subset_rel]),
         }
     summary["by_domain"] = by_domain
+    summary["n_multi_domain_rows"] = sum(1 for r in results if "," in r["domain"])
 
     print(json.dumps(summary, indent=2))
-    with open(RESULTS_DIR / "v2_summary_metrics.json", "w", encoding="utf-8") as f:
+    with open(RESULTS_DIR / "v3_summary_metrics.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
 
