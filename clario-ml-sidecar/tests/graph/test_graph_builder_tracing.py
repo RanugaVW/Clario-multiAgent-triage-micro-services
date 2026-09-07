@@ -17,7 +17,12 @@ def test_build_graph_wraps_every_node_with_trace_node(monkeypatch) -> None:
 
     expected = {
         "cache_check", "surrogate", "analyzer", "classification", "routing",
-        "technical_agent", "billing_agent", "both_specialists", "validation",
+        "technical_agent", "billing_agent", "both_specialists", "hr_agent", "validation",
         "reflection", "response_judge", "escalation", "handoff", "resolve",
     }
     assert expected.issubset(set(wrapped_names))
+
+
+def test_specialist_target_routes_hr_to_hr_agent() -> None:
+    from app.graph.graph_builder import _specialist_target
+    assert _specialist_target({"routing_decision": "hr"}) == "hr_agent"

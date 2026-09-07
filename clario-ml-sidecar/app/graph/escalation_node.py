@@ -45,6 +45,8 @@ def decide_escalation(
     # nothing in it. Found live via the admin console on a real ticket.
     if routing_decision == "escalation":
         reasons.append("no_usable_routing_signal")
+    if routing_decision == "hr":
+        reasons.append("hr_process_required")
     if routing_decision == "both" and confidence is not None and confidence < 0.6:
         reasons.append("low_confidence_dual_domain")
     if failure_type == "dependency_failure":

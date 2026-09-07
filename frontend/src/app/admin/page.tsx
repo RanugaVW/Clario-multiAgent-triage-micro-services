@@ -84,6 +84,13 @@ type Resolution = {
   ticket_id: string;
 };
 
+type HumanReview = {
+  id: string;
+  ticket_id: string;
+  notes: string | null;
+  decision: string;
+};
+
 type EvaluationScoreOverride = {
   id: string;
   evaluation_id: string;
@@ -135,6 +142,7 @@ export type Ticket = {
   ticket_drafts: TicketDraft[];
   ticket_classifications: TicketClassification[];
   resolutions: Resolution[];
+  human_reviews: HumanReview[];
   response_evaluations: ResponseEvaluation[];
   // ticket_id carries a UNIQUE constraint, so PostgREST embeds this as a
   // to-one relation (a bare object or null) rather than an array.
@@ -730,6 +738,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   const escalationReasons: string[] = allResolutions
     .flatMap(r => (Array.isArray(r.escalation_reasons) ? r.escalation_reasons : []))
     .map(r => String(r));
+  const humanReviewNotes = (fullData?.human_reviews || ticket.human_reviews || [])[0]?.notes || null;
 
   // Lazy initializer (not a synchronous setState-in-effect) so the "open
   // for" clock shows a correct value immediately on the client, while still
@@ -756,6 +765,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
       resolutions (*),
       response_evaluations (*, evaluation_score_overrides (*)),
       customer_feedback (*),
+      human_reviews (*),
       users:user_id ( email )
     `).eq('id', ticket.id).single();
     const typedData = data as Ticket | null;
@@ -958,6 +968,13 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                     </span>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {humanReviewNotes && (
+              <div className="mt-4 pt-3 border-t border-white/10">
+                <span className="text-xs text-[#FB923C] block mb-2">Why this needs review</span>
+                <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">{humanReviewNotes}</p>
               </div>
             )}
           </div>

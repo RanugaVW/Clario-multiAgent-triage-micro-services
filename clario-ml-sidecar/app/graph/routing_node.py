@@ -9,6 +9,31 @@ TECHNICAL_KEYWORDS = {
     "locked out": 3, "authenticate": 3, "2fa": 3, "verification code": 2,
 }
 BILLING_KEYWORDS = {"payment": 3, "charged": 3, "bank": 2, "refund": 3, "billed": 3, "buying": 2, "billing": 3}
+# Specific enough that a single hit justifies HR routing even against
+# ordinary billing wording - see decide_routing()'s comment for why these
+# don't need to out-score billing_score. "webxpay" is deliberately absent
+# from both HR dicts below: it's the payment gateway's own name and
+# appears throughout ordinary billing tickets (payment failures, duplicate
+# charges, pending transactions) that have nothing to do with HR - keeping
+# it as an HR signal produced false positives on those real tickets.
+HR_HARD_TRIGGER_KEYWORDS = {"bank slip": 3, "medical": 3, "parental consent": 3, "instructor": 3}
+
+# Ambiguous enough that they keep the original strict-maximum-over-
+# everything requirement - e.g. "sponsorship" legitimately appears in
+# ordinary corporate-billing tickets (a company paying for a course) with
+# no HR involvement needed, so it must not win against real billing signal.
+HR_WEAK_SIGNAL_KEYWORDS = {
+    "sponsorship": 2, "wrong account": 2, "misclassified": 2, "linked to the wrong": 2,
+}
+
+
+def has_hr_hard_trigger(text: str) -> bool:
+    """True if `text` contains any HR hard-trigger phrase (medical
+    emergency, parental consent, a bank slip, an instructor change) - used
+    by cache_check_node to refuse a cache-hit short-circuit for tickets
+    that need mandatory human review, even when a semantically-similar
+    past precedent exists at high similarity."""
+    return _calculate_score(text, HR_HARD_TRIGGER_KEYWORDS) > 0
 
 # "Account" qualifies both ways: account *access* is authentication (technical),
 # account *billing* is billing. Match on the qualifier rather than the bare noun.
@@ -49,6 +74,32 @@ def decide_routing(category: str | None, confidence: float | None, text: str) ->
 
     tech_score = _calculate_score(text, TECHNICAL_KEYWORDS)
     billing_score = _calculate_score(text, BILLING_KEYWORDS)
+    hr_hard_score = _calculate_score(text, HR_HARD_TRIGGER_KEYWORDS)
+    hr_weak_score = _calculate_score(text, HR_WEAK_SIGNAL_KEYWORDS)
+
+    # Hard-trigger HR phrases (medical emergency, parental consent, a bank
+    # slip, an instructor change) are specific enough that a single hit
+    # should route to HR even when the ticket ALSO carries ordinary billing
+    # wording ("refund", "payment") - these tickets are billing-adjacent by
+    # nature, so requiring them to out-score billing_score (which stacks
+    # across multiple ordinary keywords, e.g. "refund"+"payment"=6) made
+    # the HR path nearly unreachable in practice: verified empirically, 7
+    # of 10 realistic HR tickets misrouted to billing under the old
+    # must-beat-everything rule. Still compared against tech_score, so a
+    # ticket that is overwhelmingly technical with one incidental
+    # hard-trigger word isn't misrouted.
+    if hr_hard_score > 0 and hr_hard_score >= tech_score:
+        return "hr"
+
+    # Weak-signal HR phrases (sponsorship, account-linkage wording) are
+    # genuinely ambiguous and DO appear in ordinary billing tickets (e.g.
+    # "the course was paid for by his employer as a sponsorship" is a
+    # routine corporate-billing case, not an HR escalation) - these keep
+    # the original, stricter requirement: must be the strict maximum over
+    # both other scores, so an ordinary billing ticket that merely mentions
+    # one of these words isn't misrouted to HR.
+    if hr_weak_score > 0 and hr_weak_score > tech_score and hr_weak_score > billing_score:
+        return "hr"
 
     # The ticket text itself carries real signal for both domains (e.g. "payment
     # failed" - technical failure wording plus billing wording) - this overrides
