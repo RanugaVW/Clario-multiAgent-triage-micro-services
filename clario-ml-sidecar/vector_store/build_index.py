@@ -53,6 +53,20 @@ def build_index() -> int:
     collection = client.get_or_create_collection(
         COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
     )
+
+    # upsert() only adds/updates the ids produced by this run - it never
+    # deletes one. If a KB doc shrinks and now produces fewer chunks than
+    # it used to (e.g. it drops back under the chunking boundary), its old,
+    # larger-revision chunk would otherwise stay in the index forever under
+    # the same source_file as its replacement. Scoped to source_files this
+    # run actually manages, so it can never touch precedent_memory (written
+    # by a different process entirely).
+    current_sources = sorted(set(sources))
+    existing_ids = set(collection.get(where={"source_file": {"$in": current_sources}}, include=[])["ids"])
+    stale_ids = existing_ids - set(ids)
+    if stale_ids:
+        collection.delete(ids=list(stale_ids))
+
     collection.upsert(
         ids=ids,
         documents=list(texts),

@@ -128,7 +128,7 @@ def check_relevance(retrieved_context: list[dict], threshold: float | None = Non
     """Return whether the top match meets the configured similarity threshold."""
     if not retrieved_context:
         return False
-    score_threshold = threshold if threshold is not None else float(os.getenv("RAG_SCORE_THRESHOLD", "0.3"))
+    score_threshold = threshold if threshold is not None else float(os.getenv("RAG_SCORE_THRESHOLD", "0.70"))
     return float(retrieved_context[0].get("score", 0.0)) >= score_threshold
 
 
