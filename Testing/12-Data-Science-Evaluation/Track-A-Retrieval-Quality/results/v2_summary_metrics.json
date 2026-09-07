@@ -1,0 +1,62 @@
+{
+  "k": 4,
+  "n_total": 70,
+  "n_with_relevant_doc": 68,
+  "n_no_relevant_doc": 2,
+  "precision_at_1_all": 0.7285714285714285,
+  "precision_at_2_all": 0.44285714285714284,
+  "precision_at_3_all": 0.3142857142857143,
+  "precision_at_4_all": 0.25,
+  "precision_at_1_with_relevant_only": 0.75,
+  "precision_at_2_with_relevant_only": 0.45588235294117646,
+  "precision_at_3_with_relevant_only": 0.3235294117647059,
+  "precision_at_4_with_relevant_only": 0.25735294117647056,
+  "recall_at_1": 0.75,
+  "recall_at_2": 0.9117647058823529,
+  "recall_at_3": 0.9705882352941176,
+  "recall_at_4": 0.9705882352941176,
+  "f1_at_1": 0.75,
+  "f1_at_2": 0.6078431372549019,
+  "f1_at_3": 0.4852941176470588,
+  "f1_at_4": 0.40588235294117647,
+  "mrr": 0.8504901960784315,
+  "ndcg_at_4": 0.8814739307247946,
+  "gate_false_positive_rate_on_no_relevant_docs": 1.0,
+  "gate_confusion_matrix": {
+    "tp": 37,
+    "fp": 6,
+    "fn": 14,
+    "tn": 13
+  },
+  "gate_accuracy": 0.7142857142857143,
+  "gate_precision": 0.8604651162790697,
+  "gate_recall": 0.7254901960784313,
+  "avg_stale_or_unknown_hits_per_query": 0.0,
+  "pct_of_all_retrieved_slots_that_are_stale_or_unknown": 0.0,
+  "by_domain": {
+    "technical": {
+      "n": 27,
+      "n_with_relevant_doc": 26,
+      "precision_at_4_all": 0.2222222222222222,
+      "recall_at_4": 0.9230769230769231,
+      "f1_at_4": 0.3692307692307693,
+      "mrr": 0.8076923076923077
+    },
+    "billing": {
+      "n": 31,
+      "n_with_relevant_doc": 30,
+      "precision_at_4_all": 0.24193548387096775,
+      "recall_at_4": 1.0,
+      "f1_at_4": 0.4,
+      "mrr": 0.8777777777777778
+    },
+    "hr": {
+      "n": 12,
+      "n_with_relevant_doc": 12,
+      "precision_at_4_all": 0.3333333333333333,
+      "recall_at_4": 1.0,
+      "f1_at_4": 0.5,
+      "mrr": 0.875
+    }
+  }
+}
