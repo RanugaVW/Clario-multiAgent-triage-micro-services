@@ -7,3 +7,5 @@ coverage
 npm-debug.log*
 tests
 *.md
+e2e
+playwright.config.ts
