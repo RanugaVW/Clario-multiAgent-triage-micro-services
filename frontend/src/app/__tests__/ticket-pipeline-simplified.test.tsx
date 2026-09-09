@@ -50,12 +50,20 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: mockUser,
       role: 'user',
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -88,7 +96,11 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     const textarea = screen.getByPlaceholderText(/Describe the issue.../i);
     expect(textarea).toBeInTheDocument();
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     expect(submitButton).toBeInTheDocument();
   });
 
@@ -130,12 +142,20 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Test submission');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalled();
+<<<<<<< HEAD
       const call = mockFetch.mock.calls.find((c) => c[0].includes('/api/tickets'));
+=======
+      const call = mockFetch.mock.calls.find((c: any) => c[0].includes('/api/tickets'));
+>>>>>>> origin/add/voice-to-text-service
       expect(call).toBeDefined();
     });
   });
@@ -153,7 +173,11 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Success test');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -174,7 +198,11 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Tracking ID test');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -201,6 +229,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Auth test');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
@@ -210,6 +239,17 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
       );
       expect(call).toBeDefined();
       expect(call![1].headers['Authorization']).toContain('Bearer');
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      const call = mockFetch.mock.calls.find((c: any) =>
+        c[0].includes('/api/tickets') && c[1]?.method === 'POST'
+      );
+      expect(call).toBeDefined();
+      expect(call[1].headers['Authorization']).toContain('Bearer');
+>>>>>>> origin/add/voice-to-text-service
     });
   });
 
@@ -233,6 +273,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, testText);
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
@@ -241,6 +282,16 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
         c[0].includes('/api/tickets') && c[1]?.method === 'POST'
       );
       const payload = JSON.parse(call![1].body);
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      const call = mockFetch.mock.calls.find((c: any) =>
+        c[0].includes('/api/tickets') && c[1]?.method === 'POST'
+      );
+      const payload = JSON.parse(call[1].body);
+>>>>>>> origin/add/voice-to-text-service
       expect(payload.rawText).toBe(testText);
       expect(payload.subject).toBe('Support Ticket');
     });
@@ -266,7 +317,11 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Error test');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -311,7 +366,11 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Copy test');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -319,7 +378,11 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     }, { timeout: 3000 });
 
     // Find and click copy button
+<<<<<<< HEAD
     const copyButton = screen.getByRole('button', { name: /copy id/i });
+=======
+    const copyButton = screen.getByTitle('Copy to clipboard');
+>>>>>>> origin/add/voice-to-text-service
     await user.click(copyButton);
 
     await waitFor(() => {
@@ -347,7 +410,11 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Full workflow test');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     // Step 4: See success
@@ -361,12 +428,20 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
 
   // ==================== Test 13: Admin Navigation ====================
   it('should show admin panel for admin users', async () => {
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: mockUser,
       role: 'admin',
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
 
     render(<DashboardPage />);
 
@@ -381,12 +456,20 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
 
   // ==================== Test 14: Agent Navigation ====================
   it('should show agent workspace for agent users', async () => {
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: mockUser,
       role: 'agent',
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
 
     render(<DashboardPage />);
 
@@ -418,6 +501,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.clear(textarea);
     await user.type(textarea, 'Endpoint test');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
@@ -426,6 +510,16 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
         c[0].includes('/api/tickets') && c[1]?.method === 'POST'
       );
       expect(call![0]).toContain('http://localhost:8080/api/tickets');
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      const call = mockFetch.mock.calls.find((c: any) =>
+        c[0].includes('/api/tickets') && c[1]?.method === 'POST'
+      );
+      expect(call[0]).toContain('http://localhost:8080/api/tickets');
+>>>>>>> origin/add/voice-to-text-service
     });
   });
 });

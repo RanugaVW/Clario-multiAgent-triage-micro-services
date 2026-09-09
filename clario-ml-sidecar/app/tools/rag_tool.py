@@ -45,8 +45,13 @@ def canonicalize_ticket_text(text: str) -> str:
 
 def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
     """Return up to k domain-filtered KB matches with cosine-similarity scores."""
+<<<<<<< HEAD
     if domain not in {"technical", "billing", "hr"}:
         raise ValueError("domain must be 'technical', 'billing', or 'hr'")
+=======
+    if domain not in {"technical", "billing"}:
+        raise ValueError("domain must be 'technical' or 'billing'")
+>>>>>>> origin/add/voice-to-text-service
     breaker = get_breaker("chroma_rag")
     if not breaker.allow_request():
         raise CircuitBreakerOpenError("chroma_rag circuit breaker is open")
@@ -56,6 +61,7 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         matches = []
         embeds = [_embedding_model().encode(query, normalize_embeddings=True).tolist()]
 
+<<<<<<< HEAD
         # Query standard support docs. Excludes precedent_memory: those
         # documents are OTHER customers' full ticket narratives (product
         # names, specific circumstances), and feeding them here means the
@@ -68,12 +74,19 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         # precedent_memory still fully serves its real purpose - exact-match
         # cache-hit reuse in cache_check_node.py, which queries it directly
         # and never calls this function.
+=======
+        # Query standard support docs
+>>>>>>> origin/add/voice-to-text-service
         try:
             collection = client.get_collection(_COLLECTION_NAME)
             result = collection.query(
                 query_embeddings=embeds,
                 n_results=k,
+<<<<<<< HEAD
                 where={"$and": [{"domain": domain}, {"source_file": {"$ne": "precedent_memory"}}]},
+=======
+                where={"domain": domain},
+>>>>>>> origin/add/voice-to-text-service
                 include=["documents", "metadatas", "distances"],
             )
             docs = result.get("documents", [[]])[0] or []
@@ -114,11 +127,14 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         raise
         
     breaker.record_success()
+<<<<<<< HEAD
     # Defense in depth: the where-clause above should already exclude these,
     # but never let a precedent_memory document (another customer's full
     # ticket narrative) reach a generation prompt even if that filter is
     # ever bypassed.
     matches = [match for match in matches if match["source_file"] != "precedent_memory"]
+=======
+>>>>>>> origin/add/voice-to-text-service
     # Sort combined matches by score descending and keep top k
     matches.sort(key=lambda x: x["score"], reverse=True)
     return matches[:k]

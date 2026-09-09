@@ -6,11 +6,15 @@ import re
 from functools import lru_cache
 
 import spacy
+<<<<<<< HEAD
 from faker import Faker
+=======
+>>>>>>> origin/add/voice-to-text-service
 
 EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 PHONE_PATTERN = re.compile(r"(?<!\w)(?:\+?\d[\d .()\-]{7,}\d)(?!\w)")
 CARD_PATTERN = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
+<<<<<<< HEAD
 # Support-ticket self-introductions ("Hi I'm Deshan", "My name is Deshan
 # Athukorarala") are the single most common place a real name appears in
 # this domain, and spaCy's en_core_web_md was confirmed live to sometimes
@@ -66,6 +70,16 @@ def _nlp() -> spacy.language.Language:
         python -m spacy download en_core_web_md
     """
     return spacy.load("en_core_web_md")
+=======
+REGEX_PATTERNS = (("email", EMAIL_PATTERN), ("credit_card", CARD_PATTERN), ("phone", PHONE_PATTERN))
+NER_LABELS = {"PERSON", "GPE", "ORG"}
+
+
+@lru_cache(maxsize=1)
+def _nlp() -> spacy.language.Language:
+    """Load the required spaCy English NER model once per process."""
+    return spacy.load("en_core_web_sm")
+>>>>>>> origin/add/voice-to-text-service
 
 
 def _non_overlapping(spans: list[tuple[int, int, str]]) -> list[tuple[int, int, str]]:
@@ -77,6 +91,7 @@ def _non_overlapping(spans: list[tuple[int, int, str]]) -> list[tuple[int, int, 
     return sorted(selected)
 
 
+<<<<<<< HEAD
 def _detect_spans(text: str) -> list[tuple[int, int, str]]:
     """Find every PII span (regex + spaCy NER + self-intro name pattern),
     longest-and-earliest-wins on overlap."""
@@ -85,6 +100,10 @@ def _detect_spans(text: str) -> list[tuple[int, int, str]]:
     def _inside_a_section_marker(start: int, end: int) -> bool:
         return any(start >= m_start and end <= m_end for m_start, m_end in marker_spans)
 
+=======
+def mask_pii(text: str) -> tuple[str, list[dict]]:
+    """Mask PII and return only PII type and original offsets, never its value."""
+>>>>>>> origin/add/voice-to-text-service
     spans = [
         (match.start(), match.end(), kind)
         for kind, pattern in REGEX_PATTERNS
@@ -93,6 +112,7 @@ def _detect_spans(text: str) -> list[tuple[int, int, str]]:
     spans.extend(
         (entity.start_char, entity.end_char, entity.label_.lower())
         for entity in _nlp()(text).ents
+<<<<<<< HEAD
         if entity.label_ in NER_LABELS and not _inside_a_section_marker(entity.start_char, entity.end_char)
     )
     spans.extend(
@@ -109,6 +129,11 @@ def _detect_spans(text: str) -> list[tuple[int, int, str]]:
 def mask_pii(text: str) -> tuple[str, list[dict]]:
     """Mask PII and return only PII type and original offsets, never its value."""
     selected = _detect_spans(text)
+=======
+        if entity.label_ in NER_LABELS
+    )
+    selected = _non_overlapping(spans)
+>>>>>>> origin/add/voice-to-text-service
     masked_parts: list[str] = []
     cursor = 0
     for start, end, kind in selected:
@@ -117,6 +142,7 @@ def mask_pii(text: str) -> tuple[str, list[dict]]:
     masked_parts.append(text[cursor:])
     pii_found = [{"type": kind, "start_char": start, "end_char": end} for start, end, kind in selected]
     return "".join(masked_parts), pii_found
+<<<<<<< HEAD
 
 
 def mask_pii_reversible(text: str) -> tuple[str, dict[str, str], list[dict]]:
@@ -154,3 +180,5 @@ def mask_pii_reversible(text: str) -> tuple[str, dict[str, str], list[dict]]:
     masked_parts.append(text[cursor:])
     pii_found = [{"type": kind, "start_char": start, "end_char": end} for start, end, kind in selected]
     return "".join(masked_parts), shadow_map, pii_found
+=======
+>>>>>>> origin/add/voice-to-text-service

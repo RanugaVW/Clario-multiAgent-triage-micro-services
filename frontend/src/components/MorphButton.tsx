@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Check } from 'lucide-react';
 
 export default function MorphButton({ textToCopy, label = "Copy Hash" }: { textToCopy: string, label?: string }) {
+<<<<<<< HEAD
+=======
+  const [isHovered, setIsHovered] = useState(false);
+>>>>>>> origin/add/voice-to-text-service
   const [hasCopied, setHasCopied] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -16,6 +20,11 @@ export default function MorphButton({ textToCopy, label = "Copy Hash" }: { textT
   return (
     <motion.button
       onClick={handleCopy}
+<<<<<<< HEAD
+=======
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+>>>>>>> origin/add/voice-to-text-service
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.96 }}
       className="relative flex items-center justify-center text-white h-[36px] px-6 rounded-[40px] bg-white/[0.04] hover:bg-white/[0.06] border border-white/5 cursor-pointer transition-colors duration-150"

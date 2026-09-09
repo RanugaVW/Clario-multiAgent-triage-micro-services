@@ -24,6 +24,7 @@ def decide_escalation(
 ) -> tuple[bool, list[str]]:
     """Return whether review is mandatory and every specific reason that applies."""
     reasons: list[str] = []
+<<<<<<< HEAD
     # The local classifier (Llama-3.2 adapter, see app/tools/local_llm.py)
     # was empirically confirmed to top out at "Critical" priority and
     # "Negative" sentiment - it does not produce "Urgent" or "Strongly
@@ -47,6 +48,12 @@ def decide_escalation(
         reasons.append("no_usable_routing_signal")
     if routing_decision == "hr":
         reasons.append("hr_process_required")
+=======
+    if priority == "Urgent":
+        reasons.append("urgent_priority")
+    if sentiment == "Strongly Negative":
+        reasons.append("strongly_negative_sentiment")
+>>>>>>> origin/add/voice-to-text-service
     if routing_decision == "both" and confidence is not None and confidence < 0.6:
         reasons.append("low_confidence_dual_domain")
     if failure_type == "dependency_failure":

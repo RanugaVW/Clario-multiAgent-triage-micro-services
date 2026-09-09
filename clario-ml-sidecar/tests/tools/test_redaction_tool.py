@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """mask_pii redacts irreversibly; mask_pii_reversible gives PERSON/EMAIL a fake stand-in."""
 
 import pytest
@@ -136,3 +137,12 @@ def test_mask_pii_does_not_flag_a_bracketed_section_marker_as_an_org() -> None:
     assert "[CUSTOMER RESPONSE]" in text
     assert "Microsoft Azure" not in text
     assert {p["type"] for p in found} == {"org"}
+=======
+import pytest
+
+pytestmark = pytest.mark.skip(reason="The runtime redaction tool has not been implemented.")
+
+
+def test_redaction_tool_removes_sensitive_values() -> None:
+    """Runtime redaction must not pass raw PII to downstream agents."""
+>>>>>>> origin/add/voice-to-text-service

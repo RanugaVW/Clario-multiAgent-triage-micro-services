@@ -20,7 +20,11 @@ interface AudioWaveformProps {
 export default function AudioWaveform({
   analyser,
   active,
+<<<<<<< HEAD
   color = '#2DD4BF',
+=======
+  color = '#00E5FF',
+>>>>>>> origin/add/voice-to-text-service
   height = 56,
   className = '',
 }: AudioWaveformProps) {

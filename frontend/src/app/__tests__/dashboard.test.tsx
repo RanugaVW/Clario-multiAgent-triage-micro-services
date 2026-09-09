@@ -3,6 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import DashboardPage from '../dashboard/page';
 import { useAuth } from '../../contexts/AuthContext';
+<<<<<<< HEAD
+=======
+import { supabase } from '../../lib/supabase';
+>>>>>>> origin/add/voice-to-text-service
 
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
@@ -28,12 +32,20 @@ vi.mock('../../lib/supabase', () => ({
 describe('Dashboard Ticket Submission', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: { id: 'user-123', email: 'test@example.com' },
       role: 'user',
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
     
     // Mock the initial history fetch
     global.fetch = vi.fn().mockResolvedValue({
@@ -66,11 +78,16 @@ describe('Dashboard Ticket Submission', () => {
     });
 
     // Submit
+<<<<<<< HEAD
     const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     fireEvent.submit(submitBtn.closest('form')!);
     
     await waitFor(() => {
       // Check fetch was called for api gateway
+<<<<<<< HEAD
       const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
         (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
@@ -87,6 +104,20 @@ describe('Dashboard Ticket Submission', () => {
       
       // Check success modal appears
       expect(screen.getByText('Ticket submitted successfully!')).toBeInTheDocument();
+=======
+      const fetchCalls = (global.fetch as any).mock.calls;
+      const gatewayCall = fetchCalls.find((call: any[]) => call[0].includes('/api/tickets') && call[1]?.method === 'POST');
+      
+      expect(gatewayCall).toBeDefined();
+      expect(gatewayCall[1].headers['Authorization']).toBe('Bearer fake-token');
+      expect(gatewayCall[1].headers['Content-Type']).toBe('application/json');
+      
+      const payload = JSON.parse(gatewayCall[1].body);
+      expect(payload.rawText).toBe('My test issue description');
+      
+      // Check success modal appears
+      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+>>>>>>> origin/add/voice-to-text-service
       expect(screen.getByText('uuid-1234')).toBeInTheDocument();
     });
   });
@@ -122,11 +153,16 @@ describe('Dashboard Ticket Submission', () => {
       });
     });
 
+<<<<<<< HEAD
     const submitBtn = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitBtn = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
       // Check fetch was called for API Gateway
+<<<<<<< HEAD
       const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
         (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
@@ -135,6 +171,14 @@ describe('Dashboard Ticket Submission', () => {
       expect(gatewayCall).toBeDefined();
 
       const body = JSON.parse((gatewayCall![1] as RequestInit).body as string);
+=======
+      const fetchCalls = (global.fetch as any).mock.calls;
+      const gatewayCall = fetchCalls.find((call: any[]) => call[0].includes('/api/tickets') && call[1]?.method === 'POST');
+      
+      expect(gatewayCall).toBeDefined();
+      
+      const body = JSON.parse(gatewayCall[1].body);
+>>>>>>> origin/add/voice-to-text-service
       expect(body.imageBase64).toBeDefined();
       expect(body.rawText).toBe('Issue with screenshot');
     });

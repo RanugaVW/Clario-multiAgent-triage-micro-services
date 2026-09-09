@@ -1,0 +1,135 @@
+
+
+services:
+  redis-broker:
+    image: redis:alpine
+    ports:
+      - "6380:6379"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Baked into the client bundle at build time. These are the URLs the
+        # browser uses, so they point at the host's published ports, not at the
+        # compose service names.
+        - NEXT_PUBLIC_API_URL=http://localhost:8080
+        - NEXT_PUBLIC_VOICE_SERVICE_URL=http://localhost:8002
+    ports:
+      - "3000:3000"
+    env_file:
+      # Supplies SUPABASE_SERVICE_ROLE_KEY for the src/app/api/* route handlers.
+      - ./frontend/.env
+    environment:
+      # Route handlers run inside the network, so the cache is the broker
+      # service, not the localhost default in src/app/api/tickets/route.ts.
+      - REDIS_URL=redis://redis-broker:6379
+    depends_on:
+      - redis-broker
+      - api-gateway
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./clario-app/.env
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
+      - SPRING_PROFILES_ACTIVE=docker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  ticket-core-service:
+    build:
+      context: ./services/ticket-core-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./clario-app/.env
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATA_REDIS_HOST=redis-broker
+      - SPRING_DATA_REDIS_PORT=6379
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "db.mdvfvtpbwqhccmaarpli.supabase.co:host-gateway"
+
+  agent-review-service:
+    build:
+      context: ./services/agent-review-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./clario-app/.env
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
+      - SPRING_PROFILES_ACTIVE=docker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "db.mdvfvtpbwqhccmaarpli.supabase.co:host-gateway"
+
+  nlp-classifier-service:
+    build:
+      context: ./services/nlp-classifier-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./clario-ml-sidecar/.env
+
+  ocr-vision-service:
+    build:
+      context: ./services/ocr-vision-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    env_file:
+      - ./clario-ml-sidecar/.env
+
+  voice-to-text-service:
+    build:
+      context: ./services/voice-to-text-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    env_file:
+      - ./clario-ml-sidecar/.env
+    environment:
+      # base decodes ~2.7x faster than small on CPU for the same transcript;
+      # streaming latency is bounded by one decode. Use tiny if it still lags.
+      - WHISPER_MODEL=base
+      - WHISPER_DEVICE=cpu
+      - WHISPER_COMPUTE_TYPE=int8
+      - WHISPER_LANGUAGE=en
+      - WHISPER_CACHE_DIR=/models
+    volumes:
+      # Keeps the downloaded Whisper snapshot across rebuilds.
+      - whisper-models:/models
+
+  ai-orchestrator-service:
+    build:
+      context: ./services/ai-orchestrator-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./clario-ml-sidecar/.env
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
+      - REDIS_HOST=redis-broker
+      - CLASSIFIER_URL=http://nlp-classifier-service:8000
+      - OCR_URL=http://ocr-vision-service:8000
+      - VOICE_URL=http://voice-to-text-service:8000
+      # Absolute path so the index survives rebuilds instead of landing in the
+      # image's own vector_store/, which COPY overwrites every build.
+      - CHROMA_PATH=/chroma_data
+    volumes:
+      - chroma-data:/chroma_data
+    depends_on:
+      - redis-broker
+      - nlp-classifier-service
+
+volumes:
+  whisper-models:
+  chroma-data:

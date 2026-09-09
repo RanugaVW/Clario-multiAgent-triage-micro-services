@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """HTTP-surface tests for the NLP Classifier Service's real API surface.
 
 This service exposes exactly two endpoints (see app/main.py): GET /health
@@ -8,20 +9,30 @@ success-path test mocks it at the name app.main imported it under.
 """
 
 from unittest.mock import patch
+=======
+"""HTTP-surface smoke tests that do not invoke external model services."""
+>>>>>>> origin/add/voice-to-text-service
 
 from fastapi.testclient import TestClient
 
 from app.main import app
 
+<<<<<<< HEAD
 client = TestClient(app)
 
 
 def test_health() -> None:
     response = client.get("/health")
+=======
+
+def test_health() -> None:
+    response = TestClient(app).get("/health")
+>>>>>>> origin/add/voice-to-text-service
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
+<<<<<<< HEAD
 def test_classify_returns_the_local_classifiers_result() -> None:
     fake_result = {
         "category": "Login Issue", "priority": "High",
@@ -46,3 +57,9 @@ def test_classify_surfaces_classifier_failures_as_a_500() -> None:
 
     assert response.status_code == 500
     assert "model unavailable" in response.json()["detail"]
+=======
+def test_root_serves_local_ticket_interface() -> None:
+    response = TestClient(app).get("/")
+    assert response.status_code == 200
+    assert "Clario Ticket Orchestration" in response.text
+>>>>>>> origin/add/voice-to-text-service

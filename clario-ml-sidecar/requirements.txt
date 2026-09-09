@@ -4,7 +4,10 @@ aiosignal==1.4.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.14.2
+<<<<<<< HEAD
 APScheduler==3.11.3
+=======
+>>>>>>> origin/add/voice-to-text-service
 attrs==26.1.0
 bcrypt==5.0.0
 blis==1.3.3
@@ -25,7 +28,10 @@ cymem==2.0.13
 distro==1.9.0
 durationpy==0.10
 
+<<<<<<< HEAD
 Faker==20.1.0
+=======
+>>>>>>> origin/add/voice-to-text-service
 fastapi==0.139.2
 filelock==3.30.2
 filetype==1.2.0
@@ -47,7 +53,10 @@ idna==3.18
 importlib_resources==7.1.0
 iniconfig==2.3.0
 Jinja2==3.1.6
+<<<<<<< HEAD
 jiter==0.16.0
+=======
+>>>>>>> origin/add/voice-to-text-service
 joblib==1.5.3
 jsonpatch==1.33
 jsonpointer==3.1.1
@@ -78,7 +87,10 @@ networkx==3.6.1
 numpy==2.5.1
 oauthlib==3.3.1
 onnxruntime==1.27.0
+<<<<<<< HEAD
 openai==1.109.1
+=======
+>>>>>>> origin/add/voice-to-text-service
 opentelemetry-api==1.44.0
 opentelemetry-exporter-otlp-proto-common==1.44.0
 opentelemetry-exporter-otlp-proto-grpc==1.44.0
@@ -104,7 +116,10 @@ pydantic-settings==2.14.2
 pydantic_core==2.46.4
 Pygments==2.20.0
 pyparsing==3.3.2
+<<<<<<< HEAD
 pytesseract==0.3.13
+=======
+>>>>>>> origin/add/voice-to-text-service
 PyPika==0.51.1
 pyproject_hooks==1.2.0
 pytest==9.1.1
@@ -131,11 +146,14 @@ sniffio==1.3.1
 spacy>=3.7.0
 spacy-legacy==3.0.12
 spacy-loggers==1.0.5
+<<<<<<< HEAD
 # app/tools/redaction_tool.py's PII detection loads this by name at runtime
 # (spacy.load("en_core_web_md")) - it's a real, separate download (spacy
 # itself has no bundled language model), not installed by `spacy` above.
 # Pinned to the exact wheel already in use so CI reproduces it.
 en_core_web_md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl#sha256=5e6329fe3fecedb1d1a02c3ea2172ee0fede6cea6e4aefb6a02d832dba78a310
+=======
+>>>>>>> origin/add/voice-to-text-service
 srsly==2.5.3
 starlette==1.3.1
 sympy==1.14.0
@@ -150,7 +168,10 @@ typer==0.26.8
 typing-inspection==0.4.2
 typing_extensions==4.16.0
 tzdata==2026.3
+<<<<<<< HEAD
 tzlocal==5.4.4
+=======
+>>>>>>> origin/add/voice-to-text-service
 urllib3==2.7.0
 uuid_utils==0.17.0
 uvicorn==0.51.0
@@ -168,5 +189,9 @@ peft
 supabase
 sentencepiece
 tiktoken
+<<<<<<< HEAD
 bitsandbytes
 pytest-asyncio==1.4.0
+=======
+bitsandbytes
+>>>>>>> origin/add/voice-to-text-service

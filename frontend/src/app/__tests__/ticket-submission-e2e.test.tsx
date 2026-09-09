@@ -1,10 +1,17 @@
+<<<<<<< HEAD
 import { render, screen, waitFor } from '@testing-library/react';
+=======
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+>>>>>>> origin/add/voice-to-text-service
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DashboardPage from '../dashboard/page';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+<<<<<<< HEAD
 import { useRouter } from 'next/navigation';
+=======
+>>>>>>> origin/add/voice-to-text-service
 
 // ==================== MOCKS ====================
 
@@ -43,6 +50,7 @@ vi.mock('../../lib/supabase', () => ({
 
 // ==================== HELPER FUNCTIONS ====================
 
+<<<<<<< HEAD
 // fetchHistory() goes through fetchJson(), which checks the content-type header
 // before parsing, and the /api/user_tickets route wraps the rows in { data }.
 const mockTicketHistoryResponse = (tickets: unknown[] = []) => {
@@ -50,6 +58,12 @@ const mockTicketHistoryResponse = (tickets: unknown[] = []) => {
     ok: true,
     headers: { get: (name: string) => (name === 'content-type' ? 'application/json' : null) },
     json: vi.fn().mockResolvedValue({ data: tickets }),
+=======
+const mockTicketHistoryResponse = (tickets: any[] = []) => {
+  return {
+    ok: true,
+    json: vi.fn().mockResolvedValue(tickets),
+>>>>>>> origin/add/voice-to-text-service
   };
 };
 
@@ -99,16 +113,28 @@ describe('E2E Ticket Submission Pipeline', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: mockAuthUser,
       role: 'user',
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
 
     // Default mock for fetch
     global.fetch = vi.fn().mockImplementation((url) => {
       if (url.includes('/api/user_tickets')) {
+=======
+    });
+
+    // Default mock for fetch
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/customer_tickets') && !url.includes('/customer_tickets/')) {
+>>>>>>> origin/add/voice-to-text-service
         return Promise.resolve(mockTicketHistoryResponse());
       }
       if (url.includes('/api/tickets')) {
@@ -141,11 +167,16 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.type(textArea, 'Payment failed but money was taken from my account');
 
     // Find and click the submit button
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     // Verify API Gateway was called correctly
     await waitFor(() => {
+<<<<<<< HEAD
       const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
         (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
@@ -158,6 +189,19 @@ describe('E2E Ticket Submission Pipeline', () => {
       expect(headers['Content-Type']).toBe('application/json');
 
       const payload = JSON.parse(init.body as string);
+=======
+      const fetchCalls = (global.fetch as any).mock.calls;
+      const gatewayCall = fetchCalls.find(
+        (call: any[]) =>
+          call[0].includes('/api/tickets') && call[1]?.method === 'POST'
+      );
+
+      expect(gatewayCall).toBeDefined();
+      expect(gatewayCall[1].headers['Authorization']).toBe('Bearer test-access-token-12345');
+      expect(gatewayCall[1].headers['Content-Type']).toBe('application/json');
+
+      const payload = JSON.parse(gatewayCall[1].body);
+>>>>>>> origin/add/voice-to-text-service
       expect(payload.rawText).toBe('Payment failed but money was taken from my account');
       expect(payload.subject).toBe('Support Ticket');
       expect(payload.imageBase64).toBeUndefined();
@@ -165,23 +209,40 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Verify success modal appears
     await waitFor(() => {
+<<<<<<< HEAD
       expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
+=======
+      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+>>>>>>> origin/add/voice-to-text-service
     });
 
     // Verify tracking ID is displayed
     expect(screen.getByText('ticket-uuid-001')).toBeInTheDocument();
 
     // Verify copy button exists
+<<<<<<< HEAD
     const copyButton = screen.getByRole('button', { name: /copy id/i });
+=======
+    const copyButton = screen.getByTitle('Copy to clipboard');
+>>>>>>> origin/add/voice-to-text-service
     expect(copyButton).toBeInTheDocument();
   });
 
   // ==================== TEST 2: Text Submission with Tracking ID Copy ====================
   it('should copy tracking ID to clipboard when copy button is clicked', async () => {
     const user = userEvent.setup();
+<<<<<<< HEAD
     const writeTextSpy = vi
       .spyOn(navigator.clipboard, 'writeText')
       .mockResolvedValue(undefined);
+=======
+    const mockNavigator = {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    (global.navigator as any).clipboard = mockNavigator.clipboard;
+>>>>>>> origin/add/voice-to-text-service
 
     render(<DashboardPage />);
 
@@ -193,13 +254,18 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.clear(textArea);
     await user.type(textArea, 'Test issue for clipboard');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     await waitFor(() => {
       expect(screen.getByText('ticket-uuid-001')).toBeInTheDocument();
     });
 
+<<<<<<< HEAD
     const copyButton = screen.getByRole('button', { name: /copy id/i });
     await user.click(copyButton);
 
@@ -209,6 +275,15 @@ describe('E2E Ticket Submission Pipeline', () => {
     });
 
     writeTextSpy.mockRestore();
+=======
+    const copyButton = screen.getByTitle('Copy to clipboard');
+    await user.click(copyButton);
+
+    await waitFor(() => {
+      expect(mockNavigator.clipboard.writeText).toHaveBeenCalledWith('ticket-uuid-001');
+      expect(screen.getByText('Copied!')).toBeInTheDocument();
+    });
+>>>>>>> origin/add/voice-to-text-service
   });
 
   // ==================== TEST 3: Submission with Image ====================
@@ -224,6 +299,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     const imageFile = new File(['fake-image-data'], 'screenshot.png', { type: 'image/png' });
 
     // Find file input
+<<<<<<< HEAD
     const fileInput = screen.getByLabelText(/Attach a screenshot/i) as HTMLInputElement;
 
     // Simulate file selection
@@ -233,6 +309,19 @@ describe('E2E Ticket Submission Pipeline', () => {
       expect(fileInput.files).toHaveLength(1);
       expect(fileInput.files?.[0]).toBe(imageFile);
     });
+=======
+    const fileInput = screen.getByRole('button', { name: /Upload Image/i })?.parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+    
+    if (fileInput) {
+      // Simulate file selection
+      await user.upload(fileInput, imageFile);
+
+      await waitFor(() => {
+        expect(fileInput.files).toHaveLength(1);
+        expect(fileInput.files?.[0]).toBe(imageFile);
+      });
+    }
+>>>>>>> origin/add/voice-to-text-service
 
     // Type ticket text
     const textArea = screen.getByPlaceholderText(/Describe the issue.../i);
@@ -240,11 +329,16 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.type(textArea, 'Issue with error screenshot attached');
 
     // Submit
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     // Verify API call
     await waitFor(() => {
+<<<<<<< HEAD
       const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
         (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
@@ -252,6 +346,16 @@ describe('E2E Ticket Submission Pipeline', () => {
 
       if (gatewayCall) {
         const payload = JSON.parse((gatewayCall[1] as RequestInit).body as string);
+=======
+      const fetchCalls = (global.fetch as any).mock.calls;
+      const gatewayCall = fetchCalls.find(
+        (call: any[]) =>
+          call[0].includes('/api/tickets') && call[1]?.method === 'POST'
+      );
+
+      if (gatewayCall) {
+        const payload = JSON.parse(gatewayCall[1].body);
+>>>>>>> origin/add/voice-to-text-service
         expect(payload.rawText).toBe('Issue with error screenshot attached');
         // Note: imageBase64 will be present if file was uploaded
       }
@@ -259,7 +363,11 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Verify success modal
     await waitFor(() => {
+<<<<<<< HEAD
       expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
+=======
+      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+>>>>>>> origin/add/voice-to-text-service
     });
   });
 
@@ -273,7 +381,11 @@ describe('E2E Ticket Submission Pipeline', () => {
     ];
 
     global.fetch = vi.fn().mockImplementation((url) => {
+<<<<<<< HEAD
       if (url.includes('/api/user_tickets')) {
+=======
+      if (url.includes('/customer_tickets') && !url.includes('/customer_tickets/')) {
+>>>>>>> origin/add/voice-to-text-service
         return Promise.resolve(mockTicketHistoryResponse(mockTickets));
       }
       if (url.includes('/api/tickets')) {
@@ -296,12 +408,20 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.clear(textArea);
     await user.type(textArea, 'New test ticket');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     // Wait for success modal
     await waitFor(() => {
+<<<<<<< HEAD
       expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
+=======
+      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+>>>>>>> origin/add/voice-to-text-service
     });
 
     // Click "View My Tickets" button in success modal
@@ -310,7 +430,11 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // Verify history is now displayed (modal closed)
     await waitFor(() => {
+<<<<<<< HEAD
       expect(screen.queryByText(/Ticket submitted successfully/i)).not.toBeInTheDocument();
+=======
+      expect(screen.queryByText('Ticket Submitted Successfully!')).not.toBeInTheDocument();
+>>>>>>> origin/add/voice-to-text-service
     });
   });
 
@@ -323,7 +447,11 @@ describe('E2E Ticket Submission Pipeline', () => {
     ];
 
     global.fetch = vi.fn().mockImplementation((url) => {
+<<<<<<< HEAD
       if (url.includes('/api/user_tickets')) {
+=======
+      if (url.includes('/customer_tickets')) {
+>>>>>>> origin/add/voice-to-text-service
         return Promise.resolve(mockTicketHistoryResponse(mockTickets));
       }
       return Promise.resolve({
@@ -372,7 +500,11 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.clear(textArea);
     await user.type(textArea, 'Test error handling');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     // Verify error message appears
@@ -381,16 +513,33 @@ describe('E2E Ticket Submission Pipeline', () => {
     });
 
     // Verify success modal does NOT appear
+<<<<<<< HEAD
     expect(screen.queryByText(/Ticket submitted successfully/i)).not.toBeInTheDocument();
+=======
+    expect(screen.queryByText('Ticket Submitted Successfully!')).not.toBeInTheDocument();
+>>>>>>> origin/add/voice-to-text-service
   });
 
   // ==================== TEST 7: Unauthenticated User Redirect ====================
   it('should redirect unauthenticated user to login', async () => {
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    const mockPush = vi.fn();
+    vi.mock('next/navigation', () => ({
+      useRouter: vi.fn(() => ({
+        push: mockPush,
+        refresh: vi.fn(),
+      })),
+    }));
+
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: null,
       role: null,
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
@@ -399,16 +548,35 @@ describe('E2E Ticket Submission Pipeline', () => {
     // redirect-to-login effect runs; the dashboard content never mounts.
     expect(screen.queryByRole('button', { name: /submit ticket/i })).not.toBeInTheDocument();
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+=======
+    });
+
+    render(<DashboardPage />);
+
+    // Component should show loading state or redirect
+    await waitFor(() => {
+      // The component handles this internally
+      expect(screen.getByRole('button', { name: /PROCESS_TICKET/i })).toBeInTheDocument();
+    }, { timeout: 1000 });
+>>>>>>> origin/add/voice-to-text-service
   });
 
   // ==================== TEST 8: Admin User Redirect ====================
   it('should show admin panel button for admin users', async () => {
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: { id: 'admin-123', email: 'admin@clario.com' },
       role: 'admin',
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
 
     global.fetch = vi.fn().mockResolvedValue(mockTicketHistoryResponse());
 
@@ -424,12 +592,20 @@ describe('E2E Ticket Submission Pipeline', () => {
 
   // ==================== TEST 9: Agent User Navigation ====================
   it('should show agent workspace button for agent users', async () => {
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: { id: 'agent-123', email: 'agent@clario.com' },
       role: 'agent',
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
 
     global.fetch = vi.fn().mockResolvedValue(mockTicketHistoryResponse());
 
@@ -449,15 +625,26 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     const mockTickets = [createMockTicket('ticket-001', 0)];
 
+<<<<<<< HEAD
     global.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
       if (url.includes('/customer_tickets/ticket-001') && options?.method === 'DELETE') {
+=======
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/customer_tickets/ticket-001') && (url as any).method === 'DELETE') {
+>>>>>>> origin/add/voice-to-text-service
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ success: true }),
         });
       }
+<<<<<<< HEAD
       if (url.includes('/api/user_tickets')) {
         return Promise.resolve(mockTicketHistoryResponse(mockTickets));
+=======
+      if (url.includes('/customer_tickets')) {
+        // After delete, return empty array
+        return Promise.resolve(mockTicketHistoryResponse([]));
+>>>>>>> origin/add/voice-to-text-service
       }
       return Promise.resolve({
         ok: true,
@@ -489,7 +676,11 @@ describe('E2E Ticket Submission Pipeline', () => {
     const user = userEvent.setup();
 
     global.fetch = vi.fn().mockImplementation((url) => {
+<<<<<<< HEAD
       if (url.includes('/api/user_tickets')) {
+=======
+      if (url.includes('/customer_tickets')) {
+>>>>>>> origin/add/voice-to-text-service
         return Promise.resolve(mockTicketHistoryResponse());
       }
       return Promise.resolve({
@@ -513,11 +704,19 @@ describe('E2E Ticket Submission Pipeline', () => {
 
     // History content should be visible
     await waitFor(() => {
+<<<<<<< HEAD
       expect(screen.getByText(/Ticket history/i)).toBeInTheDocument();
     });
 
     // Click submit tab again
     const submitTab = screen.getByRole('button', { name: /New ticket/i });
+=======
+      expect(screen.getByText(/Your tickets/i)).toBeInTheDocument();
+    });
+
+    // Click submit tab again
+    const submitTab = screen.getByRole('button', { name: /Submit Ticket/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitTab);
 
     // Submit form should be visible again
@@ -534,7 +733,14 @@ describe('E2E Ticket Submission Pipeline', () => {
     });
 
     const textArea = screen.getByPlaceholderText(/Describe the issue.../i) as HTMLTextAreaElement;
+<<<<<<< HEAD
 
+=======
+    
+    // Get initial text
+    const initialText = textArea.value;
+    
+>>>>>>> origin/add/voice-to-text-service
     // Clear and type new text
     await user.clear(textArea);
     await user.type(textArea, 'Test issue for clearing');
@@ -542,17 +748,32 @@ describe('E2E Ticket Submission Pipeline', () => {
     expect(textArea.value).toBe('Test issue for clearing');
 
     // Submit
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     // Wait for success modal
     await waitFor(() => {
+<<<<<<< HEAD
       expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
     });
 
     // Close modal
     const closeButton = screen.getByRole('button', { name: /close/i });
     await user.click(closeButton);
+=======
+      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+    });
+
+    // Close modal
+    const closeButton = screen.getByRole('button', { name: '' }).closest('button');
+    if (closeButton && closeButton.title === '') {
+      await user.click(closeButton);
+    }
+>>>>>>> origin/add/voice-to-text-service
 
     // Note: Form clearing happens when closing modal and switching tabs
     // This test verifies the flow works end-to-end
@@ -562,7 +783,17 @@ describe('E2E Ticket Submission Pipeline', () => {
   it('should logout user and refresh page', async () => {
     const user = userEvent.setup();
     const mockRefresh = vi.fn();
+<<<<<<< HEAD
     vi.mocked(useRouter).mockReturnValue({ push: vi.fn(), refresh: mockRefresh } as unknown as ReturnType<typeof useRouter>);
+=======
+
+    vi.mock('next/navigation', () => ({
+      useRouter: vi.fn(() => ({
+        push: vi.fn(),
+        refresh: mockRefresh,
+      })),
+    }));
+>>>>>>> origin/add/voice-to-text-service
 
     global.fetch = vi.fn().mockResolvedValue(mockTicketHistoryResponse());
 
@@ -572,6 +803,7 @@ describe('E2E Ticket Submission Pipeline', () => {
       expect(screen.getByText(/Clario Triage/i)).toBeInTheDocument();
     });
 
+<<<<<<< HEAD
     const signOutButton = screen.getByRole('button', { name: /sign out/i });
     await user.click(signOutButton);
 
@@ -579,15 +811,24 @@ describe('E2E Ticket Submission Pipeline', () => {
       expect(supabase.auth.signOut).toHaveBeenCalled();
       expect(mockRefresh).toHaveBeenCalled();
     });
+=======
+    // Note: Logout button might be in the UI but implementation may vary
+    // This test structure is ready for when logout is implemented
+>>>>>>> origin/add/voice-to-text-service
   });
 
   // ==================== TEST 14: Loading State ====================
   it('should show loading spinner while authenticating', () => {
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: null,
       role: null,
       loading: true,
       roleLoading: true,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
 
     render(<DashboardPage />);
@@ -595,6 +836,16 @@ describe('E2E Ticket Submission Pipeline', () => {
     // Should show loading spinner, not the dashboard content
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();
     expect(screen.queryByText(/Clario Triage/i)).not.toBeInTheDocument();
+=======
+    });
+
+    render(<DashboardPage />);
+
+    // Should show loading spinner
+    const spinner = screen.getByRole('button', { name: /PROCESS_TICKET/i })?.parentElement?.querySelector('[class*="animate-spin"]');
+    // or check for the spinner element
+    expect(screen.getByText(/Clario Triage/i)).toBeInTheDocument();
+>>>>>>> origin/add/voice-to-text-service
   });
 
   // ==================== TEST 15: Complete End-to-End Flow ====================
@@ -612,7 +863,11 @@ describe('E2E Ticket Submission Pipeline', () => {
       if (url === 'http://localhost:8080/api/tickets') {
         return Promise.resolve(mockTicketSubmissionResponse('ticket-uuid-001'));
       }
+<<<<<<< HEAD
       if (url.includes('/api/user_tickets')) {
+=======
+      if (url.includes('/customer_tickets')) {
+>>>>>>> origin/add/voice-to-text-service
         return Promise.resolve(mockTicketHistoryResponse(mockTickets));
       }
       return Promise.resolve({
@@ -636,12 +891,20 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.clear(textArea);
     await user.type(textArea, 'Complete E2E test ticket');
 
+<<<<<<< HEAD
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
+=======
+    const submitButton = screen.getByRole('button', { name: /PROCESS_TICKET/i });
+>>>>>>> origin/add/voice-to-text-service
     await user.click(submitButton);
 
     // Step 4: Success modal appears
     await waitFor(() => {
+<<<<<<< HEAD
       expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
+=======
+      expect(screen.getByText('Ticket Submitted Successfully!')).toBeInTheDocument();
+>>>>>>> origin/add/voice-to-text-service
       expect(screen.getByText('ticket-uuid-001')).toBeInTheDocument();
     });
 

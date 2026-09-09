@@ -2,8 +2,11 @@
 
 import chromadb
 from app.graph.state import TicketState
+<<<<<<< HEAD
 from app.graph.routing_node import has_hr_hard_trigger
 from app.tools.circuit_breaker import get_breaker
+=======
+>>>>>>> origin/add/voice-to-text-service
 from app.tools.rag_tool import _chroma_path, _embedding_model, _COLLECTION_NAME, canonicalize_ticket_text
 
 def cache_check_node(state: TicketState) -> TicketState:
@@ -14,6 +17,7 @@ def cache_check_node(state: TicketState) -> TicketState:
 
     normalized_text = canonicalize_ticket_text(raw_text)
 
+<<<<<<< HEAD
     # Shares the same breaker retrieve_context() (rag_tool.py) reports to -
     # both talk to the same ChromaDB instance. Before this, a sustained
     # Chroma outage never tripped anything on this path (only the bare
@@ -25,6 +29,8 @@ def cache_check_node(state: TicketState) -> TicketState:
     if not breaker.allow_request():
         return {**state, "cache_hit": False, "cache_source_ticket_id": None}
 
+=======
+>>>>>>> origin/add/voice-to-text-service
     try:
         client = chromadb.PersistentClient(path=_chroma_path())
         collection = client.get_collection(_COLLECTION_NAME)
@@ -38,20 +44,32 @@ def cache_check_node(state: TicketState) -> TicketState:
             include=["documents", "metadatas", "distances"],
         )
         
+<<<<<<< HEAD
         breaker.record_success()  # the query itself succeeded, whether or not it found a match
 
         docs = result.get("documents", [[]])[0] or []
         metas = result.get("metadatas", [[]])[0] or []
         dists = result.get("distances", [[]])[0] or []
 
+=======
+        docs = result.get("documents", [[]])[0] or []
+        metas = result.get("metadatas", [[]])[0] or []
+        dists = result.get("distances", [[]])[0] or []
+        
+>>>>>>> origin/add/voice-to-text-service
         if docs and metas and dists:
             # Cosine distance to similarity score
             score = max(0.0, 1.0 - (float(dists[0]) / 2.0))
             score_threshold = 0.92
+<<<<<<< HEAD
             if score >= score_threshold and not has_hr_hard_trigger(normalized_text):
                 # We have a cache hit! (HR-flavored tickets never take this
                 # path - they must always reach mandatory human review, even
                 # when a semantically-similar past precedent exists.)
+=======
+            if score >= score_threshold:
+                # We have a cache hit!
+>>>>>>> origin/add/voice-to-text-service
                 document = docs[0]
                 ticket_id = metas[0].get("ticket_id")
                 
@@ -73,7 +91,12 @@ def cache_check_node(state: TicketState) -> TicketState:
                 }
                 
     except Exception as e:
+<<<<<<< HEAD
         breaker.record_failure()
         print(f"Cache check failed: {e}")
 
+=======
+        print(f"Cache check failed: {e}")
+        
+>>>>>>> origin/add/voice-to-text-service
     return {**state, "cache_hit": False, "cache_source_ticket_id": None}

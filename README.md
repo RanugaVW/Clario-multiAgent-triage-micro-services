@@ -1,7 +1,11 @@
 # Clario — Multi-Agent Customer Support Triage System
 ### CS3501 Data Science and Engineering Project | Group 23
 
+<<<<<<< HEAD
 > **Clario** is an end-to-end AI-powered support triage platform. It classifies, routes, drafts, validates, and escalates customer support tickets using a **LangGraph multi-agent pipeline**, **ChromaDB RAG**, **SurrogateShield PII redaction**, **Gemma-3 1B LoRA fine-tuned models**, **Gemini-powered OCR**, a **Spring Boot API Gateway**, and a **Next.js + Supabase** frontend.
+=======
+> **Clario** is an end-to-end AI-powered support triage platform. It classifies, routes, drafts, validates, and escalates customer support tickets using a **LangGraph multi-agent pipeline**, **ChromaDB RAG**, **SurrogateShield PII redaction**, **Gemma-3 1B LoRA fine-tuned models**, **Qwen2-VL OCR**, a **Spring Boot API Gateway**, and a **Next.js + Supabase** frontend.
+>>>>>>> origin/add/voice-to-text-service
 
 ---
 
@@ -15,8 +19,12 @@
    - 3.4 [Starting the Frontend](#34-starting-the-frontend)
 4. [How the Pipeline Works](#4-how-the-pipeline-works)
 5. [User Roles & What Each Role Sees](#5-user-roles--what-each-role-sees)
+<<<<<<< HEAD
 6. [Ticket Pipeline Tracer (Learning & Debugging Tool)](#6-ticket-pipeline-tracer-learning--debugging-tool)
 7. [Architecture Reference](#7-architecture-reference)
+=======
+6. [Architecture Reference](#6-architecture-reference)
+>>>>>>> origin/add/voice-to-text-service
 
 ---
 
@@ -55,8 +63,14 @@ clario/
 │   ├── ticket-core-service/         # Spring Boot (Handles Ticket DB + pushes to Redis)
 │   ├── agent-review-service/        # Spring Boot (Handles Human Agent Review queues)
 │   ├── nlp-classifier-service/      # Python FastAPI (Hosts Gemma-3-1b-it LoRA model)
+<<<<<<< HEAD
 │   └── ai-orchestrator-service/     # Python Background Worker (Consumes Redis, runs LangGraph; OCR via Gemini)
 ├── docker-compose.yml               # Orchestrates all 5 microservices + Redis Broker
+=======
+│   ├── ocr-vision-service/          # Python FastAPI (Hosts Qwen2-VL 2B or Gemini Fallback)
+│   └── ai-orchestrator-service/     # Python Background Worker (Consumes Redis, runs LangGraph)
+├── docker-compose.yml               # Orchestrates all 6 microservices + Redis Broker
+>>>>>>> origin/add/voice-to-text-service
 └── supabase_schema.sql              # Supabase DB Schema
 ```
 
@@ -125,7 +139,11 @@ CHROMA_PATH=./vector_store/chroma_data
 
 The entire backend is orchestrated into 6 isolated Docker containers. Due to Docker networking limitations with IPv6-only Supabase databases, we run a transparent TCP proxy on the host machine to bridge the connection.
 
+<<<<<<< HEAD
 To start the backend infrastructure (Gateway, Ticket Core, Agent Review, NLP Classifier, AI Orchestrator, Redis, and Proxy):
+=======
+To start the backend infrastructure (Gateway, Ticket Core, Agent Review, NLP Classifier, OCR Vision, AI Orchestrator, Redis, and Proxy):
+>>>>>>> origin/add/voice-to-text-service
 
 1. Open a terminal at the root of the project.
 2. Start the proxy script in the background:
@@ -172,7 +190,11 @@ Customer submits ticket (Text + Optional Image)
         ↓
 [AI Orchestrator] pops ticket from Redis & triggers LangGraph
         ↓
+<<<<<<< HEAD
 [ocr_node] — Calls the Gemini API directly for image extraction
+=======
+[ocr_node] — Calls http://ocr-vision-service:8000 for image extraction
+>>>>>>> origin/add/voice-to-text-service
         ↓
 [cache_check_node] — Checks ChromaDB precedent memory
         ↓
@@ -191,8 +213,11 @@ Customer submits ticket (Text + Optional Image)
 [handoff_node] — Writes final_response to Supabase DB
 ```
 
+<<<<<<< HEAD
 Every node in that list emits a `started`/`finished` trace event when the **Ticket Pipeline Tracer** (Section 6) is switched on — that's the tool to reach for when you want to *see* this pipeline execute on a real ticket instead of only reading it as a diagram.
 
+=======
+>>>>>>> origin/add/voice-to-text-service
 ---
 
 ## 5. User Roles & What Each Role Sees
@@ -212,6 +237,7 @@ Every node in that list emits a `started`/`finished` trace event when the **Tick
 
 ---
 
+<<<<<<< HEAD
 ## 6. Ticket Pipeline Tracer (Learning & Debugging Tool)
 
 A standalone visualizer, separate from the product, that answers one question in real time: **"where does *this* ticket actually go, right now, through the real system?"** It's built for learners and reviewers who want to watch the pipeline in Section 4 execute step-by-step against a live ticket, instead of only reading it as a diagram.
@@ -319,6 +345,9 @@ xdg-open Visualizer/viewer/index.html    # Linux
 ---
 
 ## 7. Architecture Reference
+=======
+## 6. Architecture Reference
+>>>>>>> origin/add/voice-to-text-service
 
 | Layer | Technology |
 |---|---|
@@ -326,9 +355,15 @@ xdg-open Visualizer/viewer/index.html    # Linux
 | **API Gateway** | Spring Cloud Gateway MVC (Port 8080) |
 | **Java Microservices**| Spring Boot 3.x (Ticket Core: 8081, Agent Review: 8082) |
 | **Queue Broker** | Redis Alpine (Port 6380) |
+<<<<<<< HEAD
 | **Python Microservices**| FastAPI + Uvicorn (NLP Classifier: 8000) |
 | **AI Orchestrator** | Python 3.12 Background Worker consuming Redis via `app.worker` |
 | **Local Models** | `Gemma-3-1b-it` (Classification), `spaCy` (Redaction) |
+=======
+| **Python Microservices**| FastAPI + Uvicorn (NLP Classifier: 8000, OCR Vision: 8001) |
+| **AI Orchestrator** | Python 3.12 Background Worker consuming Redis via `app.worker` |
+| **Local Models** | `Gemma-3-1b-it` (Classification), `Qwen2-VL-2B-Instruct` (OCR), `spaCy` (Redaction) |
+>>>>>>> origin/add/voice-to-text-service
 | **Cloud Fallback** | Gemini API (`gemini-3.1-flash`) |
 | **Database** | Supabase (PostgreSQL + Auth) |
 

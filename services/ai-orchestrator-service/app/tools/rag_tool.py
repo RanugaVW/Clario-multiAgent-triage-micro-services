@@ -3,18 +3,27 @@
 from __future__ import annotations
 
 import os
+<<<<<<< HEAD
 import re
+=======
+>>>>>>> origin/add/voice-to-text-service
 from pathlib import Path
 
 import chromadb
 from chromadb.errors import NotFoundError
 from dotenv import load_dotenv
+<<<<<<< HEAD
 from sentence_transformers import SentenceTransformer
+=======
+from google import genai
+from google.genai import types
+>>>>>>> origin/add/voice-to-text-service
 
 from app.tools.circuit_breaker import CircuitBreakerOpenError, get_breaker
 
 _ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(_ROOT / ".env")
+<<<<<<< HEAD
 _MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 _COLLECTION_NAME = "kb_support_docs"
 _embedder: SentenceTransformer | None = None
@@ -22,6 +31,11 @@ _embedder: SentenceTransformer | None = None
 
 _WHITESPACE_RE = re.compile(r"\s+")
 _PUNCT_RE = re.compile(r"[^\w\s]")
+=======
+_MODEL_NAME = "gemini-embedding-2"
+_COLLECTION_NAME = "kb_support_docs"
+_embedder_client: genai.Client | None = None
+>>>>>>> origin/add/voice-to-text-service
 
 
 def _chroma_path() -> str:
@@ -29,6 +43,7 @@ def _chroma_path() -> str:
     return str(configured if configured.is_absolute() else _ROOT / configured)
 
 
+<<<<<<< HEAD
 def _embedding_model() -> SentenceTransformer:
     global _embedder
     if _embedder is None:
@@ -41,12 +56,32 @@ def canonicalize_ticket_text(text: str) -> str:
     cleaned = text.lower().strip()
     cleaned = _PUNCT_RE.sub(" ", cleaned)
     return _WHITESPACE_RE.sub(" ", cleaned).strip()
+=======
+def _embedding_model() -> genai.Client:
+    global _embedder_client
+    if _embedder_client is None:
+        _embedder_client = genai.Client()
+    return _embedder_client
+
+def get_embedding(text: str) -> list[float]:
+    res = _embedding_model().models.embed_content(
+        model=_MODEL_NAME,
+        contents=[text],
+        config=types.EmbedContentConfig(output_dimensionality=384)
+    )
+    return res.embeddings[0].values
+>>>>>>> origin/add/voice-to-text-service
 
 
 def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
     """Return up to k domain-filtered KB matches with cosine-similarity scores."""
+<<<<<<< HEAD
     if domain not in {"technical", "billing", "hr"}:
         raise ValueError("domain must be 'technical', 'billing', or 'hr'")
+=======
+    if domain not in {"technical", "billing"}:
+        raise ValueError("domain must be 'technical' or 'billing'")
+>>>>>>> origin/add/voice-to-text-service
     breaker = get_breaker("chroma_rag")
     if not breaker.allow_request():
         raise CircuitBreakerOpenError("chroma_rag circuit breaker is open")
@@ -54,6 +89,7 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         client = chromadb.PersistentClient(path=_chroma_path())
         
         matches = []
+<<<<<<< HEAD
         embeds = [_embedding_model().encode(query, normalize_embeddings=True).tolist()]
 
         # Query standard support docs. Excludes precedent_memory: those
@@ -68,12 +104,21 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         # precedent_memory still fully serves its real purpose - exact-match
         # cache-hit reuse in cache_check_node.py, which queries it directly
         # and never calls this function.
+=======
+        embeds = [get_embedding(query)]
+
+        # Query standard support docs
+>>>>>>> origin/add/voice-to-text-service
         try:
             collection = client.get_collection(_COLLECTION_NAME)
             result = collection.query(
                 query_embeddings=embeds,
                 n_results=k,
+<<<<<<< HEAD
                 where={"$and": [{"domain": domain}, {"source_file": {"$ne": "precedent_memory"}}]},
+=======
+                where={"domain": domain},
+>>>>>>> origin/add/voice-to-text-service
                 include=["documents", "metadatas", "distances"],
             )
             docs = result.get("documents", [[]])[0] or []
@@ -114,11 +159,14 @@ def retrieve_context(query: str, domain: str, k: int = 4) -> list[dict]:
         raise
         
     breaker.record_success()
+<<<<<<< HEAD
     # Defense in depth: the where-clause above should already exclude these,
     # but never let a precedent_memory document (another customer's full
     # ticket narrative) reach a generation prompt even if that filter is
     # ever bypassed.
     matches = [match for match in matches if match["source_file"] != "precedent_memory"]
+=======
+>>>>>>> origin/add/voice-to-text-service
     # Sort combined matches by score descending and keep top k
     matches.sort(key=lambda x: x["score"], reverse=True)
     return matches[:k]
@@ -143,7 +191,10 @@ def add_precedent(ticket_id: str, redacted_text: str, final_response: str, domai
         
         # Only embed the ticket issue, but keep resolution in the stored document
         content = f"Ticket Issue:\n{redacted_text}\n\nResolution:\n{final_response}"
+<<<<<<< HEAD
         normalized_text = canonicalize_ticket_text(redacted_text)
+=======
+>>>>>>> origin/add/voice-to-text-service
         
         # We use a deterministic ID based on the ticket_id
         doc_id = f"precedent_{ticket_id}"
@@ -151,7 +202,11 @@ def add_precedent(ticket_id: str, redacted_text: str, final_response: str, domai
         # Insert or update
         collection.upsert(
             ids=[doc_id],
+<<<<<<< HEAD
             embeddings=[_embedding_model().encode(normalized_text, normalize_embeddings=True).tolist()],
+=======
+            embeddings=[get_embedding(redacted_text)],
+>>>>>>> origin/add/voice-to-text-service
             documents=[content],
             metadatas=[{
                 "domain": domain,

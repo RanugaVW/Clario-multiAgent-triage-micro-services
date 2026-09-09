@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+<<<<<<< HEAD
 import base64
 import logging
 import os
+=======
+import logging
+>>>>>>> origin/add/voice-to-text-service
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Depends, Header, BackgroundTasks
@@ -15,7 +19,10 @@ from typing import Optional
 
 from app.graph.graph_builder import build_graph
 from app.graph.handoff_node import build_handoff_package
+<<<<<<< HEAD
 from app.tracing import pipeline_tracer
+=======
+>>>>>>> origin/add/voice-to-text-service
 
 logger = logging.getLogger(__name__)
 from contextlib import asynccontextmanager
@@ -25,13 +32,19 @@ async def lifespan(app: FastAPI):
     """Preload heavy ML models in the background to reduce latency on the first request."""
     import threading
     from app.tools.local_llm import _load_model as load_llm
+<<<<<<< HEAD
     from apscheduler.schedulers.background import BackgroundScheduler
     from app.jobs.sync_judge_references import sync_judge_references
 
+=======
+    from app.tools.local_ocr import _load_model_singleton as load_ocr
+    
+>>>>>>> origin/add/voice-to-text-service
     def preload_models():
         try:
             logger.info("Preloading ML Models at startup...")
             load_llm()
+<<<<<<< HEAD
             from app.tools.tesseract_ocr import check_tesseract_available
             check_tesseract_available()
             logger.info("ML Models preloaded successfully.")
@@ -68,6 +81,24 @@ _CORS_ALLOWED_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_CORS_ALLOWED_ORIGINS,
+=======
+            load_ocr()
+            logger.info("ML Models preloaded successfully.")
+        except Exception as e:
+            logger.error(f"Failed to preload models: {e}")
+            
+    # Run in background thread so it doesn't block Uvicorn from starting up and binding the port
+    threading.Thread(target=preload_models, daemon=True).start()
+    
+    yield
+    # Cleanup on shutdown (if any)
+    
+app = FastAPI(title="Clario Agent Orchestration", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+>>>>>>> origin/add/voice-to-text-service
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -120,6 +151,7 @@ async def verify_token(authorization: str = Header(None)) -> dict:
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
 
+<<<<<<< HEAD
 
 def should_cache_precedent(
     cache_hit: bool, groundedness_score: int | None, min_groundedness: int
@@ -164,21 +196,27 @@ def get_user_role(user_id: str) -> str:
     except Exception:
         return "user"
 
+=======
+>>>>>>> origin/add/voice-to-text-service
 # Track active processing tasks so we can cancel them if the user deletes the ticket
 active_tasks = {}
 active_tasks_lock = asyncio.Lock()
 
 async def background_orchestration(ticket: TicketRequest, initial_state: dict, start_time: float):
+<<<<<<< HEAD
     # Capture the loop actually running this pipeline (both the /process_ticket
     # background-task path and the worker.py path call this function) so
     # emit() can reschedule onto it from a sync node's executor thread
     # (which has no loop of its own) - see pipeline_tracer.bind_loop.
     pipeline_tracer.bind_loop()
+=======
+>>>>>>> origin/add/voice-to-text-service
     try:
         import time
         from app.tools.redaction_tool import mask_pii
         from app.tools.rag_tool import add_precedent
         if ticket.image_base64:
+<<<<<<< HEAD
             from app.tools import tesseract_ocr
             from app.tools import gemini_ocr
 
@@ -215,16 +253,33 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
             except Exception as e:
                 logger.error(f"Failed to upload attachment for ticket {ticket.ticket_id}: {e}")
 
+=======
+            from app.tools.local_ocr import process_image_async
+            ocr_text = await process_image_async(ticket.image_base64)
+            # Sync the extracted text back to the database so the Admin can see it
+            initial_state["raw_text"] += f"\n\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\n{ocr_text}"
+            try:
+                supabase_client.table("tickets").update(
+                    {"raw_text": initial_state["raw_text"]}
+                ).eq("id", ticket.ticket_id).execute()
+            except Exception as e:
+                logger.error(f"Failed to update ticket {ticket.ticket_id} with OCR text: {e}")
+            
+>>>>>>> origin/add/voice-to-text-service
         task = asyncio.create_task(graph.ainvoke(initial_state))
         async with active_tasks_lock:
             active_tasks[ticket.ticket_id] = task
         final_state = await task
+<<<<<<< HEAD
         # The graph (including handoff, if escalation triggered it) has now
         # fully run - this is the point the spec calls "visible to user":
         # the pipeline's own work is done and whatever it produced is about
         # to be persisted/surfaced.
         pipeline_tracer.emit(ticket.ticket_id, "ai-orchestrator-service", "visible_to_user", "done")
 
+=======
+        
+>>>>>>> origin/add/voice-to-text-service
         # Inject processing time into telemetry payload
         final_state["processing_time_ms"] = round((time.time() - start_time) * 1000, 2)
     except asyncio.CancelledError:
@@ -247,6 +302,7 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
     handoff = build_handoff_package(final_state) if is_escalated else None
 
     if not is_escalated and final_response:
+<<<<<<< HEAD
         domain = final_state.get("routing_decision") or final_state.get("category") or "technical"
         if domain not in {"technical", "billing"}:
             domain = "technical"
@@ -288,12 +344,43 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "source": final_state.get("classification_source"),
             }
             supabase_client.table("ticket_classifications").insert(classification_payload).execute()
+=======
+        try:
+            redacted_text = final_state.get("redacted_text") or ticket.raw_text
+            if redacted_text == ticket.raw_text:
+                redacted_text, _ = mask_pii(ticket.raw_text)
+            domain = final_state.get("routing_decision") or final_state.get("category") or "technical"
+            if domain not in {"technical", "billing"}:
+                domain = "technical"
+            add_precedent(ticket.ticket_id, redacted_text, final_response, domain)
+        except Exception as embed_err:
+            logger.warning(f"Failed to embed precedent for ticket {ticket.ticket_id}: {embed_err}")
+
+    try:
+        supabase_client.table("tickets").update({
+            "status": status,
+            "raw_graph_payload": final_state
+        }).eq("id", ticket.ticket_id).execute()
+        
+        classification_payload = {
+            "ticket_id": ticket.ticket_id,
+            "category": final_state.get("category"),
+            "priority": final_state.get("priority"),
+            "sentiment": final_state.get("sentiment"),
+            "confidence": final_state.get("classification_confidence"),
+            "source": "gemini"
+        }
+        supabase_client.table("ticket_classifications").insert(classification_payload).execute()
+>>>>>>> origin/add/voice-to-text-service
         
         agent_drafts = final_state.get("agent_drafts", {})
         rag_scores = final_state.get("rag_top_score", {})
         low_relevance = final_state.get("low_relevance_flags", {})
         retrieved = final_state.get("retrieved_context", {})
+<<<<<<< HEAD
         judge_evaluations = final_state.get("judge_evaluations", {})
+=======
+>>>>>>> origin/add/voice-to-text-service
         for domain, draft_text in agent_drafts.items():
             sources = [
                 {"text": r.get("text", ""), "source_file": r.get("source_file", ""), "score": r.get("score", 0)}
@@ -308,6 +395,7 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "retrieved_sources": sources,
                 "reflection_attempt": final_state.get("reflection_count", 0),
             }
+<<<<<<< HEAD
             draft_result = supabase_client.table("ticket_drafts").insert(draft_payload).execute()
 
             judge_eval = judge_evaluations.get(domain)
@@ -336,6 +424,9 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                     supabase_client.table("response_evaluations").insert(eval_payload).execute()
                 except Exception as e:
                     logger.warning(f"Failed to save response evaluation for ticket {ticket.ticket_id} domain {domain}: {e}")
+=======
+            supabase_client.table("ticket_drafts").insert(draft_payload).execute()
+>>>>>>> origin/add/voice-to-text-service
         
         if not is_escalated and final_response:
             resolution_payload = {
@@ -343,7 +434,10 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "final_response": final_response,
                 "escalated": False,
                 "total_reflection_count": final_state.get("reflection_count", 0),
+<<<<<<< HEAD
                 "total_llm_calls": final_state.get("llm_call_count", 0),
+=======
+>>>>>>> origin/add/voice-to-text-service
             }
             supabase_client.table("resolutions").insert(resolution_payload).execute()
         elif final_response:
@@ -352,7 +446,10 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "final_response": final_response,
                 "escalated": True,
                 "total_reflection_count": final_state.get("reflection_count", 0),
+<<<<<<< HEAD
                 "total_llm_calls": final_state.get("llm_call_count", 0),
+=======
+>>>>>>> origin/add/voice-to-text-service
             }
             supabase_client.table("resolutions").insert(resolution_payload).execute()
         
@@ -374,6 +471,7 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "escalated": True,
                 "escalation_reasons": escalation_reasons,
                 "total_reflection_count": final_state.get("reflection_count", 0),
+<<<<<<< HEAD
                 "total_llm_calls": final_state.get("llm_call_count", 0),
             }).execute()
 
@@ -409,6 +507,19 @@ async def process_ticket(ticket: TicketRequest, background_tasks: BackgroundTask
     if not ticket_res.data or ticket_res.data[0].get("user_id") != user.id:
         raise HTTPException(status_code=403, detail="Not authorized to process this ticket.")
 
+=======
+            }).execute()
+            
+    except Exception as e:
+        logger.error(f"Failed to save to Supabase: {e}")
+
+@app.post("/process_ticket")
+async def process_ticket(ticket: TicketRequest, background_tasks: BackgroundTasks) -> dict:
+    """Trigger background ticket processing and return immediately."""
+    import time
+    start_time = time.time()
+    
+>>>>>>> origin/add/voice-to-text-service
     initial_state = {
         "ticket_id": ticket.ticket_id,
         "raw_text": ticket.raw_text,
@@ -421,7 +532,10 @@ async def process_ticket(ticket: TicketRequest, background_tasks: BackgroundTask
         "rag_top_score": {},
         "low_relevance_flags": {},
         "validation_result": {},
+<<<<<<< HEAD
         "llm_call_count": 0,
+=======
+>>>>>>> origin/add/voice-to-text-service
     }
     
     # Fire and forget the background orchestration properly
@@ -443,6 +557,7 @@ async def get_customer_tickets(user_id: str, user = Depends(verify_token)):
 @app.delete('/customer_tickets/{ticket_id}')
 async def delete_customer_ticket(ticket_id: str, force: bool = False, user = Depends(verify_token)):
     try:
+<<<<<<< HEAD
         # Check permissions. Used to read auth app_metadata.role, which this
         # schema never populates (role lives in public.users.role) - so
         # force-delete silently never authorized any real admin. Found live
@@ -451,6 +566,13 @@ async def delete_customer_ticket(ticket_id: str, force: bool = False, user = Dep
         if force and not is_admin:
             raise HTTPException(status_code=403, detail="Only admins can force delete")
 
+=======
+        # Check permissions
+        is_admin = getattr(user, 'app_metadata', {}).get('role') == 'admin' if hasattr(user, 'app_metadata') else False
+        if force and not is_admin:
+            raise HTTPException(status_code=403, detail="Only admins can force delete")
+            
+>>>>>>> origin/add/voice-to-text-service
         if not is_admin:
             ticket_res = supabase_client.table('tickets').select('user_id').eq('id', ticket_id).execute()
             if not ticket_res.data or ticket_res.data[0].get('user_id') != user.id:
@@ -462,6 +584,7 @@ async def delete_customer_ticket(ticket_id: str, force: bool = False, user = Dep
         if task:
             task.cancel()
             logger.info(f"Cancelled active task for ticket {ticket_id}")
+<<<<<<< HEAD
 
         if force:
             # Hard delete for admins - remove the Storage attachment first,
@@ -489,6 +612,16 @@ async def delete_customer_ticket(ticket_id: str, force: bool = False, user = Dep
         return {"status": "success", "message": "Ticket deleted and processing stopped."}
     except HTTPException:
         raise
+=======
+            
+        if force:
+            # Hard delete for admins
+            supabase_client.table('tickets').delete().eq('id', ticket_id).execute()
+        else:
+            # Soft delete from user side by replacing the UUID with a zero UUID
+            supabase_client.table('tickets').update({'user_id': '00000000-0000-0000-0000-000000000000'}).eq('id', ticket_id).execute()
+        return {"status": "success", "message": "Ticket deleted and processing stopped."}
+>>>>>>> origin/add/voice-to-text-service
     except Exception as e:
         logger.error(f'Failed to delete ticket: {e}')
         raise HTTPException(status_code=500, detail="Failed to delete ticket")
@@ -500,6 +633,7 @@ class EmbedResolvedTicketRequest(BaseModel):
     domain: str = Field(min_length=1, max_length=100)
 
 @app.post('/embed_resolved_ticket')
+<<<<<<< HEAD
 async def embed_resolved_ticket(request: EmbedResolvedTicketRequest, user = Depends(verify_token)):
     """Embeds a resolved ticket into the vector store as precedent memory."""
     # Had no auth at all - anyone who found this URL could inject fabricated
@@ -509,10 +643,15 @@ async def embed_resolved_ticket(request: EmbedResolvedTicketRequest, user = Depe
     # the same staff-only boundary /api/tickets already enforces.
     if get_user_role(user.id) not in ("admin", "agent"):
         raise HTTPException(status_code=403, detail="Staff access required")
+=======
+async def embed_resolved_ticket(request: EmbedResolvedTicketRequest):
+    """Embeds a resolved ticket into the vector store as precedent memory."""
+>>>>>>> origin/add/voice-to-text-service
     try:
         from app.tools.redaction_tool import mask_pii
         from app.tools.rag_tool import add_precedent
         
+<<<<<<< HEAD
         # We must mask the PII before saving to ChromaDB to prevent leakage.
         # This precedent gets reused verbatim for other, unrelated future
         # customers, so the stored response must never carry this customer's
@@ -521,6 +660,11 @@ async def embed_resolved_ticket(request: EmbedResolvedTicketRequest, user = Depe
         redacted_text, _ = mask_pii(request.ticket_text)
         redacted_response, _ = mask_pii(request.final_response)
         add_precedent(request.ticket_id, redacted_text, redacted_response, request.domain)
+=======
+        # We must mask the PII before saving to ChromaDB to prevent leakage
+        redacted_text, _ = mask_pii(request.ticket_text)
+        add_precedent(request.ticket_id, redacted_text, request.final_response, request.domain)
+>>>>>>> origin/add/voice-to-text-service
         
         return {"status": "success"}
     except Exception as e:

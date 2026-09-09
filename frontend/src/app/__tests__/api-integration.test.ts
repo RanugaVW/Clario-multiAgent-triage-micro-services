@@ -249,8 +249,13 @@ describe('API Integration - Ticket Submission', () => {
         body: JSON.stringify(MOCK_TICKET_SUBMISSION),
       });
       expect.fail('Should have thrown an error');
+<<<<<<< HEAD
     } catch (error: unknown) {
       expect(error instanceof Error ? error.message : error).toBe('Network error');
+=======
+    } catch (error: any) {
+      expect(error.message).toBe('Network error');
+>>>>>>> origin/add/voice-to-text-service
     }
   });
 });
@@ -350,7 +355,11 @@ describe('API Integration - Ticket History', () => {
     // Check that tickets are sorted (mock data is already sorted newest first)
     expect(data.length).toBeGreaterThan(0);
     // Verify all tickets have created_at timestamps
+<<<<<<< HEAD
     data.forEach((ticket: { created_at?: unknown }) => {
+=======
+    data.forEach((ticket: any) => {
+>>>>>>> origin/add/voice-to-text-service
       expect(ticket.created_at).toBeDefined();
     });
   });
@@ -623,8 +632,13 @@ describe('Edge Cases and Error Scenarios', () => {
         body: JSON.stringify(MOCK_TICKET_SUBMISSION),
       });
       expect.fail('Should have thrown timeout error');
+<<<<<<< HEAD
     } catch (error: unknown) {
       expect(error instanceof Error ? error.message : error).toContain('timeout');
+=======
+    } catch (error: any) {
+      expect(error.message).toContain('timeout');
+>>>>>>> origin/add/voice-to-text-service
     }
   });
 

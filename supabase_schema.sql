@@ -63,7 +63,10 @@ CREATE TABLE public.tickets (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+<<<<<<< HEAD
 ALTER TABLE public.tickets ADD COLUMN image_storage_path TEXT;
+=======
+>>>>>>> origin/add/voice-to-text-service
 
 -- ==========================================
 -- 3. TICKET CLASSIFICATIONS
@@ -168,6 +171,7 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.human_reviews ENABLE ROW LEVEL SECURITY;
 
+<<<<<<< HEAD
 -- Staff can view all human review (handoff) records. Confirmed live in
 -- production via Testing/05-Security-Access-Control-Testing (checks A7/A7b/A7c):
 -- this table previously had RLS enabled with no policy checked into this
@@ -179,6 +183,8 @@ ALTER TABLE public.human_reviews ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Staff can view all human reviews" ON public.human_reviews
     FOR SELECT USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
 
+=======
+>>>>>>> origin/add/voice-to-text-service
 -- 1. Users can only see their own profile. Admins/Agents can see all.
 CREATE POLICY "Users can view own profile" ON public.users 
     FOR SELECT USING (auth.uid() = id OR (SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
@@ -194,6 +200,7 @@ CREATE POLICY "Customers can insert tickets" ON public.tickets
 CREATE POLICY "Staff can view all tickets" ON public.tickets 
     FOR SELECT USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
 
+<<<<<<< HEAD
 CREATE POLICY "Staff can update tickets" ON public.tickets
     FOR UPDATE USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
 
@@ -221,3 +228,7 @@ CREATE POLICY "Staff view all ticket attachments" ON storage.objects
         bucket_id = 'ticket-attachments'
         AND (SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent')
     );
+=======
+CREATE POLICY "Staff can update tickets" ON public.tickets 
+    FOR UPDATE USING ((SELECT role FROM public.users WHERE id = auth.uid()) IN ('admin', 'agent'));
+>>>>>>> origin/add/voice-to-text-service

@@ -46,6 +46,7 @@ def test_reroute_flips_domain_without_rederiving_routing() -> None:
 def test_reroute_of_both_is_rejected_defensively() -> None:
     with pytest.raises(ValueError, match="Cannot reroute"):
         routing_node(_state(routing_decision="both", needs_reroute=True))
+<<<<<<< HEAD
 
 
 def test_hr_signal_wins_over_lexically_overlapping_billing_score() -> None:
@@ -115,3 +116,5 @@ def test_webxpay_alone_is_not_an_hr_signal() -> None:
         redacted_text="WebXpay showed a payment failure message, but the amount was deducted from her bank account.",
     ))
     assert result["routing_decision"] == "billing"
+=======
+>>>>>>> origin/add/voice-to-text-service

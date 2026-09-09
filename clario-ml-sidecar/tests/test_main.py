@@ -1,11 +1,17 @@
 """HTTP-surface smoke tests that do not invoke external model services."""
 
+<<<<<<< HEAD
 import pytest
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
 from app.main import app, TicketRequest, background_orchestration
+=======
+from fastapi.testclient import TestClient
+
+from app.main import app
+>>>>>>> origin/add/voice-to-text-service
 
 
 def test_health() -> None:
@@ -18,6 +24,7 @@ def test_root_serves_local_ticket_interface() -> None:
     response = TestClient(app).get("/")
     assert response.status_code == 200
     assert "Clario Ticket Orchestration" in response.text
+<<<<<<< HEAD
 
 
 @pytest.mark.asyncio
@@ -101,3 +108,5 @@ async def test_background_orchestration_leaves_raw_text_untouched_when_neither_o
         if "raw_text" in c.args[0]
     ]
     assert raw_text_update_calls == []
+=======
+>>>>>>> origin/add/voice-to-text-service

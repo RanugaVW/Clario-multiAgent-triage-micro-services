@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """retrieve_context() coverage - notably, that it never grounds fresh
 generation on precedent_memory (other customers' full ticket text)."""
 
@@ -71,3 +72,12 @@ def test_retrieve_context_still_rejects_an_unknown_domain() -> None:
     import pytest
     with pytest.raises(ValueError, match="domain must be"):
         retrieve_context("some query", "not_a_real_domain")
+=======
+import pytest
+
+pytestmark = pytest.mark.skip(reason="The RAG tool has not been implemented.")
+
+
+def test_rag_tool_returns_relevant_grounded_context() -> None:
+    """Retrieved context should include source metadata for the agent response."""
+>>>>>>> origin/add/voice-to-text-service

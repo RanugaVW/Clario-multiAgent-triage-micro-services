@@ -12,6 +12,7 @@ describe('End-to-End Ticket Processing Pipeline', () => {
   let authToken: string;
 
   beforeAll(async () => {
+<<<<<<< HEAD
     // No service key in this environment: leave authToken unset so the test
     // below takes its own already-handled "skip due to no auth token" path.
     if (!SUPABASE_SERVICE_KEY) return;
@@ -19,6 +20,11 @@ describe('End-to-End Ticket Processing Pipeline', () => {
     // Initialize Supabase with service role
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+=======
+    // Initialize Supabase with service role
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    
+>>>>>>> origin/add/voice-to-text-service
     // Create a mock user or just use service role to bypass auth
     // For API Gateway, we might need a valid token. Let's authenticate a test user
     const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({

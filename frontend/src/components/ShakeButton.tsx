@@ -22,10 +22,17 @@ export default function ShakeButton({ onDelete }: { onDelete: (e: React.MouseEve
           }}
           transition={{ duration: 0.4 }}
         >
+<<<<<<< HEAD
           <Trash2 className="w-4 h-4 text-[#FB7185]" />
         </motion.div>
       </div>
       <span className="font-medium tracking-tight text-[13px] ml-2.5 text-[#FB7185]">Delete</span>
+=======
+          <Trash2 className="w-4 h-4 text-red-400" />
+        </motion.div>
+      </div>
+      <span className="font-medium tracking-tight text-[13px] ml-2.5 text-red-400">Delete</span>
+>>>>>>> origin/add/voice-to-text-service
     </motion.button>
   );
 }

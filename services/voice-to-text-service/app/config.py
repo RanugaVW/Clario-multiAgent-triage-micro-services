@@ -18,6 +18,7 @@ WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "auto")
 WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "en")
 WHISPER_BEAM_SIZE = int(os.getenv("WHISPER_BEAM_SIZE", "1"))
+<<<<<<< HEAD
 # Where the HuggingFace snapshot is cached. The Dockerfile always overrides
 # this to /models (root-owned inside the container image, created via
 # `RUN mkdir -p /models`, so writable there). That default doesn't work for
@@ -31,6 +32,10 @@ WHISPER_BEAM_SIZE = int(os.getenv("WHISPER_BEAM_SIZE", "1"))
 WHISPER_CACHE_DIR = os.getenv(
     "WHISPER_CACHE_DIR", os.path.expanduser("~/.cache/clario/whisper-models")
 )
+=======
+# Where the HuggingFace snapshot is cached inside the container.
+WHISPER_CACHE_DIR = os.getenv("WHISPER_CACHE_DIR", "/models")
+>>>>>>> origin/add/voice-to-text-service
 WHISPER_CPU_THREADS = int(os.getenv("WHISPER_CPU_THREADS", "0"))
 
 # --- Streaming --------------------------------------------------------------

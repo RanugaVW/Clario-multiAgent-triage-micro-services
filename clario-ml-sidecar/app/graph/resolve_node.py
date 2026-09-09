@@ -2,6 +2,7 @@
 
 from app.graph.state import TicketState
 
+<<<<<<< HEAD
 
 def _restore(text: str | None, shadow_map: dict[str, str]) -> str | None:
     if not text or not shadow_map:
@@ -31,3 +32,8 @@ def resolve_node(state: TicketState) -> TicketState:
         "agent_drafts": restored_drafts,
         "final_response": _restore(state.get("final_response"), shadow_map),
     }
+=======
+def resolve_node(state: TicketState) -> TicketState:
+    """Restore original PII using ShadowMap."""
+    return {**state}
+>>>>>>> origin/add/voice-to-text-service

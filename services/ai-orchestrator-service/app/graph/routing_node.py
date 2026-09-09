@@ -9,6 +9,7 @@ TECHNICAL_KEYWORDS = {
     "locked out": 3, "authenticate": 3, "2fa": 3, "verification code": 2,
 }
 BILLING_KEYWORDS = {"payment": 3, "charged": 3, "bank": 2, "refund": 3, "billed": 3, "buying": 2, "billing": 3}
+<<<<<<< HEAD
 # Specific enough that a single hit justifies HR routing even against
 # ordinary billing wording - see decide_routing()'s comment for why these
 # don't need to out-score billing_score. "webxpay" is deliberately absent
@@ -34,6 +35,8 @@ def has_hr_hard_trigger(text: str) -> bool:
     that need mandatory human review, even when a semantically-similar
     past precedent exists at high similarity."""
     return _calculate_score(text, HR_HARD_TRIGGER_KEYWORDS) > 0
+=======
+>>>>>>> origin/add/voice-to-text-service
 
 # "Account" qualifies both ways: account *access* is authentication (technical),
 # account *billing* is billing. Match on the qualifier rather than the bare noun.
@@ -60,6 +63,7 @@ def check_rag_required(text: str) -> bool:
 
 
 def decide_routing(category: str | None, confidence: float | None, text: str) -> str:
+<<<<<<< HEAD
     """Choose the initial specialist domain without modifying state. Routes to
     "both" (send to both specialists, not a guess) whenever the classifier
     itself is unsure or the ticket text carries a genuine dual-domain signal;
@@ -120,6 +124,30 @@ def decide_routing(category: str | None, confidence: float | None, text: str) ->
     # A bare "Account" is genuinely ambiguous: fall through to scoring the
     # ticket text rather than guessing a domain from the label alone.
 
+=======
+    """Choose the initial specialist domain without modifying state. Routes to escalation if unsure."""
+    if confidence is not None and confidence < 0.7:
+        return "escalation"
+        
+    # Primary logic: Trust the LLM's classification category
+    if category:
+        cat_lower = category.lower()
+        if "technical" in cat_lower or "tech" in cat_lower:
+            return "technical"
+        # Access wording wins over billing wording, so "Account Access" is not
+        # swallowed by the billing branch on the bare word "account".
+        if any(term in cat_lower for term in ACCOUNT_ACCESS_TERMS):
+            return "technical"
+        if any(term in cat_lower for term in ACCOUNT_BILLING_TERMS):
+            return "billing"
+        # A bare "Account" is genuinely ambiguous: fall through to scoring the
+        # ticket text rather than guessing a domain from the label alone.
+
+    # Fallback logic: Compute weighted scores if category is missing or unrecognized
+    tech_score = _calculate_score(text, TECHNICAL_KEYWORDS)
+    billing_score = _calculate_score(text, BILLING_KEYWORDS)
+    
+>>>>>>> origin/add/voice-to-text-service
     if tech_score > 0 or billing_score > 0:
         if billing_score > tech_score:
             return "billing"
@@ -127,7 +155,11 @@ def decide_routing(category: str | None, confidence: float | None, text: str) ->
             return "technical"
         # If scores are exactly tied and > 0, we can't decide confidently
         return "escalation"
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> origin/add/voice-to-text-service
     return "escalation"
 
 

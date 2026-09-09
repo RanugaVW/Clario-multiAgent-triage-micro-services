@@ -37,6 +37,7 @@ yarn-error.log*
 # vercel
 .vercel
 
+<<<<<<< HEAD
 # playwright e2e (Testing/03-UI-E2E-Testing)
 /e2e/.auth/
 /playwright-report/
@@ -44,6 +45,8 @@ yarn-error.log*
 /e2e-results.json
 /test-results/
 
+=======
+>>>>>>> origin/add/voice-to-text-service
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -1,7 +1,10 @@
 FROM python:3.12-slim
 WORKDIR /app
+<<<<<<< HEAD
 RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
+=======
+>>>>>>> origin/add/voice-to-text-service
 COPY requirements.txt .
 # Containers get no GPU (no deploy/devices entries in docker-compose.yml), so the
 # default CUDA torch wheels from PyPI are ~2.5GB of dead weight. Pin the CPU build

@@ -26,7 +26,11 @@ describe('Dashboard Routing', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+<<<<<<< HEAD
     vi.mocked(useRouter).mockReturnValue({ push: mockPush, refresh: vi.fn() } as unknown as ReturnType<typeof useRouter>);
+=======
+    (useRouter as any).mockReturnValue({ push: mockPush, refresh: vi.fn() });
+>>>>>>> origin/add/voice-to-text-service
     
     // Mock fetch for the history call
     global.fetch = vi.fn().mockResolvedValue({
@@ -36,12 +40,20 @@ describe('Dashboard Routing', () => {
   });
 
   it('redirects to login if user is not authenticated', () => {
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: null,
       role: null,
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
 
     render(<DashboardPage />);
     
@@ -49,12 +61,20 @@ describe('Dashboard Routing', () => {
   });
 
   it('redirects to admin if user role is admin', () => {
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: { id: 'admin-123' },
       role: 'admin',
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
 
     render(<DashboardPage />);
     
@@ -62,12 +82,20 @@ describe('Dashboard Routing', () => {
   });
 
   it('renders dashboard if user is authenticated as user', () => {
+<<<<<<< HEAD
     vi.mocked(useAuth).mockReturnValue({
+=======
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: { id: 'user-123' },
       role: 'user',
       loading: false,
       roleLoading: false,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
 
     render(<DashboardPage />);
     
@@ -75,16 +103,28 @@ describe('Dashboard Routing', () => {
     expect(mockPush).not.toHaveBeenCalledWith('/admin');
     
     // Verify dashboard renders
+<<<<<<< HEAD
     expect(screen.getByText(/New ticket/i)).toBeInTheDocument();
   });
   
   it('shows loading spinner when auth is loading', () => {
     vi.mocked(useAuth).mockReturnValue({
+=======
+    expect(screen.getByText(/Submit Ticket/i)).toBeInTheDocument();
+  });
+  
+  it('shows loading spinner when auth is loading', () => {
+    (useAuth as any).mockReturnValue({
+>>>>>>> origin/add/voice-to-text-service
       user: null,
       role: null,
       loading: true,
       roleLoading: true,
+<<<<<<< HEAD
     } as unknown as ReturnType<typeof useAuth>);
+=======
+    });
+>>>>>>> origin/add/voice-to-text-service
 
     const { container } = render(<DashboardPage />);
     
