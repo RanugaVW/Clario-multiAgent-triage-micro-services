@@ -1,49 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-<<<<<<< HEAD
-  --color-background: #08090D;
-  --color-foreground: #ECECEC;
-  --color-foreground-muted: #8A8F98;
-
-=======
   --color-background: #050505;
   --color-foreground: #ececec;
   
->>>>>>> origin/add/voice-to-text-service
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-space-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 @layer utilities {
-<<<<<<< HEAD
-  /* No border-radius here on purpose: this custom utilities block is emitted
-     after Tailwind's generated utilities, so a radius baked in here would
-     silently beat any `rounded-*` class applied alongside it in JSX (this is
-     why the old flat panels rendered square despite `rounded-3xl` in their
-     className). Every call site sets its own explicit `rounded-*` class. */
-  .glass-panel {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .glass-input {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #ECECEC;
-    transition: all 0.2s ease;
-  }
-
-  .glass-input:focus {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: #E8A33D;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(232, 163, 61, 0.15);
-=======
   .glass-panel {
     background: #111111;
     border: 1px solid #222222;
@@ -63,7 +28,6 @@
     background: transparent;
     border-bottom-color: #00E5FF;
     outline: none;
->>>>>>> origin/add/voice-to-text-service
   }
 }
 
@@ -79,13 +43,8 @@ body {
 
 /* Fix for browser autofill ruining glassmorphism */
 input:-webkit-autofill,
-<<<<<<< HEAD
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-=======
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus, 
->>>>>>> origin/add/voice-to-text-service
 input:-webkit-autofill:active {
     transition: background-color 9999s ease-in-out 0s;
     -webkit-text-fill-color: white !important;
@@ -106,22 +65,14 @@ body::after {
 }
 
 body::before {
-<<<<<<< HEAD
-  background: linear-gradient(135deg, #E8A33D, #F4B856); /* Signal gold */
-=======
   background: linear-gradient(135deg, #6366f1, #8b5cf6); /* Indigo to Violet */
->>>>>>> origin/add/voice-to-text-service
   top: -15%;
   left: -15%;
   border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
 }
 
 body::after {
-<<<<<<< HEAD
-  background: linear-gradient(135deg, #2DD4BF, #14B8A6); /* Current teal */
-=======
   background: linear-gradient(135deg, #00e5ff, #0ea5e9); /* Cyan to Sky */
->>>>>>> origin/add/voice-to-text-service
   bottom: -15%;
   right: -15%;
   animation-delay: -12s;
@@ -156,18 +107,6 @@ body::after {
 }
 
 ::-webkit-scrollbar-track {
-<<<<<<< HEAD
-  background: #08090D;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-=======
   background: #050505;
 }
 
@@ -178,7 +117,6 @@ body::after {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #333333;
->>>>>>> origin/add/voice-to-text-service
 }
 
 /* Animations */

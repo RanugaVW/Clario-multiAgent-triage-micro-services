@@ -44,12 +44,6 @@ public class SecurityConfig {
     @Value("${jwt.legacy.secret}")
     private String legacySecret;
 
-<<<<<<< HEAD
-    @Value("${clario.cors.allowed-origins:http://localhost:3000}")
-    private String allowedOrigins;
-
-=======
->>>>>>> origin/add/voice-to-text-service
     @Bean
     public JwtDecoder jwtDecoder() {
         // HS256 decoder using the legacy Supabase shared secret
@@ -80,15 +74,9 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-<<<<<<< HEAD
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type", "apikey", "X-Trace-Correlation-Id"));
-=======
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type", "apikey"));
->>>>>>> origin/add/voice-to-text-service
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

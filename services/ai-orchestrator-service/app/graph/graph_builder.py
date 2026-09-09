@@ -9,10 +9,6 @@ from dotenv import load_dotenv
 from langgraph.graph import END, START, StateGraph
 
 from app.agents.billing_agent import billing_agent_node
-<<<<<<< HEAD
-from app.agents.hr_agent import hr_agent_node
-=======
->>>>>>> origin/add/voice-to-text-service
 from app.agents.technical_agent import technical_agent_node
 from app.graph.cache_check_node import cache_check_node
 from app.graph.classification_node import classification_node
@@ -22,52 +18,15 @@ from app.graph.surrogate_node import surrogate_node
 from app.graph.analyzer_node import analyzer_node
 from app.graph.resolve_node import resolve_node
 from app.graph.reflection_node import reflection_node
-<<<<<<< HEAD
-from app.graph.response_judge_node import response_judge_node
 from app.graph.routing_node import routing_node
 from app.graph.state import TicketState
 from app.graph.validation_node import validation_node
-from app.tracing.pipeline_tracer import trace_node
-=======
-from app.graph.routing_node import routing_node
-from app.graph.state import TicketState
-from app.graph.validation_node import validation_node
->>>>>>> origin/add/voice-to-text-service
 
 load_dotenv()
 
 
 
 def _after_cache(state: TicketState) -> str:
-<<<<<<< HEAD
-    # If it's a cache hit, bypass validation (which requires context/redaction)
-    # and go straight to response_judge (then escalation) to set the final_response
-    return "response_judge" if state.get("cache_hit") else "surrogate"
-
-
-def _specialist_target(state: TicketState) -> str:
-    return {
-        "technical": "technical_agent", "billing": "billing_agent",
-        "both": "both_specialists", "escalation": "escalation", "hr": "hr_agent",
-    }[state["routing_decision"]]
-
-
-async def _both_specialists_node(state: TicketState) -> TicketState:
-    """Draft both domains for an ambiguous ticket.
-
-    Runs technical_agent_node then billing_agent_node *sequentially*, not as
-    a parallel LangGraph fan-out: both nodes return `{**state, ...}`, and two
-    concurrent branches writing the same TypedDict keys in one step hits
-    LangGraph's InvalidUpdateError ("Can receive only one value per step").
-    Sequential composition sidesteps that - each node's read-merge-write on
-    agent_drafts/retrieved_context/etc. naturally accumulates both domains'
-    entries, and llm_call_count's own `state.get(...) + calls_made` pattern
-    still sums correctly across the two calls.
-    """
-    state = await technical_agent_node(state)
-    state = await billing_agent_node(state)
-    return state
-=======
     # If it's a cache hit, bypass validation (which requires context/redaction) 
     # and go straight to escalation to set the final_response
     return "escalation" if state.get("cache_hit") else "surrogate"
@@ -75,24 +34,12 @@ async def _both_specialists_node(state: TicketState) -> TicketState:
 
 def _specialist_target(state: TicketState) -> str:
     return {"technical": "technical_agent", "billing": "billing_agent", "escalation": "escalation"}[state["routing_decision"]]
->>>>>>> origin/add/voice-to-text-service
 
 
 def _after_validation(state: TicketState) -> str:
     """Route after validation based on failure_type signal."""
     failure = state.get("failure_type", "none")
     if failure == "dependency_failure":
-<<<<<<< HEAD
-        return "response_judge"
-    if failure == "misroute":
-        return "routing" if state.get("needs_reroute") else "response_judge"
-    if failure in {"quality", "policy"}:
-        limit = int(os.getenv("MAX_REFLECTION_ATTEMPTS", "2"))
-        return "reflection" if state.get("reflection_count", 0) < limit else "response_judge"
-    # failure_type == "none": validation passed → go to response_judge, then escalation node
-    # escalation_node checks priority/sentiment to decide auto-resolve vs human review
-    return "response_judge"
-=======
         return "escalation"
     if failure == "misroute":
         return "routing" if state.get("needs_reroute") else "escalation"
@@ -102,29 +49,11 @@ def _after_validation(state: TicketState) -> str:
     # failure_type == "none": validation passed → go to escalation node
     # escalation_node checks priority/sentiment to decide auto-resolve vs human review
     return "escalation"
->>>>>>> origin/add/voice-to-text-service
 
 
 def build_graph():
     """Compile the ticket graph; reroute and reflection are each structurally bounded."""
     graph = StateGraph(TicketState)
-<<<<<<< HEAD
-    graph.add_node("cache_check", trace_node("cache_check")(cache_check_node))
-    graph.add_node("surrogate", trace_node("surrogate")(surrogate_node))
-    graph.add_node("analyzer", trace_node("analyzer")(analyzer_node))
-    graph.add_node("classification", trace_node("classification")(classification_node))
-    graph.add_node("routing", trace_node("routing")(routing_node))
-    graph.add_node("technical_agent", trace_node("technical_agent")(technical_agent_node))
-    graph.add_node("billing_agent", trace_node("billing_agent")(billing_agent_node))
-    graph.add_node("both_specialists", trace_node("both_specialists")(_both_specialists_node))
-    graph.add_node("hr_agent", trace_node("hr_agent")(hr_agent_node))
-    graph.add_node("validation", trace_node("validation")(validation_node))
-    graph.add_node("reflection", trace_node("reflection")(reflection_node))
-    graph.add_node("response_judge", trace_node("response_judge")(response_judge_node))
-    graph.add_node("escalation", trace_node("escalation")(escalation_node))
-    graph.add_node("handoff", trace_node("handoff")(handoff_node))
-    graph.add_node("resolve", trace_node("resolve")(resolve_node))
-=======
     graph.add_node("cache_check", cache_check_node)
     graph.add_node("surrogate", surrogate_node)
     graph.add_node("analyzer", analyzer_node)
@@ -137,7 +66,6 @@ def build_graph():
     graph.add_node("escalation", escalation_node)
     graph.add_node("handoff", handoff_node)
     graph.add_node("resolve", resolve_node)
->>>>>>> origin/add/voice-to-text-service
     graph.add_edge(START, "cache_check")
     graph.add_conditional_edges("cache_check", _after_cache)
     graph.add_edge("surrogate", "analyzer")
@@ -146,16 +74,8 @@ def build_graph():
     graph.add_conditional_edges("routing", _specialist_target)
     graph.add_edge("technical_agent", "validation")
     graph.add_edge("billing_agent", "validation")
-<<<<<<< HEAD
-    graph.add_edge("both_specialists", "validation")
-    graph.add_edge("hr_agent", "validation")
     graph.add_conditional_edges("validation", _after_validation)
     graph.add_conditional_edges("reflection", _specialist_target)
-    graph.add_edge("response_judge", "escalation")
-=======
-    graph.add_conditional_edges("validation", _after_validation)
-    graph.add_conditional_edges("reflection", _specialist_target)
->>>>>>> origin/add/voice-to-text-service
     graph.add_edge("escalation", "resolve")
     graph.add_edge("resolve", "handoff")
     graph.add_edge("handoff", END)

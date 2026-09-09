@@ -18,11 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
 });
 
-<<<<<<< HEAD
-const fetchUserRole = async (): Promise<'user' | 'agent' | 'admin'> => {
-=======
 const fetchUserRole = async (userId: string): Promise<'user' | 'agent' | 'admin'> => {
->>>>>>> origin/add/voice-to-text-service
   // Use RPC to bypass RLS infinite recursion on the users table.
   // get_my_role() is SECURITY DEFINER (runs as postgres superuser) so it reads
   // the role without triggering any SELECT policy on public.users.
@@ -53,11 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (currentUser) {
         setRoleLoading(true);
-<<<<<<< HEAD
-        const r = await fetchUserRole();
-=======
         const r = await fetchUserRole(currentUser.id);
->>>>>>> origin/add/voice-to-text-service
         setRole(r);
         setRoleLoading(false);
       } else {
@@ -74,11 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (currentUser) {
         setRoleLoading(true);
-<<<<<<< HEAD
-        const r = await fetchUserRole();
-=======
         const r = await fetchUserRole(currentUser.id);
->>>>>>> origin/add/voice-to-text-service
         setRole(r);
         setRoleLoading(false);
       } else {

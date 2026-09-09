@@ -1,22 +1,4 @@
 import { NextResponse } from 'next/server';
-<<<<<<< HEAD
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { requireUser, isStaff } from '../../../lib/apiAuth';
-
-const CACHE_KEY = 'tickets:list:metadata';
-const CACHE_TTL_SECONDS = 60; // 1 minute cache
-
-// Read these lazily (inside functions) rather than as module-level constants. Static
-// imports execute before a test file's own top-level statements, so a module-level
-// const here would capture env vars before a test's `process.env.X = ...` assignments
-// ever ran. Building the client with an empty key also throws while the module loads,
-// which makes Next.js answer with an HTML error page instead of JSON - building it on
-// first use means a missing key comes back as a JSON 500 the caller can actually read.
-function createServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  return createSupabaseClient(url, key);
-=======
 import { createClient as createRedisClient } from 'redis';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
@@ -31,17 +13,12 @@ const CACHE_TTL_SECONDS = 60; // 1 minute cache
 // missing key comes back as a JSON 500 the caller can actually read.
 function createServiceClient() {
   return createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
->>>>>>> origin/add/voice-to-text-service
 }
 
 let supabaseClient: ReturnType<typeof createServiceClient> | null = null;
 
 function getSupabase() {
-<<<<<<< HEAD
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
-=======
   if (!SUPABASE_SERVICE_KEY) return null;
->>>>>>> origin/add/voice-to-text-service
   if (!supabaseClient) {
     supabaseClient = createServiceClient();
   }
@@ -54,42 +31,13 @@ const MISSING_KEY_RESPONSE = () =>
     { status: 500 }
   );
 
-<<<<<<< HEAD
-// The subset of the real Redis client's surface this route actually calls -
-// kept minimal rather than pulling in the full `redis` package's generic
-// client type, since getRedisClient() below never actually constructs one.
-interface CacheClient {
-  get(key: string): Promise<string | null>;
-  set(key: string, value: string, options?: { EX?: number }): Promise<unknown>;
-  del(key: string): Promise<unknown>;
-  quit(): Promise<unknown>;
-}
-
-// Helper to get connected Redis client gracefully (avoids crashing if Redis is down)
-async function getRedisClient(): Promise<CacheClient | null> {
-=======
 // Helper to get connected Redis client gracefully (avoids crashing if Redis is down)
 async function getRedisClient(): Promise<any> {
->>>>>>> origin/add/voice-to-text-service
   // Bypassed Redis for local Windows testing environment
   return null;
 }
 
-<<<<<<< HEAD
-async function requireStaff(request: Request): Promise<NextResponse | null> {
-  const user = await requireUser(request);
-  if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  if (!isStaff(user)) return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
-  return null;
-}
-
-export async function GET(request: Request) {
-  const authError = await requireStaff(request);
-  if (authError) return authError;
-
-=======
 export async function GET() {
->>>>>>> origin/add/voice-to-text-service
   const supabase = getSupabase();
   if (!supabase) return MISSING_KEY_RESPONSE();
 
@@ -141,12 +89,6 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
-<<<<<<< HEAD
-  const authError = await requireStaff(request);
-  if (authError) return authError;
-
-=======
->>>>>>> origin/add/voice-to-text-service
   const supabase = getSupabase();
   if (!supabase) return MISSING_KEY_RESPONSE();
 
@@ -182,12 +124,6 @@ export async function DELETE(request: Request) {
 }
 
 export async function PUT(request: Request) {
-<<<<<<< HEAD
-  const authError = await requireStaff(request);
-  if (authError) return authError;
-
-=======
->>>>>>> origin/add/voice-to-text-service
   const supabase = getSupabase();
   if (!supabase) return MISSING_KEY_RESPONSE();
 

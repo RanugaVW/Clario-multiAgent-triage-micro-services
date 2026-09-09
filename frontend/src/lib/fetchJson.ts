@@ -9,11 +9,7 @@
  * In dev, a route handler that Turbopack has not compiled yet answers 404 with HTML
  * for the first moment after the server boots, so a 404/503 is retried once.
  */
-<<<<<<< HEAD
-export async function fetchJson<T = unknown>(
-=======
 export async function fetchJson<T = any>(
->>>>>>> origin/add/voice-to-text-service
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<T> {

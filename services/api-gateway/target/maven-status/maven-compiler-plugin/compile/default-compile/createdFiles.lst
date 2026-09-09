@@ -1,14 +1,4 @@
-<<<<<<< HEAD
-com/clario/tracing/RestTemplateConfig.class
-com/clario/ClarioApplication.class
-com/clario/config/SecurityConfig.class
-com/clario/config/CorsConfig.class
-com/clario/tracing/TraceEventPublisher.class
-com/clario/config/JwtDebugFilter.class
-com/clario/config/TraceFilter.class
-=======
 com/clario/ClarioApplication.class
 com/clario/config/JwtDebugFilter.class
 com/clario/config/SecurityConfig.class
 com/clario/config/CorsConfig.class
->>>>>>> origin/add/voice-to-text-service

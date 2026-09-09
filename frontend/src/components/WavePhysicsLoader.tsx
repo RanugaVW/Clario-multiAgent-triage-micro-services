@@ -3,11 +3,7 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 
-<<<<<<< HEAD
-export function WavePhysicsLoader() {
-=======
 export function WavePhysicsLoader({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
->>>>>>> origin/add/voice-to-text-service
   const numBars = 15;
   const barWidth = 12; 
   const barGap = 8; 
@@ -68,21 +64,6 @@ export function WavePhysicsLoader({ theme = 'light' }: { theme?: 'light' | 'dark
         }
         
         const bar_h = baseBarH + wave_val * wavePeakH - indent;
-<<<<<<< HEAD
-        barsData[i].heights.push(`${Math.max(4, bar_h)}px`);
-
-        // Idle bars sit as faint glass; the wave crest lights up gold.
-        const r = Math.round(255 - wave_val * (255 - 232));
-        const g = Math.round(255 - wave_val * (255 - 163));
-        const b = Math.round(255 - wave_val * (255 - 61));
-        const alpha = 0.12 + wave_val * 0.88;
-        barsData[i].colors.push(`rgba(${r}, ${g}, ${b}, ${alpha})`);
-      }
-    }
-
-    return { bars: barsData, ballX: bX, ballY: bY, ballScaleX: bScaleX, ballScaleY: bScaleY, times: tArr };
-  }, [barTotalWidth]);
-=======
         barsData[i].heights.push(`${Math.max(4, bar_h)}px`); 
         
         // Colors for Light Theme: zinc-200 to zinc-800
@@ -103,7 +84,6 @@ export function WavePhysicsLoader({ theme = 'light' }: { theme?: 'light' | 'dark
     
     return { bars: barsData, ballX: bX, ballY: bY, ballScaleX: bScaleX, ballScaleY: bScaleY, times: tArr };
   }, [theme]);
->>>>>>> origin/add/voice-to-text-service
 
   return (
     <div className="relative flex flex-col items-center justify-center w-full scale-[0.6] sm:scale-75 md:scale-100">
@@ -112,11 +92,7 @@ export function WavePhysicsLoader({ theme = 'light' }: { theme?: 'light' | 'dark
           <motion.div
             key={i}
             className="w-3 rounded-full origin-bottom"
-<<<<<<< HEAD
-            style={{ height: '16px', backgroundColor: 'rgba(255, 255, 255, 0.12)' }}
-=======
             style={{ height: '16px', backgroundColor: theme === 'dark' ? 'rgb(39, 39, 42)' : 'rgb(228, 228, 231)' }}
->>>>>>> origin/add/voice-to-text-service
             animate={{
               height: bar.heights,
               backgroundColor: bar.colors,
@@ -131,19 +107,8 @@ export function WavePhysicsLoader({ theme = 'light' }: { theme?: 'light' | 'dark
         ))}
         
         <motion.div
-<<<<<<< HEAD
-          className="absolute w-3 h-3 rounded-full z-10"
-          style={{
-            bottom: 0,
-            left: 0,
-            transformOrigin: 'bottom center',
-            background: 'linear-gradient(135deg, #E8A33D, #F4B856)',
-            boxShadow: '0 0 12px rgba(232, 163, 61, 0.6)',
-          }}
-=======
           className="absolute w-3 h-3 bg-zinc-900 dark:bg-white rounded-full z-10 shadow-sm"
           style={{ bottom: 0, left: 0, transformOrigin: 'bottom center' }}
->>>>>>> origin/add/voice-to-text-service
           animate={{
             x: ballX,
             y: ballY,

@@ -28,25 +28,13 @@ public class TicketController {
     }
 
     @PostMapping
-<<<<<<< HEAD
-    public ResponseEntity<Ticket> createTicket(
-            @RequestBody CreateTicketRequest request,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestHeader(value = "X-Trace-Correlation-Id", required = false) String correlationId) {
-=======
     public ResponseEntity<Ticket> createTicket(@RequestBody CreateTicketRequest request, @RequestHeader(value = "Authorization", required = false) String authHeader) {
->>>>>>> origin/add/voice-to-text-service
         String userId = extractUserIdFromToken(authHeader);
         if (userId == null) {
             userId = "00000000-0000-0000-0000-000000000000";
         }
-<<<<<<< HEAD
-
-        Ticket ticket = ticketService.createTicket(request.getRawText(), request.getSubject(), UUID.fromString(userId), request.getImageBase64(), correlationId);
-=======
         
         Ticket ticket = ticketService.createTicket(request.getRawText(), request.getSubject(), UUID.fromString(userId), request.getImageBase64());
->>>>>>> origin/add/voice-to-text-service
         return ResponseEntity.accepted().body(ticket);
     }
 

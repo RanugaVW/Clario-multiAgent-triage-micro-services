@@ -6,10 +6,6 @@ def build_specialist_prompt(
     retrieved_context: list[dict],
     domain: str,
     prior_critique: str | None = None,
-<<<<<<< HEAD
-    extra_instructions: str | None = None,
-=======
->>>>>>> origin/add/voice-to-text-service
 ) -> str:
     """Build a source-citing, KB-grounded specialist prompt."""
     context = "\n\n".join(
@@ -21,14 +17,8 @@ def build_specialist_prompt(
         if prior_critique
         else ""
     )
-<<<<<<< HEAD
-    extra = f"{extra_instructions}\n\n" if extra_instructions else ""
-    return (
-        f"{critique}{extra}You are the {domain} support specialist. Answer ONLY from the "
-=======
     return (
         f"{critique}You are the {domain} support specialist. Answer ONLY from the "
->>>>>>> origin/add/voice-to-text-service
         "retrieved context. Cite the source_file for every factual claim. If the context "
         "does not cover the ticket, reply exactly: I don't have enough information to "
         "resolve this.\n\n"

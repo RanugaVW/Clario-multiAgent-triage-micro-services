@@ -6,14 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-<<<<<<< HEAD
-    "lint": "eslint src",
-    "test": "vitest run",
-    "test:e2e": "playwright test"
-=======
     "lint": "next lint --dir src",
     "test": "vitest run"
->>>>>>> origin/add/voice-to-text-service
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
@@ -27,10 +21,6 @@
     "redis": "^6.2.0"
   },
   "devDependencies": {
-<<<<<<< HEAD
-    "@playwright/test": "^1.62.1",
-=======
->>>>>>> origin/add/voice-to-text-service
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",

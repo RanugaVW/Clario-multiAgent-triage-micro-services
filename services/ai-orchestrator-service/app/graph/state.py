@@ -18,13 +18,6 @@ class TicketState(TypedDict):
     redacted_text: str
     # surrogate_node writes; validation_node reads for outgoing PII checks.
     pii_found: list[dict]
-<<<<<<< HEAD
-    # surrogate_node writes ({fake_value: real_value} for PERSON/EMAIL only);
-    # validation_node reads to exempt these from the pii_in_draft check,
-    # resolve_node reads to restore real values into the final draft.
-    pii_shadow_map: dict[str, str]
-=======
->>>>>>> origin/add/voice-to-text-service
     # classification_node writes; routing_node, escalation_node, and handoff_node read.
     category: str | None
     # classification_node writes; escalation_node and handoff_node read.
@@ -36,14 +29,7 @@ class TicketState(TypedDict):
     # classification_node writes; handoff_node reads the model/fallback provenance.
     classification_source: Literal["gemini_stand_in", "gemini_stand_in_fallback", "fine_tuned_model"]
     # routing_node writes; specialist, validation, escalation, and handoff nodes read.
-<<<<<<< HEAD
-    # "escalation" (routing_node's no-signal fallback) was already a real
-    # runtime value returned by decide_routing() before this change - the
-    # Literal here was already out of date; fixed alongside adding "hr".
-    routing_decision: Literal["technical", "billing", "both", "escalation", "hr"] | None
-=======
     routing_decision: Literal["technical", "billing", "both"] | None
->>>>>>> origin/add/voice-to-text-service
     # routing_node writes; specialist nodes read to skip retrieval for simple queries (Adaptive RAG).
     rag_required: bool
     # specialist nodes write; validation, reflection, escalation, and handoff nodes read.
@@ -80,12 +66,3 @@ class TicketState(TypedDict):
     final_response: str | None
     # escalation_node writes for human review; handoff_node reads.
     human_review_notes: str | None
-<<<<<<< HEAD
-    # response_judge_node writes (Gemini judge, record-only); API layer reads to persist to Supabase.
-    judge_evaluations: dict[str, dict]
-    # classification_node, technical/billing agent nodes, and response_judge_node
-    # each add their real model-call attempts (including failed retries) here;
-    # main.py persists the running total into resolutions.total_llm_calls.
-    llm_call_count: int
-=======
->>>>>>> origin/add/voice-to-text-service

@@ -7,9 +7,5 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './vitest.setup.ts',
-<<<<<<< HEAD
-    exclude: ['**/node_modules/**', '**/e2e/**'],
-=======
->>>>>>> origin/add/voice-to-text-service
   },
 });

@@ -2,13 +2,7 @@
 
 import chromadb
 from app.graph.state import TicketState
-<<<<<<< HEAD
-from app.graph.routing_node import has_hr_hard_trigger
-from app.tools.circuit_breaker import get_breaker
-from app.tools.rag_tool import _chroma_path, _embedding_model, _COLLECTION_NAME, canonicalize_ticket_text
-=======
 from app.tools.rag_tool import _chroma_path, _embedding_model, _COLLECTION_NAME
->>>>>>> origin/add/voice-to-text-service
 
 def cache_check_node(state: TicketState) -> TicketState:
     """Embed the raw_text and query ChromaDB for a near-identical resolved ticket."""
@@ -16,31 +10,11 @@ def cache_check_node(state: TicketState) -> TicketState:
     if not raw_text:
         return {**state, "cache_hit": False, "cache_source_ticket_id": None}
 
-<<<<<<< HEAD
-    normalized_text = canonicalize_ticket_text(raw_text)
-
-    # Shares the same breaker retrieve_context() (rag_tool.py) reports to -
-    # both talk to the same ChromaDB instance. Before this, a sustained
-    # Chroma outage never tripped anything on this path (only the bare
-    # try/except below caught it), so every single ticket kept paying the
-    # real, failing connection-attempt cost forever instead of eventually
-    # short-circuiting. Found in Testing/06-Failover-Recovery-Testing
-    # (finding B1b).
-    breaker = get_breaker("chroma_rag")
-    if not breaker.allow_request():
-        return {**state, "cache_hit": False, "cache_source_ticket_id": None}
-
-=======
->>>>>>> origin/add/voice-to-text-service
     try:
         client = chromadb.PersistentClient(path=_chroma_path())
         collection = client.get_collection(_COLLECTION_NAME)
         
-<<<<<<< HEAD
-        embeds = [_embedding_model().encode(normalized_text, normalize_embeddings=True).tolist()]
-=======
         embeds = [_embedding_model().encode(raw_text, normalize_embeddings=True).tolist()]
->>>>>>> origin/add/voice-to-text-service
         
         result = collection.query(
             query_embeddings=embeds,
@@ -49,22 +23,6 @@ def cache_check_node(state: TicketState) -> TicketState:
             include=["documents", "metadatas", "distances"],
         )
         
-<<<<<<< HEAD
-        breaker.record_success()  # the query itself succeeded, whether or not it found a match
-
-        docs = result.get("documents", [[]])[0] or []
-        metas = result.get("metadatas", [[]])[0] or []
-        dists = result.get("distances", [[]])[0] or []
-
-        if docs and metas and dists:
-            # Cosine distance to similarity score
-            score = max(0.0, 1.0 - (float(dists[0]) / 2.0))
-            score_threshold = 0.92
-            if score >= score_threshold and not has_hr_hard_trigger(normalized_text):
-                # We have a cache hit! (HR-flavored tickets never take this
-                # path - they must always reach mandatory human review, even
-                # when a semantically-similar past precedent exists.)
-=======
         docs = result.get("documents", [[]])[0] or []
         metas = result.get("metadatas", [[]])[0] or []
         dists = result.get("distances", [[]])[0] or []
@@ -74,7 +32,6 @@ def cache_check_node(state: TicketState) -> TicketState:
             score = max(0.0, 1.0 - (float(dists[0]) / 2.0))
             if score >= 0.95:
                 # We have a cache hit!
->>>>>>> origin/add/voice-to-text-service
                 document = docs[0]
                 ticket_id = metas[0].get("ticket_id")
                 
@@ -96,12 +53,6 @@ def cache_check_node(state: TicketState) -> TicketState:
                 }
                 
     except Exception as e:
-<<<<<<< HEAD
-        breaker.record_failure()
-        print(f"Cache check failed: {e}")
-
-=======
         print(f"Cache check failed: {e}")
         
->>>>>>> origin/add/voice-to-text-service
     return {**state, "cache_hit": False, "cache_source_ticket_id": None}

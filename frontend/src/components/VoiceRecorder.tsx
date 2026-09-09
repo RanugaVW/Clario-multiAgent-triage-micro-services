@@ -15,13 +15,8 @@ interface VoiceRecorderProps {
 }
 
 const ENGINE_LABEL = {
-<<<<<<< HEAD
-  browser: 'Browser speech',
-  server: 'Whisper service',
-=======
   browser: 'BROWSER_SPEECH',
   server: 'WHISPER_SERVICE',
->>>>>>> origin/add/voice-to-text-service
 } as const;
 
 /**
@@ -64,17 +59,6 @@ export default function VoiceRecorder({
     status === 'connecting' ||
     status === 'finalizing';
 
-<<<<<<< HEAD
-  let statusText = 'Tap to start dictating';
-  if (status === 'requesting-mic') statusText = 'Requesting microphone access…';
-  else if (status === 'connecting') statusText = 'Connecting…';
-  else if (status === 'listening') statusText = 'Listening, go ahead';
-  else if (status === 'finalizing') statusText = 'Finalizing…';
-  else if (status === 'error') statusText = 'Voice input failed';
-
-  return (
-    <div className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] overflow-hidden">
-=======
   let statusText = 'TAP_MIC_TO_DICTATE';
   if (status === 'requesting-mic') statusText = 'REQUESTING_MICROPHONE...';
   else if (status === 'connecting') statusText = 'CONNECTING_SPEECH_ENGINE...';
@@ -84,7 +68,6 @@ export default function VoiceRecorder({
 
   return (
     <div className="border border-[#222222] bg-[#0b0b0b]">
->>>>>>> origin/add/voice-to-text-service
       <div className="flex items-center gap-4 p-3">
         <button
           type="button"
@@ -93,16 +76,6 @@ export default function VoiceRecorder({
           aria-pressed={isRecording}
           aria-label={isRecording ? 'Stop recording' : 'Start recording'}
           title={isRecording ? 'Stop recording' : 'Dictate your issue'}
-<<<<<<< HEAD
-          className={`relative shrink-0 w-11 h-11 rounded-full flex items-center justify-center border transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed ${
-            isRecording
-              ? 'border-[#FB7185] bg-[#FB7185]/10 text-[#FB7185]'
-              : 'border-[#2DD4BF] bg-white/[0.04] text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-[#08090D]'
-          }`}
-        >
-          {isRecording && (
-            <span className="absolute inset-0 rounded-full border border-[#FB7185] animate-ping opacity-40" />
-=======
           className={`relative shrink-0 w-11 h-11 flex items-center justify-center border transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed ${
             isRecording
               ? 'border-[#FF3B3B] bg-[#FF3B3B]/10 text-[#FF3B3B]'
@@ -111,7 +84,6 @@ export default function VoiceRecorder({
         >
           {isRecording && (
             <span className="absolute inset-0 border border-[#FF3B3B] animate-ping opacity-40" />
->>>>>>> origin/add/voice-to-text-service
           )}
           {status === 'finalizing' ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -126,26 +98,12 @@ export default function VoiceRecorder({
           <AudioWaveform
             analyser={analyser}
             active={status === 'listening'}
-<<<<<<< HEAD
-            color={isRecording ? '#FB7185' : '#2DD4BF'}
-=======
             color={isRecording ? '#FF3B3B' : '#00E5FF'}
->>>>>>> origin/add/voice-to-text-service
             height={44}
           />
         </div>
       </div>
 
-<<<<<<< HEAD
-      <div className="flex items-center justify-between gap-3 border-t border-white/10 px-3 py-2">
-        <span
-          className={`text-xs ${
-            status === 'error'
-              ? 'text-[#FB7185]'
-              : status === 'listening'
-                ? 'text-[#2DD4BF]'
-                : 'text-[#8A8F98]'
-=======
       <div className="flex items-center justify-between gap-3 border-t border-[#222222] px-3 py-2">
         <span
           className={`text-[10px] font-mono tracking-widest uppercase ${
@@ -154,7 +112,6 @@ export default function VoiceRecorder({
               : status === 'listening'
                 ? 'text-[#00E5FF]'
                 : 'text-[#666666]'
->>>>>>> origin/add/voice-to-text-service
           }`}
         >
           {busy && status !== 'finalizing' ? (
@@ -164,28 +121,17 @@ export default function VoiceRecorder({
         </span>
 
         {engine && (
-<<<<<<< HEAD
-          <span className="text-xs text-[#8A8F98] shrink-0">
-            {ENGINE_LABEL[engine]}
-            {didFallback && engine === 'server' && (
-              <span className="text-[#FB923C]"> · fallback</span>
-=======
           <span className="text-[10px] font-mono tracking-widest uppercase text-[#555555] shrink-0">
             [{ENGINE_LABEL[engine]}]
             {didFallback && engine === 'server' && (
               <span className="text-[#FFD600]"> · FALLBACK</span>
->>>>>>> origin/add/voice-to-text-service
             )}
           </span>
         )}
       </div>
 
       {error && (
-<<<<<<< HEAD
-        <div className="flex items-start gap-2 border-t border-white/10 px-3 py-2 text-[11px] text-[#FB7185]">
-=======
         <div className="flex items-start gap-2 border-t border-[#222222] px-3 py-2 text-[11px] text-[#FF3B3B]">
->>>>>>> origin/add/voice-to-text-service
           <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
