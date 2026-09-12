@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Mail, KeyRound, ArrowRight, UserPlus } from 'lucide-react';
+import { Mail, KeyRound, ArrowRight, UserPlus, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { GlassPanel, GlassButton, GlassInput } from '../../components/ui';
 
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
@@ -89,14 +90,22 @@ export default function Register() {
                     <KeyRound className="h-5 w-5 text-[#8A8F98]" />
                   </div>
                   <GlassInput
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 pr-10"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#8A8F98] hover:text-[#ECECEC] transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 
