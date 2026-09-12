@@ -40,6 +40,23 @@ function parseCustomerResponse(text: string | null | undefined): string {
   return text;
 }
 
+type UserTicketStatus = "In progress" | "Needs review" | "Resolved";
+
+function getUserTicketStatus(ticket: TicketWithResolution): UserTicketStatus {
+  const finalResolution = ticket.resolutions?.find(
+    (resolution) => resolution.escalated === false,
+  );
+  const isFullyResolved = ticket.status === "resolved" || !!finalResolution;
+  const isEscalated =
+    !isFullyResolved &&
+    (ticket.status === "escalated" ||
+      ticket.resolutions?.some((resolution) => resolution.escalated));
+
+  if (isEscalated) return "Needs review";
+  if (isFullyResolved) return "Resolved";
+  return "In progress";
+}
+
 type TicketState = {
   category?: string;
   priority?: string;
@@ -112,8 +129,24 @@ export default function Home() {
     trackingId: string;
   }>({ show: false, trackingId: "" });
   const [dataLoading, setDataLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<
+    UserTicketStatus | "all"
+  >("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const { user, role, loading, roleLoading } = useAuth();
   const router = useRouter();
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const filteredTickets = pastTickets.filter((ticket) => {
+    const matchesStatus =
+      statusFilter === "all" || getUserTicketStatus(ticket) === statusFilter;
+    const matchesSearch =
+      !normalizedSearchQuery ||
+      ticket.raw_text.toLowerCase().includes(normalizedSearchQuery) ||
+      (ticket.subject ?? "").toLowerCase().includes(normalizedSearchQuery);
+
+    return matchesStatus && matchesSearch;
+  });
 
   useEffect(() => {
     return () => {
@@ -556,6 +589,38 @@ export default function Home() {
               </h2>
               <RotateButton onClick={fetchHistory} isLoading={dataLoading} />
             </div>
+            {pastTickets.length > 0 && (
+              <div className="mb-6 space-y-4 px-2">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    {(["all", "In progress", "Needs review", "Resolved"] as const).map(
+                      (status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => setStatusFilter(status)}
+                          className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                            statusFilter === status
+                              ? "border-[#2DD4BF]/50 bg-[#2DD4BF]/15 text-[#2DD4BF]"
+                              : "border-white/10 bg-white/[0.03] text-[#8A8F98] hover:border-white/20 hover:text-[#ECECEC]"
+                          }`}
+                        >
+                          {status === "all" ? "All" : status}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                  <input
+                    type="search"
+                    placeholder="Search your tickets..."
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    aria-label="Search your tickets"
+                    className="glass-input w-full rounded-xl px-3 py-1.5 text-xs text-[#ECECEC] sm:w-64"
+                  />
+                </div>
+              </div>
+            )}
             {dataLoading && pastTickets.length === 0 ? (
               <div
                 className="space-y-2"
@@ -582,9 +647,15 @@ export default function Home() {
                   Submit your first ticket
                 </button>
               </div>
+            ) : filteredTickets.length === 0 ? (
+              <div className="text-center py-16 glass-panel rounded-[28px]">
+                <p className="text-[#8A8F98] text-sm">
+                  No tickets match these filters.
+                </p>
+              </div>
             ) : (
               <div className="flex flex-col w-full max-w-6xl mx-auto">
-                {pastTickets.map((t) => (
+                {filteredTickets.map((t) => (
                   <UserTicketRow
                     key={t.id}
                     ticket={t}
@@ -673,15 +744,13 @@ export function UserTicketRow({
       ticket.resolutions?.some((r) => r.escalated));
 
   let statusColor = "#8A8F98";
-  let statusLabel = "In progress";
+  const statusLabel = getUserTicketStatus(ticket);
   let statusTone: "neutral" | "warning" | "success" = "neutral";
   if (isEscalated) {
     statusColor = "#FB923C";
-    statusLabel = "Needs review";
     statusTone = "warning";
   } else if (isFullyResolved) {
     statusColor = "#34D399";
-    statusLabel = "Resolved";
     statusTone = "success";
   }
 
