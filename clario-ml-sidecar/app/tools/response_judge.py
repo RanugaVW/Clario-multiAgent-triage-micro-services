@@ -224,8 +224,13 @@ TICKET ISSUE: {ticket_issue}
 
 TONE REQUIREMENTS FOR THIS PRIORITY ({priority}):
 - Guidance: {guidance}
-- REQUIRED phrases (must appear in draft): {required_phrases}
-- FORBIDDEN phrases (must NOT appear in draft): {forbidden_phrases}
+- EXAMPLE phrases showing the expected tone for this priority (the draft does NOT need to use
+  these exact words - judge whether it conveys the same commitment, empathy, and urgency in its
+  own language; a paraphrase that hits the same substance should score as well as one that
+  happens to match the wording): {required_phrases}
+- Phrases that would signal the WRONG tone for this priority (language this dismissive/casual
+  for the given urgency should count against tone match, whether or not it's this exact
+  wording): {forbidden_phrases}
 
 REFERENCE RESOLUTIONS (ground truth from similar historical tickets):
 {few_shots_section}
@@ -262,7 +267,11 @@ SCORING RUBRIC (1-5):
 - 1: Unacceptable - Wrong tone for priority, major inaccuracies, policy violations, ungrounded
 
 DIMENSION DEFINITIONS:
-- priority_tone_match: Does the language match the urgency/expectations for this priority level?
+- priority_tone_match: Does the language convey the urgency/expectations for this priority level?
+  Judge the SUBSTANCE of the tone (ownership, empathy, a concrete timeline commitment) - not
+  literal phrase matching. A draft that expresses the same commitment in its own words scores
+  the same as one using the example phrasing verbatim; only mark this down for a genuine tone
+  or urgency mismatch, not for wording that differs from the examples.
 - completeness: Does the draft address all aspects of the issue? Compare to reference resolutions.
 - accuracy: Are the technical/billing details correct? No hallucinations?
 - policy_compliance: No overcommitments, no PII leaks, appropriate fallback for low context?
