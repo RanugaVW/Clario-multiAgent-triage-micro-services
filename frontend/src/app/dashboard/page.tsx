@@ -556,7 +556,20 @@ export default function Home() {
               </h2>
               <RotateButton onClick={fetchHistory} isLoading={dataLoading} />
             </div>
-            {pastTickets.length === 0 ? (
+            {dataLoading && pastTickets.length === 0 ? (
+              <div
+                className="space-y-2"
+                role="status"
+                aria-label="Loading ticket history"
+              >
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-20 rounded-2xl border border-white/[0.08] bg-white/[0.03] animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : pastTickets.length === 0 ? (
               <div className="text-center py-24 glass-panel rounded-[28px]">
                 <Ticket className="w-16 h-16 mx-auto mb-4 opacity-20 text-[#E8A33D]" />
                 <p className="text-[#8A8F98] text-lg">
