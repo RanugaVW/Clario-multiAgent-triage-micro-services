@@ -1,0 +1,100 @@
+query_id,query_text,domain,relevant_doc_ids,notes
+Q001,"Paid for the AI course but the course is still showing as 'Not Enrolled' on the dashboard, even though the money left from my bank account.",technical,none,"real ticket #1 (Payment Issue), This is a technical issue I think because the payment has deducted but the enrollment to the course is not activated means it is technical error in the system, not any billing issue."
+Q002,Payment page kept loading/freezing at the final checkout step; unsure if the payment actually went through.,billing,payment_failed.md,real ticket #2 (Payment Issue)
+Q003,I was charged twice for the same AI course enrollment when clicked 'Pay Now' twice due to a slow page.,billing,duplicate_charge.md,real ticket #3 (Payment Issue)
+Q004,My card payment keeps getting declined even though the card has sufficient funds and works on other websites.,billing,payment_method.md,real ticket #4 (Payment Issue). I think this might be a the users bank card issue witht the our payment gateway. There fore our payment gateway might reject the payement from that card.
+Q005,Payment was successful (received a confirmation SMS from the bank) but the course still doesn't appear under 'My Courses' panel.,technical,none,"real ticket #5 (Payment Issue) If the payement is correctly done, course is not appearing means that the payment verification is not hapening properly or might be if the user has done a bank slip upload it might be need the HR approval. So the user migh need to wait a bit while HR is revewing the slips."
+Q006,"Tried to use a discount/promo code at checkout but it wasn't applied, and was charged the full price.",billing,none,real ticket #6 (Payment Issue) It is a billing issue. 
+Q007,Was charged in USD instead of LKR and the converted amount seems higher than the listed course price.,billing,currency.md,real ticket #7 (Payment Issue)
+Q008,Signed up for the installment payment plan but the dashboard doesn't show when the next installment is due.,billing,plan_change.md,real ticket #8 (Payment Issue)
+Q009,"Did not receive a payment confirmation email after completing payment, worried the enrollment wasn't recorded.",billing,notifications.md,real ticket #9 (Payment Issue)
+Q010,"Payment gateway showed a 'transaction failed' error, but the amount was still deducted from her bank account.",billing,payment_failed.md,real ticket #10 (Payment Issue)
+Q011,Wants a full refund for the AI course as he hasn't started it yet and changed his mind due to a scheduling conflict.,billing,subscription_cancel.md,real ticket #11 (Refund Request)
+Q012,"Requesting a refund for the Robotics Intermediate course, citing that the content quality did not match what was advertised.",billing,subscription_cancel.md,real ticket #12 (Refund Request) Always subscription cancellation combines a refund request according to the policy. Not agreeing to refund immediately
+Q013,Submitted a refund request two weeks ago and hasn't received any update on its status.,billing,refund_status.md,real ticket #13 (Refund Request)
+Q014,Was accidentally charged twice for the AI course and wants the duplicate payment refunded.,billing,duplicate_charge.md,real ticket #14 (Refund Request)
+Q015,Needs a refund because a work schedule change now conflicts with all the live AI course sessions.,billing,subscription_cancel.md,real ticket #15 (Refund Request) Also askin a refund
+Q016,Refund request was denied and she wants to know the specific reason why.,billing,refund_status.md,real ticket #16 (Refund Request)
+Q017,Completed only the first week of the AI course and is asking for a partial refund instead of continuing.,billing,none,real ticket #17 (Refund Request) Must have subscription.md to handle this kind of tickets in our KB
+Q018,Wants a refund for the Robotics Intermediate course because persistent technical issues prevented her from accessing most of the content.,billing,none,real ticket #18 (Refund Request) Refund request
+Q019,Asking how many days after enrollment she is allowed to request a refund before losing eligibility.,billing,none,real ticket #19 (Refund Request)  Must have subscription.md to handle this kind of tickets in our KB like 7 days
+Q020,A refund was processed but the money was sent to the wrong bank account/reference details.,billing,refund_status.md,real ticket #20 (Refund Request)
+Q021,"WebXpay showed a payment failure message, but the amount was deducted from her bank account.",billing,payment_failed.md,real ticket #21 (Billing Issue) Since this a WebXPay issue the HR should immediately contact and handle this issue
+Q022,"Didn't receive the OTP required to complete the WebXpay payment, so the transaction couldn't be finished.",billing,none,real ticket #22 (Billing Issue) Must have a WebXPay.md to include that this kind of payment gateway issues are relevent to them and currently handling by RYSERA STEM HR team
+Q023,Uploaded her bank deposit slip for the AI course three days ago but it still shows 'Pending Verification'.,billing,none,real ticket #23 (Billing Issue) Must have a payment_status.md to handle this kind of things
+Q024,My bank slip was rejected but the notification didn't explain why,HR,payment_failed.md,real ticket #24 (Billing Issue) The rejection is on HR team they will contact the user immediately.
+Q025,WebXpay transaction has been stuck on 'Pending' for over 24 hours with no update.,billing,payment_failed.md,real ticket #25 (Billing Issue)
+Q026,Needs an official invoice/receipt for a WebXpay payment made for company expense reimbursement purposes.,billing,invoice_copy.md,real ticket #26 (Billing Issue)
+Q027,"Uploaded my bank slip, but it appears to have been linked to the wrong course (Robotics instead of AI).",billing,none,real ticket #27 (Billing Issue) Must have a misclassification_billing.md KB to handle this kind of issues
+Q028,Disputing a WebXpay charge that appears twice on her bank statement for a single course purchase.,billing,duplicate_charge.md;chargeback.md,real ticket #28 (Billing Issue)
+Q029,"Made a bank transfer with a reference number, but it hasn't been linked to my student account after several days.",billing,none,real ticket #29 (Billing Issue) Must have subscription.md to handle this kind of tickets in our KB
+Q030,"WebXpay confirmed the payment was successful, but no receipt or confirmation was generated afterward.",billing,invoice_copy.md,real ticket #30 (Billing Issue)
+Q031,"Requested a password reset but never received the reset email, even after checking spam.",technical,login_reset.md,real ticket #31 (Login Issue)
+Q032,Account got locked after several failed login attempts and now shows 'Account Temporarily Locked'.,technical,none,real ticket #32 (Login Issue) Must have a account_issue.md KB to handle this kind of issues
+Q033,"The OTP required for login isn't arriving on his phone, blocking him from accessing the course.",technical,notifications.md,real ticket #33 (Login Issue)
+Q034,Trying to log in with 'Sign in with Google' but it just redirects back to the login page without signing in.,technical,integration_error.md,real ticket #34 (Login Issue)
+Q035,Getting an 'Invalid credentials' error despite being certain the password is correct.,technical,login_reset.md,real ticket #35 (Login Issue)
+Q036,"Account shows as already logged in on another device, preventing her from accessing the course on her own laptop.",technical,none,real ticket #36 (Login Issue)  Must have a account_issue.md KB to handle this kind of issues
+Q037,"The email verification link sent after signing up has expired, and he can't log in without verifying.",technical,login_reset.md,real ticket #37 (Login Issue)
+Q038,Changed her password successfully but is now unable to log in with the new password.,technical,login_reset.md,real ticket #38 (Login Issue)
+Q039,"The login page itself gets stuck loading and never shows the login form, especially on mobile.",technical,slow_performance.md,real ticket #39 (Login Issue)
+Q040,"The two-factor authentication code he enters is always rejected as invalid, even when entered immediately.",technical,none,real ticket #40 (Login Issue)  Must have a account_issue.md KB to handle this kind of issues
+Q041,"Paid via mobile banking app; got a success message in the app, but the LMS still shows the course as unpaid.",billing,none,real ticket #41 (Payment Issue) Must have a WebXPay.md to include that this kind of payment gateway issues are relevent to them and currently handling by RYSERA STEM HR team
+Q042,"Added the course to cart at one price, but was charged a higher amount at final payment.",billing,none,real ticket #42 (Payment Issue)
+Q043,"Payment from an overseas card is being blocked, seemingly due to an international transaction restriction.",billing,none,real ticket #43 (Payment Issue) Must have a WebXPay.md to include that this kind of payment gateway issues are relevent to them and currently handling by RYSERA STEM HR team
+Q044,Accidentally purchased the wrong course and wants to switch to the correct one before starting.,billing,plan_change.md,real ticket #44 (Payment Issue)
+Q045,"Tried to split payment across two cards; one succeeded and one was declined, and now I'm unsure if I was fully enrolled.",billing,none,real ticket #45 (Payment Issue) Must have a WebXPay.md to include that this kind of payment gateway issues are relevent to them and currently handling by RYSERA STEM HR team
+Q046,Got a generic 'Error 500' on the payment page and doesn't know if the payment went through.,billing,payment_failed.md,real ticket #46 (Payment Issue)
+Q047,"Already an enrolled student trying to buy a second course, but checkout throws a 'duplicate email' error and won't let him pay.",billing,none,real ticket #47 (Payment Issue) Must have a WebXPay.md to include that this kind of payment gateway issues are relevent to them and currently handling by RYSERA STEM HR team
+Q048,A free trial she signed up for was automatically converted into a paid enrollment without a clear notice beforehand.,billing,subscription_cancel.md,real ticket #48 (Payment Issue)
+Q049,Paid the flash-sale price shown on the landing page but was charged the regular full price at checkout.,billing,none,real ticket #49 (Payment Issue) Must have a WebXPay.md to include that this kind of payment gateway issues are relevent to them and currently handling by RYSERA STEM HR team
+Q050,Was charged again automatically for a recurring/auto-renewal payment she wasn't aware she had signed up for.,billing,duplicate_charge.md;subscription_cancel.md,real ticket #50 (Payment Issue)
+Q051,"Used a special discounted price from a referral link shared by a friend, but the discount wasn't honored at checkout.",billing,none,real ticket #51 (Payment Issue) Must have a WebXPay.md to include that this kind of payment gateway issues are relevent to them and currently handling by RYSERA STEM HR team
+Q052,Had reward points/wallet balance from a previous promotion that wasn't applied automatically at checkout.,billing,none,real ticket #52 (Payment Issue)
+Q053,"Payment went through, but I was enrolled in the Beginner level course instead of the Intermediate level he paid for.",technical,none,real ticket #53 (Payment Issue) Must have a enrollment_issues.md KB to handle this kind of issues
+Q054,Her first payment attempt failed and now wants to know how to retry with a different card or payment method.,billing,payment_method.md;payment_failed.md,real ticket #54 (Payment Issue)
+Q055,Needs a receipt with a GST/tax breakdown for his company to process reimbursement for the course fee.,billing,invoice_copy.md;tax_charge.md,real ticket #55 (Payment Issue)
+Q056,Requesting a full refund because the course batch she enrolled in was cancelled/postponed by Rysera with no clear new date.,billing,subscription_cancel.md,real ticket #56 (Refund Request) 
+Q057,Wants a refund because the instructor was changed mid-course and the new teaching style doesn't match what he signed up for.,HR,none,real ticket #57 (Refund Request) must have a course_issues.md course not fit with the lecturere. 
+Q058,Needs a refund due to a sudden medical emergency that prevents him from continuing the course.,HR,none,real ticket #58 (Refund Request) must have a course_cancellation.md KB
+Q059,A parent is requesting a refund because their minor child was enrolled without proper parental consent.,HR,none,real ticket #59 (Refund Request) must have a course_cancellation.md KB
+Q060,Sent a refund request by email a week ago and hasn't received any reply at all.,billing,refund_status.md,real ticket #60 (Refund Request)
+Q061,"Refund was issued as course credit instead of a cash refund, but he specifically wants the money back to his bank account.",billing,refund_status.md,real ticket #61 (Refund Request)
+Q062,An international student worried that a refund in LKR will result in a forex loss compared to what he originally paid in USD.,billing,currency.md;refund_status.md,real ticket #62 (Refund Request)
+Q063,"Refund was denied due to course progress over 50%, but she says the progress was inflated because of a platform outage that kept marking modules complete incorrectly.",billing,refund_status.md;service_status.md,real ticket #63 (Refund Request)
+Q064,"Accidentally enrolled in both the AI and Robotics courses when only one was meant to be a free add-on, and wants the paid one refunded.",billing,none,real ticket #64 (Refund Request) Must have a misclassification_billing.md KB to handle this kind of issues
+Q065,Refund status shows 'Processing' but there's no indication of how long it will take.,billing,refund_status.md,real ticket #65 (Refund Request)
+Q066,Wants her refund sent to a different bank account than the one she originally paid from.,billing,refund_status.md,real ticket #66 (Refund Request)
+Q067,"The course was paid for by his employer as a sponsorship, and any refund needs to go back to the company, not to him personally.",billing,refund_status.md,real ticket #67 (Refund Request)
+Q068,"Unsure if she's still within the free-trial refund window or already past it, and wants clarity before formally requesting a refund.",HR,none,real ticket #68 (Refund Request) Must have a subscription_cancellation_request.md
+Q069,A refund was approved but only part of the amount has been received in his account so far.,billing,refund_status.md,real ticket #69 (Refund Request)
+Q070,Needs a refund because she is relocating abroad partway through the course and won't be able to attend the remaining live sessions.,HR,none,real ticket #70 (Refund Request) must have a course_cancellation.md KB
+Q071,"WebXpay session timed out while entering the 3D Secure/bank OTP verification step, and payment status is unclear.",billing,payment_failed.md,real ticket #71 (Billing Issue)
+Q072,The bank slip photo she uploaded is blurry and wants to know how to resubmit a clearer one.,billing,upload_errors.md,real ticket #72 (Billing Issue)
+Q073,"WebXpay charged the payment in USD instead of LKR, resulting in a higher amount than expected.",billing,currency.md,real ticket #73 (Billing Issue)
+Q074,"Paid using a family member's bank account, so the name on the slip doesn't match his own registered name, and worries it won't be accepted.",HR,none,real ticket #74 (Billing Issue) must have a payment_status.md KB to handle this kind of issues
+Q075,"Was told a refund was initiated via WebXpay two weeks ago, but the money has not appeared in his account.",billing,refund_status.md,real ticket #75 (Billing Issue)
+Q076,Lost the physical bank slip after making a cash deposit and is asking how else she can prove payment.,HR,none,real ticket #76 (Billing Issue) must have a payment_status.md KB to handle these kind of issues
+Q077,Getting a 'Merchant Unavailable' error every time he tries to pay through WebXpay.,billing,payment_failed.md;service_status.md,real ticket #77 (Billing Issue)
+Q078,"Transferred money to an old/incorrect bank account number found from an outdated post, and now the payment can't be matched.",HR,none,real ticket #78 (Billing Issue) Must have a misclassification_billing.md KB to handle this kind of issues
+Q079,The invoice issued has an incorrect course name/date and needs it corrected for his records.,billing,invoice_copy.md,real ticket #79 (Billing Issue)
+Q080,Payment was rejected because the billing address entered didn't match the one on file with his bank.,billing,payment_method.md,real ticket #80 (Billing Issue)
+Q081,Made a WebXpay payment but accidentally entered a smaller amount than the actual course fee due to a typo.,HR,none,real ticket #81 (Billing Issue) Must have a misclassification_billing.md KB to handle this kind of issues
+Q082,Submitted a bank slip as part of a corporate sponsorship arrangement and wants confirmation it's linked correctly to the sponsoring company.,billing,none,real ticket #82 (Billing Issue)
+Q083,Accidentally uploaded two separate bank slips for the same course and wants the excess amount refunded.,billing,duplicate_charge.md;refund_status.md,real ticket #83 (Billing Issue)
+Q084,The WebXpay transaction ID he received doesn't match the one shown on his Rysera dashboard.,billing,none,real ticket #84 (Billing Issue) Must have a WebXPay.md to include that this kind of payment gateway issues are relevent to them and currently handling by RYSERA STEM HR team
+Q085,"Bank charges/transfer fees were deducted from her payment, so the amount received was short of the full course fee.",billing,none,real ticket #85 (Billing Issue)
+Q086,"Changed his phone number and can no longer receive the OTP tied to the old number, locking him out of login.",technical,none,real ticket #86 (Login Issue) Must have a account_issue.md KB to handle this kind of issues
+Q087,Never received the account creation/login credentials email after enrolling as a new student.,technical,login_reset.md,real ticket #87 (Login Issue)
+Q088,Login works fine on the browser but fails every time on the mobile app with a generic error.,technical,browser_support.md;app_crash.md,real ticket #88 (Login Issue)
+Q090,I keep getting logged out automatically every few minutes while trying to study.,technical,browser_support.md,real ticket #90 (Login Issue) 
+Q091,Forgot which email address was used to sign up and can't find any confirmation email to check.,technical,none,real ticket #91 (Login Issue) Must have a account_issue.md KB to handle this kind of issues
+Q092,"The CAPTCHA on the login page isn't loading at all, so she can't submit the login form.",technical,browser_support.md,real ticket #92 (Login Issue)
+Q093,"Login is being blocked with a security warning, and I suspects it's because I was using a VPN.",technical,browser_support.md,real ticket #93 (Login Issue)
+Q094,Account was suspended without any explanation and she wants to understand why.,technical,none,real ticket #94 (Login Issue) Must have a account_issue.md KB to handle this kind of issues
+Q095,"Browser autofill keeps entering an old, incorrect password, and she doesn't know how to fix the login attempt.",technical,browser_support.md,real ticket #95 (Login Issue)
+Q096,"Can't log in after her organization changed its email domain, since her old work email is no longer active.",technical,none,real ticket #96 (Login Issue) Must have a account_issue.md KB to handle this kind of issues
+Q097,Login succeeds but then redirects to a blank page or dashboard error instead of the course content.,technical,data_sync.md,real ticket #97 (Login Issue)
+Q098,Accidentally created multiple accounts with different email addresses and wants them merged into one with all progress intact.,technical,none,real ticket #98 (Login Issue) Must have a account_issue.md KB to handle this kind of issues
+Q099,"Trying to recover his account via security question, but the answer he's entering keeps being rejected as incorrect.",technical,login_reset.md,real ticket #99 (Login Issue)
+Q100,"Her elderly parent, who is helping her log in, is confused because the login page suddenly appeared in a different language.",technical,accessibility.md,real ticket #100 (Login Issue)

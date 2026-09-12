@@ -1,0 +1,71 @@
+query_id,query_text,domain,relevant_doc_ids
+Q001,Recordings and notes are not available for me.,technical,data_sync.md
+Q002,Enrolled in the AI course but hasn't received access to the Python course.,hr,payment_linkage_escalation.md
+Q003,Cannot continue learning; no further detail given.,technical,data_sync.md
+Q004,Cannot continue AI course due to an error; personal details showing as incorrect too.,technical,data_sync.md
+Q005,Same issue reported again: recordings/notes not visible.,technical,data_sync.md
+Q006,"Cannot see competition link, recordings, or notebooks.",technical,data_sync.md
+Q007,"The 'Continue' joining bar shows orange instead of green, preventing entry to the course.",technical,"data_sync.md, sevice_status.md"
+Q008,Clicking 'Continue Learning' just refreshes the page instead of opening the course.,technical,service_status.md
+Q009,Missed the first day of the AI course live session and is asking how to get the recording.,hr,course_issues.md
+Q010,System shows an error after entering profile details.,technical,data_sync.md
+Q011,Submitted bank slip for the AI course but status still shows awaiting approval; feels it wasn't received.,billing,payment_failed
+Q012,"Enrolled via email but can only see dashboard and enrolled courses, not the actual LMS/course content.",technical,data_sync.md
+Q013,Site keeps showing 'start to learn' instead of modules; the inbrowser compiler shows errors even though the submitted code (printing a welcome message) is correct.,technical,"data_sync.md, integration_error"
+Q014,Cannot get into the LMS at all.,technical,login_reset
+Q015,Followup on earlier ticket (#3) - still hasn't received access to the Python course.,hr,payment_linkage_escalation.md
+Q016,Cannot get the Zoom link,hr,course_issue.md
+Q017,Notebook viewer shows the Google Drive file tag but the content area below is blank; tried disabling adblockers with no change; suspects a broken link or permission issue. Screenshot attached.,technical,"browser_support, integration_error"
+Q018,Unable to join the live Zoom class for the AI course.,technical,integration_error
+Q020,Submitted a project proposal but cannot see it confirmed anywhere.,technical,"data_sync.md, upload_errors"
+Q021,Cannot submit the final project even though the submission deadline was extended.,technical,upload_errors
+Q022,"I want to cancel my subscription to the AI course. I no longer have time to continue with my job schedule, and I'd like this processed before my next payment is due.",hr,course_cancellation
+Q023,I'd like to cancel my enrollment in the Robotics course. I signed up last week but realised the schedule clashes with my A/L classes.,hr,course_cancellation
+Q024,I've been trying to cancel my subscription myself through the dashboard but there's no option anywhere. Can someone please cancel it for me?,billing,subscription_cancel
+Q025,I want to cancel my course subscription and I need written confirmation that I won't be charged again next month.,hr,course_cancellation
+Q026,I need to cancel my subscription for the Python course. Money is tight this month and I can't continue paying for it right now.,hr,course_cancellation
+Q027,I asked for my subscription to be cancelled two weeks ago but I was just charged again this month. Please cancel this properly and refund the extra charge.,billing,"subscription_cancel, refund_status"
+Q028,I paid for the AI course but my card was charged twice for the same transaction. Can I get a refund for the duplicate payment?,billing,duplicate_charge
+Q029,"I uploaded my bank slip for the Robotics course but then accidentally submitted the same slip again by mistake through the wrong form. I only paid once, so please make sure I'm not marked as owing twice.",hr,payment_linkage_escalation.md
+Q030,I was charged twice for the same course within a few minutes of each other. This is a lot of money for me and I need the extra charge refunded urgently.,billing,duplicate_charge
+Q031,"Support told me last week that I wasn't charged twice, but I'm looking at my bank statement right now and there are clearly two identical charges from your company on the same day.",billing,"duplicate_charge, chargeback"
+Q032,I meant to pay only for the AI course but I think I was charged for both the AI course and the Robotics course by mistake. I only want to be enrolled in the AI course.,hr,payment_linkage_escalation.md
+Q033,You said my duplicate payment would be refunded but it's been over a week and I haven't seen anything in my account. Can you show me proof it was actually processed?,billing,"duplicate_charge, refund_status"
+Q034,My account has suddenly been blocked and I can't log in at all. I haven't done anything wrong that I know of  can someone please tell me why and unblock it?,technical,login_reset
+Q035,"My account is blocked and I have an assignment deadline in a few hours. Please unblock it as soon as possible, this is really urgent.",technical,login_reset
+Q036,"I think my account got blocked because I asked for a refund. Is that really why, and can it be unblocked while the refund is being sorted out?","technical, billing","login_reset, refund_status"
+Q037,This is the second time my account has been blocked for no reason. It's really inconvenient because I keep missing live sessions while waiting for it to be fixed.,technical,login_reset
+Q038,I got a message saying my account was blocked for 'suspicious activity' but I haven't logged in from anywhere unusual. Is my account safe?,technical,login_reset
+Q039,"My account was blocked and now it's fixed, but can someone explain exactly why it happened so it doesn't happen again?",technical,login_reset
+Q040,I signed up for the AI course last week but I've changed my mind  I don't think it's the right fit for me right now. Can I cancel and get a refund?,hr,course_cancellation
+Q041,I already watched a couple of the recorded classes but I've decided the Robotics course isn't for me after all. I'd like to cancel and get my money back please.,hr,course_cancellation
+Q042,I paid for the course this morning but after thinking it over I don't want to continue anymore. I haven't logged into any classes yet  can I get a full refund?,hr,course_cancellation
+Q043,I asked to cancel and get a refund three days ago and haven't heard anything back. I've genuinely changed my mind about doing this course and just want my money back.,"hr, billing","course_cancellation, refund_status"
+Q044,"I want to cancel my enrollment because I've decided to focus on my A/Ls instead, and I'd like a refund if that's possible. I'm not sure how to actually request this though.",hr,course_cancellation
+Q045,"I want to cancel the course I enrolled in last month. I know I've already attended a few sessions, so I'm not expecting a full refund, but is there anything I can get back?",hr,course_cancellation
+Q046,"I signed up for this course because of the instructor listed on the course page, but I found out the classes are now being taught by someone else. I don't think the new instructor explains things well, so I'd like to cancel and get a refund.",hr,"course_issues, course_cancellation"
+Q047,"My instructor was changed partway through the course and I really don't enjoy their teaching style compared to before. Before I ask for a refund, is it possible to move to a different batch with the original instructor instead?",hr,course_issues
+Q048,"The instructor teaching my Robotics course right now is honestly not explaining the concepts clearly at all, and I heard this wasn't the instructor originally advertised. I don't want to continue paying for a course I'm not learning anything from  please cancel and refund me.",hr,"course_issues, course_cancellation"
+Q049,I noticed a different instructor has taken over my batch and honestly the new one isn't as good. I'm on the fence about cancelling  what are my options?,hr,course_issues
+Q050,I already messaged about wanting to cancel because of the instructor change last week but nobody replied. I still want to cancel and get my refund.,hr,course_cancellation
+Q051,"I requested a refund two weeks ago and I just got a message saying it was denied, but no reason was given at all. I need to know why so I can figure out what to do next.",billing,refund_status
+Q052,My refund request shows as 'denied' on my end but I never received any email or message explaining why. This feels really unfair since I don't even know what I did wrong.,billing,refund_status
+Q053,"I was told my refund was denied but nobody explained why, and now nobody is responding to my followup messages either. I want this escalated to someone who can actually explain the decision.",billing,refund_status
+Q054,"I finally found out my refund was denied because I supposedly used the course material, but I only opened one lesson to see if I liked the course, nothing more. I don't think that's fair grounds to deny the whole refund.","hr, billing","course_cancellation, refund_status"
+Q055,I only found out my refund was denied because I checked my bank account and saw no refund had come through  nobody told me anything at all. This is really disappointing.,billing,refund_status
+Q056,I meant to enroll in the Robotics course but I think I accidentally selected the AI course during checkout. Can this be corrected so I'm enrolled in Robotics instead?,billing,plan_change
+Q057,"I realised a few days into the AI course that I actually wanted to join Robotics  I must have picked the wrong one when I was signing up quickly on my phone. I've only attended one class so far, can I still switch?",billing,plan_change
+Q058,"I joined the AI course by mistake when I meant to sign up for Robotics, and I'm worried I'll lose my payment if I try to switch now. Can you please help me move to the correct course without having to pay again?","hr, billing","payment_linkage_escalation.md, plan_change"
+Q059,I actually wanted to join the AI course but somehow ended up enrolled in Robotics. I think I clicked the wrong card on the courses page. Could this be fixed?,billing,plan_change
+Q060,I only just realised today that I've been in the wrong course this whole time  I meant to join Robotics but got the AI course by mistake. I'm worried I've fallen behind now that I need to switch.,billing,plan_change
+Q061,I used a discount code at checkout for the AI course but the final amount I paid didn't reflect the discount at all  I was charged the full price. Can this be corrected?,billing,plan_change
+Q062,"There was an offer advertised for 20% off the Robotics course but when I paid, my card was charged the full amount. I'm not sure if I entered the code wrong or if something went wrong on your end.",billing,plan_change
+Q063,"My friend enrolled in the same AI course yesterday and got the earlybird discount, but when I paid today the discount had already disappeared and I ended up paying more. Can I get the same price as my friend?",billing,plan_change
+Q064,"I specifically waited for the 'back to school' offer to enroll in the Python course and made sure I paid during the offer period, but I was still charged the regular price. This is really disappointing since the whole reason I waited was for the discount.",billing,"plan_change, invoice_copy"
+Q065,"I think I may have mistyped the discount code when I paid for the Robotics course, so it didn't apply. I know it might be my mistake, but is there any way to still get the discount applied since I did intend to use it?",billing,plan_change
+Q066,"My video keeps buffering and freezing during every live Zoom session for the AI course, even though my internet works fine for everything else. Is this a problem on your end?",technical,"slow_performance, service_status"
+Q067,"I completed the course over a week ago and was told I'd get a certificate, but I still haven't received anything. Can you check on this for me?",technical, slow_performance.md
+Q068,I just received my certificate for the course but my name is spelled incorrectly on it. Can this be corrected and reissued?,technical, data_sync.md
+Q069,I can't download any of the PDF notes for the Python course  the download button doesn't do anything when I click it. I need these for offline studying.,technical,browser_support
+Q070,I submitted the module quiz for the AI course but my results page just shows a blank loading spinner that never finishes. I don't know if I passed or not.,technical,"data_sync.md, slow_performance"
+Q071,I can log into the LMS fine on my laptop but the mobile app just keeps showing an error message whenever I try to log in from my phone. I mostly want to use the app since it's more convenient.,technical,"app_crash, login_reset"
