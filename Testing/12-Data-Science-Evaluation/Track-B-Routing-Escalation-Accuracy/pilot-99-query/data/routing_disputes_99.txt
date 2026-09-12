@@ -1,0 +1,34 @@
+32 disputes need manual resolution before run_routing_evaluation_99.py can use these rows:
+
+  RB006 (Q006), should_escalate: human1=False | human2=True
+  RB008 (Q008), should_escalate: human1=False | human2=True
+  RB011 (Q011), should_escalate: human1=False | human2=True
+  RB011 (Q011), routing_ground_truth: human1=billing | human2=hr
+  RB012 (Q012), should_escalate: human1=True | human2=False
+  RB012 (Q012), routing_ground_truth: human1=hr | human2=billing
+  RB017 (Q017), should_escalate: human1=True | human2=False
+  RB019 (Q019), should_escalate: human1=False | human2=True
+  RB020 (Q020), should_escalate: human1=True | human2=False
+  RB032 (Q032), should_escalate: human1=False | human2=True
+  RB034 (Q034), should_escalate: human1=False | human2=True
+  RB040 (Q040), should_escalate: human1=False | human2=True
+  RB042 (Q042), should_escalate: human1=False | human2=True
+  RB043 (Q043), should_escalate: human1=True | human2=False
+  RB047 (Q047), should_escalate: human1=True | human2=False
+  RB047 (Q047), routing_ground_truth: human1=billing | human2=technical
+  RB049 (Q049), should_escalate: human1=False | human2=True
+  RB051 (Q051), should_escalate: human1=True | human2=False
+  RB056 (Q056), should_escalate: human1=False | human2=True
+  RB061 (Q061), should_escalate: human1=False | human2=True
+  RB062 (Q062), should_escalate: human1=False | human2=True
+  RB063 (Q063), should_escalate: human1=True | human2=False
+  RB064 (Q064), should_escalate: human1=False | human2=True
+  RB066 (Q066), should_escalate: human1=False | human2=True
+  RB067 (Q067), should_escalate: human1=False | human2=True
+  RB068 (Q068), should_escalate: human1=True | human2=False
+  RB068 (Q068), routing_ground_truth: human1=hr | human2=billing
+  RB069 (Q069), should_escalate: human1=False | human2=True
+  RB086 (Q086), should_escalate: human1=False | human2=True
+  RB088 (Q088), should_escalate: human1=False | human2=True
+  RB089 (Q090), should_escalate: human1=False | human2=True
+  RB093 (Q094), should_escalate: human1=False | human2=True

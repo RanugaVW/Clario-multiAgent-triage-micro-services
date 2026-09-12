@@ -1,0 +1,100 @@
+pair_id,query_id,query_text,routing_ground_truth,should_escalate
+RB001,Q001,"Paid for the AI course but the course is still showing as 'Not Enrolled' on the dashboard, even though the money left from my bank account.",hr,True
+RB002,Q002,Payment page kept loading/freezing at the final checkout step; unsure if the payment actually went through.,billing,False
+RB003,Q003,I was charged twice for the same AI course enrollment when clicked 'Pay Now' twice due to a slow page.,billing,False
+RB004,Q004,My card payment keeps getting declined even though the card has sufficient funds and works on other websites.,billing,False
+RB005,Q005,Payment was successful (received a confirmation SMS from the bank) but the course still doesn't appear under 'My Courses' panel.,hr,True
+RB006,Q006,"Tried to use a discount/promo code at checkout but it wasn't applied, and was charged the full price.",billing,NEEDS_REVIEW
+RB007,Q007,Was charged in USD instead of LKR and the converted amount seems higher than the listed course price.,billing,False
+RB008,Q008,Signed up for the installment payment plan but the dashboard doesn't show when the next installment is due.,billing,NEEDS_REVIEW
+RB009,Q009,"Did not receive a payment confirmation email after completing payment, worried the enrollment wasn't recorded.",billing,False
+RB010,Q010,"Payment gateway showed a 'transaction failed' error, but the amount was still deducted from her bank account.",billing,False
+RB011,Q011,Wants a full refund for the AI course as he hasn't started it yet and changed his mind due to a scheduling conflict.,NEEDS_REVIEW,NEEDS_REVIEW
+RB012,Q012,"Requesting a refund for the Robotics Intermediate course, citing that the content quality did not match what was advertised.",NEEDS_REVIEW,NEEDS_REVIEW
+RB013,Q013,Submitted a refund request two weeks ago and hasn't received any update on its status.,billing,False
+RB014,Q014,Was accidentally charged twice for the AI course and wants the duplicate payment refunded.,billing,False
+RB015,Q015,Needs a refund because a work schedule change now conflicts with all the live AI course sessions.,hr,True
+RB016,Q016,Refund request was denied and she wants to know the specific reason why.,billing,False
+RB017,Q017,Completed only the first week of the AI course and is asking for a partial refund instead of continuing.,billing,NEEDS_REVIEW
+RB018,Q018,Wants a refund for the Robotics Intermediate course because persistent technical issues prevented her from accessing most of the content.,billing,True
+RB019,Q019,Asking how many days after enrollment she is allowed to request a refund before losing eligibility.,billing,NEEDS_REVIEW
+RB020,Q020,A refund was processed but the money was sent to the wrong bank account/reference details.,billing,NEEDS_REVIEW
+RB021,Q021,"WebXpay showed a payment failure message, but the amount was deducted from her bank account.",billing,False
+RB022,Q022,"Didn't receive the OTP required to complete the WebXpay payment, so the transaction couldn't be finished.",billing,True
+RB023,Q023,Uploaded her bank deposit slip for the AI course three days ago but it still shows 'Pending Verification'.,hr,True
+RB024,Q024,My bank slip was rejected but the notification didn't explain why,hr,True
+RB025,Q025,WebXpay transaction has been stuck on 'Pending' for over 24 hours with no update.,billing,False
+RB026,Q026,Needs an official invoice/receipt for a WebXpay payment made for company expense reimbursement purposes.,billing,False
+RB027,Q027,"Uploaded my bank slip, but it appears to have been linked to the wrong course (Robotics instead of AI).",hr,True
+RB028,Q028,Disputing a WebXpay charge that appears twice on her bank statement for a single course purchase.,billing,False
+RB029,Q029,"Made a bank transfer with a reference number, but it hasn't been linked to my student account after several days.",hr,True
+RB030,Q030,"WebXpay confirmed the payment was successful, but no receipt or confirmation was generated afterward.",billing,False
+RB031,Q031,"Requested a password reset but never received the reset email, even after checking spam.",technical,False
+RB032,Q032,Account got locked after several failed login attempts and now shows 'Account Temporarily Locked'.,technical,NEEDS_REVIEW
+RB033,Q033,"The OTP required for login isn't arriving on his phone, blocking him from accessing the course.",technical,False
+RB034,Q034,Trying to log in with 'Sign in with Google' but it just redirects back to the login page without signing in.,technical,NEEDS_REVIEW
+RB035,Q035,Getting an 'Invalid credentials' error despite being certain the password is correct.,technical,False
+RB036,Q036,"Account shows as already logged in on another device, preventing her from accessing the course on her own laptop.",technical,True
+RB037,Q037,"The email verification link sent after signing up has expired, and he can't log in without verifying.",technical,False
+RB038,Q038,Changed her password successfully but is now unable to log in with the new password.,technical,False
+RB039,Q039,"The login page itself gets stuck loading and never shows the login form, especially on mobile.",technical,False
+RB040,Q040,"The two-factor authentication code he enters is always rejected as invalid, even when entered immediately.",technical,NEEDS_REVIEW
+RB041,Q041,"Paid via mobile banking app; got a success message in the app, but the LMS still shows the course as unpaid.",hr,True
+RB042,Q042,"Added the course to cart at one price, but was charged a higher amount at final payment.",billing,NEEDS_REVIEW
+RB043,Q043,"Payment from an overseas card is being blocked, seemingly due to an international transaction restriction.",billing,NEEDS_REVIEW
+RB044,Q044,Accidentally purchased the wrong course and wants to switch to the correct one before starting.,billing,False
+RB045,Q045,"Tried to split payment across two cards; one succeeded and one was declined, and now I'm unsure if I was fully enrolled.",billing,True
+RB046,Q046,Got a generic 'Error 500' on the payment page and doesn't know if the payment went through.,billing,False
+RB047,Q047,"Already an enrolled student trying to buy a second course, but checkout throws a 'duplicate email' error and won't let him pay.",NEEDS_REVIEW,NEEDS_REVIEW
+RB048,Q048,A free trial she signed up for was automatically converted into a paid enrollment without a clear notice beforehand.,billing,False
+RB049,Q049,Paid the flash-sale price shown on the landing page but was charged the regular full price at checkout.,billing,NEEDS_REVIEW
+RB050,Q050,Was charged again automatically for a recurring/auto-renewal payment she wasn't aware she had signed up for.,billing,False
+RB051,Q051,"Used a special discounted price from a referral link shared by a friend, but the discount wasn't honored at checkout.",billing,NEEDS_REVIEW
+RB052,Q052,Had reward points/wallet balance from a previous promotion that wasn't applied automatically at checkout.,billing,True
+RB053,Q053,"Payment went through, but I was enrolled in the Beginner level course instead of the Intermediate level he paid for.",hr,True
+RB054,Q054,Her first payment attempt failed and now wants to know how to retry with a different card or payment method.,billing,False
+RB055,Q055,Needs a receipt with a GST/tax breakdown for his company to process reimbursement for the course fee.,billing,False
+RB056,Q056,Requesting a full refund because the course batch she enrolled in was cancelled/postponed by Rysera with no clear new date.,billing,NEEDS_REVIEW
+RB057,Q057,Wants a refund because the instructor was changed mid-course and the new teaching style doesn't match what he signed up for.,hr,True
+RB058,Q058,Needs a refund due to a sudden medical emergency that prevents him from continuing the course.,hr,True
+RB059,Q059,A parent is requesting a refund because their minor child was enrolled without proper parental consent.,hr,True
+RB060,Q060,Sent a refund request by email a week ago and hasn't received any reply at all.,billing,False
+RB061,Q061,"Refund was issued as course credit instead of a cash refund, but he specifically wants the money back to his bank account.",billing,NEEDS_REVIEW
+RB062,Q062,An international student worried that a refund in LKR will result in a forex loss compared to what he originally paid in USD.,billing,NEEDS_REVIEW
+RB063,Q063,"Refund was denied due to course progress over 50%, but she says the progress was inflated because of a platform outage that kept marking modules complete incorrectly.",billing,NEEDS_REVIEW
+RB064,Q064,"Accidentally enrolled in both the AI and Robotics courses when only one was meant to be a free add-on, and wants the paid one refunded.",billing,NEEDS_REVIEW
+RB065,Q065,Refund status shows 'Processing' but there's no indication of how long it will take.,billing,False
+RB066,Q066,Wants her refund sent to a different bank account than the one she originally paid from.,billing,NEEDS_REVIEW
+RB067,Q067,"The course was paid for by his employer as a sponsorship, and any refund needs to go back to the company, not to him personally.",billing,NEEDS_REVIEW
+RB068,Q068,"Unsure if she's still within the free-trial refund window or already past it, and wants clarity before formally requesting a refund.",NEEDS_REVIEW,NEEDS_REVIEW
+RB069,Q069,A refund was approved but only part of the amount has been received in his account so far.,billing,NEEDS_REVIEW
+RB070,Q070,Needs a refund because she is relocating abroad partway through the course and won't be able to attend the remaining live sessions.,hr,True
+RB071,Q071,"WebXpay session timed out while entering the 3D Secure/bank OTP verification step, and payment status is unclear.",billing,False
+RB072,Q072,The bank slip photo she uploaded is blurry and wants to know how to resubmit a clearer one.,billing,False
+RB073,Q073,"WebXpay charged the payment in USD instead of LKR, resulting in a higher amount than expected.",billing,False
+RB074,Q074,"Paid using a family member's bank account, so the name on the slip doesn't match his own registered name, and worries it won't be accepted.",hr,True
+RB075,Q075,"Was told a refund was initiated via WebXpay two weeks ago, but the money has not appeared in his account.",billing,False
+RB076,Q076,Lost the physical bank slip after making a cash deposit and is asking how else she can prove payment.,hr,True
+RB077,Q077,Getting a 'Merchant Unavailable' error every time he tries to pay through WebXpay.,billing,False
+RB078,Q078,"Transferred money to an old/incorrect bank account number found from an outdated post, and now the payment can't be matched.",hr,True
+RB079,Q079,The invoice issued has an incorrect course name/date and needs it corrected for his records.,billing,False
+RB080,Q080,Payment was rejected because the billing address entered didn't match the one on file with his bank.,billing,False
+RB081,Q081,Made a WebXpay payment but accidentally entered a smaller amount than the actual course fee due to a typo.,hr,True
+RB082,Q082,Submitted a bank slip as part of a corporate sponsorship arrangement and wants confirmation it's linked correctly to the sponsoring company.,hr,True
+RB083,Q083,Accidentally uploaded two separate bank slips for the same course and wants the excess amount refunded.,billing,False
+RB084,Q084,The WebXpay transaction ID he received doesn't match the one shown on his Rysera dashboard.,hr,True
+RB085,Q085,"Bank charges/transfer fees were deducted from her payment, so the amount received was short of the full course fee.",billing,True
+RB086,Q086,"Changed his phone number and can no longer receive the OTP tied to the old number, locking him out of login.",technical,NEEDS_REVIEW
+RB087,Q087,Never received the account creation/login credentials email after enrolling as a new student.,technical,False
+RB088,Q088,Login works fine on the browser but fails every time on the mobile app with a generic error.,technical,NEEDS_REVIEW
+RB089,Q090,I keep getting logged out automatically every few minutes while trying to study.,technical,NEEDS_REVIEW
+RB090,Q091,Forgot which email address was used to sign up and can't find any confirmation email to check.,technical,True
+RB091,Q092,"The CAPTCHA on the login page isn't loading at all, so she can't submit the login form.",technical,False
+RB092,Q093,"Login is being blocked with a security warning, and I suspects it's because I was using a VPN.",technical,False
+RB093,Q094,Account was suspended without any explanation and she wants to understand why.,technical,NEEDS_REVIEW
+RB094,Q095,"Browser autofill keeps entering an old, incorrect password, and she doesn't know how to fix the login attempt.",technical,False
+RB095,Q096,"Can't log in after her organization changed its email domain, since her old work email is no longer active.",technical,True
+RB096,Q097,Login succeeds but then redirects to a blank page or dashboard error instead of the course content.,technical,False
+RB097,Q098,Accidentally created multiple accounts with different email addresses and wants them merged into one with all progress intact.,technical,True
+RB098,Q099,"Trying to recover his account via security question, but the answer he's entering keeps being rejected as incorrect.",technical,False
+RB099,Q100,"Her elderly parent, who is helping her log in, is confused because the login page suddenly appeared in a different language.",technical,False

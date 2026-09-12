@@ -21,6 +21,14 @@ routing_disputes_99.txt for a manual, written-reason resolution (the same
 approach Track A used for its original 3 domain disputes), NOT
 auto-resolved by this script.
 
+A blank override is treated as "this human agrees with the mechanical
+value" (a human can only write into that field, never delete the
+mechanical row it's shown next to - so nothing else a blank could mean).
+This applies whether or not routing_needs_annotation flagged the row:
+annotators occasionally override a "no" row too (they're allowed to spot
+a wrong mechanical value Track A didn't flag), and that correction must
+not be silently discarded just because the row wasn't flagged.
+
 Usage:
     python3 merge_routing_annotations_99.py
 """
@@ -63,19 +71,10 @@ def main() -> None:
         return
 
     needs_annotation = [r for r in rows if r["routing_needs_annotation"] == "yes"]
-    missing_override = [
-        r["pair_id"] for r in needs_annotation
-        if not r["human1_routing_ground_truth_override"].strip() or not r["human2_routing_ground_truth_override"].strip()
-    ]
-    if missing_override:
-        print(f"{len(missing_override)} of {len(needs_annotation)} routing_needs_annotation=yes rows are missing "
-              f"an override from at least one human (pair_ids: {', '.join(missing_override[:10])}"
-              f"{'...' if len(missing_override) > 10 else ''}).")
-        print("Fill in human1_routing_ground_truth_override/human2_routing_ground_truth_override for every "
-              "routing_needs_annotation=yes row before running this.")
-        return
 
-    print(f"All {len(rows)} rows fully annotated. Computing agreement.\n")
+    print(f"All {len(rows)} rows have a should_escalate answer from both humans. Computing agreement.\n")
+    print("(A blank routing_ground_truth_override counts as 'agrees with the mechanical value' - see this "
+          "script's docstring - so no override is ever 'missing', only left blank on purpose.)\n")
 
     print("=== should_escalate agreement (all rows, unweighted kappa) ===")
     h1_esc = [to_bool(r["human1_should_escalate"]) for r in rows]
@@ -84,10 +83,14 @@ def main() -> None:
     n_agree_esc = sum(1 for a, b in zip(h1_esc, h2_esc) if a == b)
     print(f"  agreement: {n_agree_esc}/{len(rows)} = {100 * n_agree_esc / len(rows):.1f}%, kappa={esc_kappa:.3f}\n")
 
-    print(f"=== routing_ground_truth_override agreement ({len(needs_annotation)} ambiguous rows, unweighted kappa) ===")
+    def resolved_route(r: dict, human: str) -> str:
+        override = r[f"{human}_routing_ground_truth_override"].strip().lower()
+        return override or r["routing_ground_truth_mechanical"]
+
+    print(f"=== routing_ground_truth_override agreement ({len(needs_annotation)} flagged rows, unweighted kappa) ===")
     if needs_annotation:
-        h1_route = [r["human1_routing_ground_truth_override"].strip().lower() for r in needs_annotation]
-        h2_route = [r["human2_routing_ground_truth_override"].strip().lower() for r in needs_annotation]
+        h1_route = [resolved_route(r, "human1") for r in needs_annotation]
+        h2_route = [resolved_route(r, "human2") for r in needs_annotation]
         for label, vals in (("human1", h1_route), ("human2", h2_route)):
             bad = [v for v in vals if v not in VALID_ROUTES]
             if bad:
@@ -97,12 +100,26 @@ def main() -> None:
         print(f"  agreement: {n_agree_route}/{len(needs_annotation)} = "
               f"{100 * n_agree_route / len(needs_annotation):.1f}%, kappa={route_kappa:.3f}\n")
     else:
-        print("  (no ambiguous rows in this dataset)\n")
+        print("  (no flagged rows in this dataset)\n")
+
+    stray_overrides = [
+        r for r in rows if r["routing_needs_annotation"] == "no"
+        and (r["human1_routing_ground_truth_override"].strip() or r["human2_routing_ground_truth_override"].strip())
+    ]
+    if stray_overrides:
+        print(f"=== {len(stray_overrides)} row(s) NOT flagged by the mechanical join, but at least one human "
+              f"corrected the mechanical value anyway - these are honored below, not discarded ===")
+        for r in stray_overrides:
+            print(f"  {r['pair_id']} ({r['query_id']}): mechanical={r['routing_ground_truth_mechanical']} "
+                  f"human1='{resolved_route(r, 'human1')}' human2='{resolved_route(r, 'human2')}'")
+        print()
 
     # Build final ground truth: escalation is majority-of-2 (i.e. must
-    # agree, else NEEDS_REVIEW); routing is mechanical unless the row was
-    # flagged, in which case it's the two humans' override IF they agree,
-    # else NEEDS_REVIEW.
+    # agree, else NEEDS_REVIEW). Routing is each human's override where
+    # they wrote one, else the mechanical value they're implicitly
+    # agreeing with (see docstring) - applied uniformly regardless of
+    # routing_needs_annotation, since a human's correction on a "no" row
+    # is just as real as one on a flagged row.
     disputes = []
     out_rows = []
     for r in rows:
@@ -113,16 +130,12 @@ def main() -> None:
             should_escalate = None
             disputes.append((r["pair_id"], r["query_id"], "should_escalate", f"human1={h1e} | human2={h2e}"))
 
-        if r["routing_needs_annotation"] == "yes":
-            h1r = r["human1_routing_ground_truth_override"].strip().lower()
-            h2r = r["human2_routing_ground_truth_override"].strip().lower()
-            if h1r == h2r:
-                routing_gt = h1r
-            else:
-                routing_gt = None
-                disputes.append((r["pair_id"], r["query_id"], "routing_ground_truth", f"human1={h1r} | human2={h2r}"))
+        h1r, h2r = resolved_route(r, "human1"), resolved_route(r, "human2")
+        if h1r == h2r:
+            routing_gt = h1r
         else:
-            routing_gt = r["routing_ground_truth_mechanical"]
+            routing_gt = None
+            disputes.append((r["pair_id"], r["query_id"], "routing_ground_truth", f"human1={h1r} | human2={h2r}"))
 
         out_rows.append({
             "pair_id": r["pair_id"],

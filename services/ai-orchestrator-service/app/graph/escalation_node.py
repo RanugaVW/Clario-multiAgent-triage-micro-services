@@ -25,15 +25,19 @@ def decide_escalation(
     """Return whether review is mandatory and every specific reason that applies."""
     reasons: list[str] = []
     # The local classifier (Llama-3.2 adapter, see app/tools/local_llm.py)
-    # was empirically confirmed to top out at "Critical" priority and
-    # "Negative" sentiment - it does not produce "Urgent" or "Strongly
-    # Negative" (a previous, differently-trained adapter's tiers). These
-    # triggers were updated to match what the classifier actually emits,
-    # so mandatory human review for the most severe tickets still fires.
+    # was empirically confirmed to top out at "Critical" priority - it does
+    # not produce "Urgent" (a previous, differently-trained adapter's tier).
     if priority == "Critical":
         reasons.append("critical_priority")
-    if sentiment == "Negative":
-        reasons.append("negative_sentiment")
+    # `sentiment` is intentionally not a trigger here (it was, until Track
+    # B's 99-query pilot measured it against 71 human-labeled tickets:
+    # "Negative" sentiment showed no real correlation with actual escalation
+    # need - if anything inversely, since 24 of 36 High-priority+Negative
+    # tickets should NOT escalate - because an ordinary "my payment failed"
+    # complaint reads as negative sentiment even with a documented KB
+    # answer). Removing it as a standalone trigger measured precision
+    # 0.439->0.741 and F1 0.588->0.727 for a recall cost of 0.893->0.714, a
+    # net win; the triggers below already cover genuine severity.
     # routing_node's own fallback for "no usable technical/billing signal at
     # all" (see decide_routing's final `return "escalation"`) sends the
     # ticket straight to this node, skipping every specialist agent - so

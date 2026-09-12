@@ -1,0 +1,72 @@
+query_id,gt_route,gt_escalate,classifier_category,classifier_confidence,live_route,live_escalated,live_reasons,logic_route,logic_escalated,logic_reasons
+Q001,hr,True,Payment Issues,0.9459105020477658,hr,True,hr_process_required,hr,True,hr_process_required
+Q002,billing,False,Payment,0.9137336492538453,billing,False,,billing,False,
+Q003,billing,False,Payment Issues,0.9169247632934934,billing,False,,billing,False,
+Q004,billing,False,Payment Issues,0.8862599685788155,billing,False,,billing,False,
+Q005,hr,True,Payment,0.8692841812183982,hr,True,hr_process_required,hr,True,hr_process_required
+Q007,billing,False,Payment Issues,0.8485257536172867,billing,False,,billing,False,
+Q009,billing,False,Payment,0.8328631818294525,billing,False,,billing,False,
+Q010,billing,False,Payment Gateway,0.9487516085306803,both,False,,both,False,
+Q013,billing,False,Refund Request,0.8763672695918516,billing,False,,billing,False,
+Q014,billing,False,Payment Refund,0.8887806364468166,billing,False,,billing,False,
+Q015,hr,True,Refund,0.8994458488055638,billing,False,,billing,False,
+Q016,billing,False,Refund,0.8228620633482933,billing,False,,billing,False,
+Q018,billing,True,Refund,0.9114218950271606,billing,False,,billing,False,
+Q021,billing,False,Payment Failure,0.9485702401115781,billing,False,,billing,False,
+Q022,billing,True,Payment,0.8964089900255203,billing,False,,billing,False,
+Q023,hr,True,General Support,0.9037710357280004,hr,True,hr_process_required,hr,True,hr_process_required
+Q024,hr,True,General Support,0.9050103539512271,hr,True,hr_process_required,hr,True,hr_process_required
+Q025,billing,False,Payment Processing,0.9051735628218878,billing,False,,billing,False,
+Q026,billing,False,General Support,0.9078470170497894,billing,False,,billing,False,
+Q027,hr,True,General Support,0.9046531155705452,hr,True,hr_process_required,hr,True,hr_process_required
+Q028,billing,False,Payment Dispute,0.9097713204947385,billing,False,,billing,False,
+Q029,hr,True,Payment Processing,0.8751317903399467,hr,True,hr_process_required,hr,True,hr_process_required
+Q030,billing,False,Payment Processing,0.8588137634098529,billing,False,,billing,False,
+Q031,technical,False,Security,0.8647171588320481,technical,False,,technical,False,
+Q033,technical,False,Login Issues,0.8923654946542922,technical,False,,technical,False,
+Q035,technical,False,Login/Authentication,0.8591846336017955,technical,False,,technical,False,
+Q036,technical,True,Security,0.8859234660863876,escalation,True,no_usable_routing_signal,technical,False,
+Q037,technical,False,Security,0.8784881045943812,technical,False,,technical,False,
+Q038,technical,False,Login Issues,0.8573703184723854,technical,False,,technical,False,
+Q039,technical,False,Login Issue,0.8587121471762658,technical,False,,technical,False,
+Q041,hr,True,Payment Processing,0.8927342849118369,hr,True,hr_process_required,hr,True,hr_process_required
+Q044,billing,False,General Support,0.8968230815310227,escalation,True,no_usable_routing_signal,billing,False,
+Q045,billing,True,Payment Processing,0.8731889923413595,billing,False,,billing,False,
+Q046,billing,False,Payment,0.8797608032822609,both,False,,both,False,
+Q048,billing,False,Security Notice,0.9340171232109978,escalation,True,no_usable_routing_signal,billing,False,
+Q050,billing,False,Payment Issues,0.9195208506924766,billing,False,,billing,False,
+Q052,billing,True,General Support,0.8933164075016975,escalation,True,no_usable_routing_signal,billing,False,
+Q053,hr,True,Payment,0.8829553440213204,billing,False,,billing,False,
+Q054,billing,False,Payment Methods,0.8744048789143563,both,False,,both,False,
+Q055,billing,False,General Support,0.9083082005381584,escalation,True,no_usable_routing_signal,billing,False,
+Q057,hr,True,Refund,0.8742854765483311,hr,True,hr_process_required,hr,True,hr_process_required
+Q058,hr,True,Refund,0.8914420618897393,hr,True,hr_process_required,hr,True,hr_process_required
+Q059,hr,True,Security Notice,0.8915374222255888,hr,True,hr_process_required,hr,True,hr_process_required
+Q060,billing,False,General Support,0.9059050168309893,billing,False,,billing,False,
+Q065,billing,False,General Support,0.8932782568429646,billing,False,,billing,False,
+Q070,hr,True,Refund,0.8925075441598892,hr,True,hr_process_required,hr,True,hr_process_required
+Q071,billing,False,Payment Issues,0.9210247269698552,billing,False,,billing,False,
+Q072,billing,False,General Support,0.9401859243710836,hr,True,hr_process_required,hr,True,hr_process_required
+Q073,billing,False,Payment Issues,0.8691617652773858,billing,False,,billing,False,
+Q074,hr,True,General Support,0.9071968041715168,hr,True,hr_process_required,hr,True,hr_process_required
+Q075,billing,False,Payment Issues,0.9017549809955415,billing,False,,billing,False,
+Q076,hr,True,General Support,0.9117402964168124,hr,True,hr_process_required,hr,True,hr_process_required
+Q077,billing,False,Payment Issues,0.8724220752716064,billing,False,,billing,False,
+Q078,hr,True,Payment Issues,0.8993327305430457,hr,True,hr_process_required,hr,True,hr_process_required
+Q079,billing,False,General Support,0.9129283186935243,escalation,True,no_usable_routing_signal,billing,False,
+Q080,billing,False,Payment Processing,0.871858435869217,billing,False,,billing,False,
+Q081,hr,True,Payment,0.8511782163067868,billing,False,,billing,False,
+Q082,hr,True,General Support,0.9062791883945465,hr,True,hr_process_required,hr,True,hr_process_required
+Q083,billing,False,Payment Refund,0.8485145214058104,hr,True,hr_process_required,hr,True,hr_process_required
+Q084,hr,True,General Support,0.8919562324881554,escalation,True,no_usable_routing_signal,escalation,True,no_usable_routing_signal
+Q085,billing,True,Payment Issues,0.9177149051711673,billing,False,,billing,False,
+Q087,technical,False,Security Notice,0.8628564551472664,technical,False,,technical,False,
+Q091,technical,True,General Support,0.9183649562654042,escalation,True,no_usable_routing_signal,technical,False,
+Q092,technical,False,Security,0.8627259088189978,technical,False,,technical,False,
+Q093,technical,False,Login,0.8715283039369082,technical,False,,technical,False,
+Q095,technical,False,General Support,0.8942149832844735,technical,False,,technical,False,
+Q096,technical,True,General Support,0.8972907394170762,technical,False,,technical,False,
+Q097,technical,False,Login Issues,0.9053612585578646,technical,False,,technical,False,
+Q098,technical,True,General Support,0.9107429385185242,escalation,True,no_usable_routing_signal,technical,False,
+Q099,technical,False,Security,0.8323844843789151,escalation,True,no_usable_routing_signal,technical,False,
+Q100,technical,False,General Support,0.9259761529309409,technical,False,,technical,False,

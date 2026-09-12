@@ -7,7 +7,6 @@ from app.graph.escalation_node import decide_escalation, escalation_node
 
 @pytest.mark.parametrize(("kwargs", "reason"), [
     ({"priority": "Critical"}, "critical_priority"),
-    ({"sentiment": "Negative"}, "negative_sentiment"),
     ({"routing_decision": "escalation"}, "no_usable_routing_signal"),
     ({"routing_decision": "both", "confidence": 0.5}, "low_confidence_dual_domain"),
     ({"failure_type": "dependency_failure"}, "dependency_failure"),
@@ -21,6 +20,20 @@ def test_each_escalation_branch(kwargs: dict, reason: str) -> None:
               "reroute_attempted": False, "needs_reroute": False, **kwargs}
     escalated, reasons = decide_escalation(**values)
     assert escalated and reason in reasons
+
+
+def test_negative_sentiment_alone_does_not_escalate() -> None:
+    """Track B's 99-query pilot measured this trigger against 71
+    human-labeled tickets and found "Negative" sentiment has no real
+    correlation with actual escalation need (if anything inversely) -
+    removing it as a standalone trigger took precision from 0.439 to 0.741.
+    An otherwise-unremarkable ticket must not escalate just because the
+    classifier's sentiment head reads the complaint tone as negative."""
+    values = {"priority": "Medium", "sentiment": "Negative", "routing_decision": "technical", "confidence": 0.9,
+              "failure_type": "none", "reflection_count": 0, "max_reflection_attempts": 2,
+              "reroute_attempted": False, "needs_reroute": False}
+    escalated, reasons = decide_escalation(**values)
+    assert not escalated and reasons == []
 
 
 def test_both_domain_low_relevance_has_specific_reason() -> None:

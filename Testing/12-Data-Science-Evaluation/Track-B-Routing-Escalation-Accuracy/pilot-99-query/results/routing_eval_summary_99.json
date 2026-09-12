@@ -1,0 +1,198 @@
+{
+  "n_total": 71,
+  "n_low_confidence_lt_0.7": 0,
+  "n_routed_both_live": 3,
+  "n_skipped_from_logic_only": 0,
+  "live_routing": {
+    "labels": [
+      "technical",
+      "billing",
+      "both",
+      "hr",
+      "escalation"
+    ],
+    "confusion_matrix": [
+      [
+        13,
+        0,
+        0,
+        0,
+        4
+      ],
+      [
+        0,
+        25,
+        3,
+        2,
+        5
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        3,
+        0,
+        15,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "per_class": {
+      "technical": {
+        "precision": 1.0,
+        "recall": 0.7647058823529411,
+        "f1": 0.8666666666666667,
+        "support": 17
+      },
+      "billing": {
+        "precision": 0.8928571428571429,
+        "recall": 0.7142857142857143,
+        "f1": 0.7936507936507936,
+        "support": 35
+      },
+      "both": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "hr": {
+        "precision": 0.8823529411764706,
+        "recall": 0.7894736842105263,
+        "f1": 0.8333333333333334,
+        "support": 19
+      },
+      "escalation": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      }
+    },
+    "accuracy": 0.7464788732394366
+  },
+  "live_escalation": {
+    "precision": 0.7407407407407407,
+    "recall": 0.7142857142857143,
+    "f1": 0.7272727272727273,
+    "confusion_matrix": {
+      "tp": 20,
+      "fp": 7,
+      "fn": 8,
+      "tn": 36
+    },
+    "missed_escalations_fn": 8,
+    "unnecessary_escalations_fp": 7
+  },
+  "routing_logic_only_routing": {
+    "labels": [
+      "technical",
+      "billing",
+      "both",
+      "hr",
+      "escalation"
+    ],
+    "confusion_matrix": [
+      [
+        17,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        30,
+        3,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        3,
+        0,
+        15,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "per_class": {
+      "technical": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 17
+      },
+      "billing": {
+        "precision": 0.9090909090909091,
+        "recall": 0.8571428571428571,
+        "f1": 0.8823529411764706,
+        "support": 35
+      },
+      "both": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "hr": {
+        "precision": 0.8823529411764706,
+        "recall": 0.7894736842105263,
+        "f1": 0.8333333333333334,
+        "support": 19
+      },
+      "escalation": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      }
+    },
+    "accuracy": 0.8732394366197183
+  },
+  "routing_logic_only_escalation": {
+    "precision": 0.8888888888888888,
+    "recall": 0.5714285714285714,
+    "f1": 0.6956521739130435,
+    "confusion_matrix": {
+      "tp": 16,
+      "fp": 2,
+      "fn": 12,
+      "tn": 41
+    },
+    "missed_escalations_fn": 12,
+    "unnecessary_escalations_fp": 2
+  },
+  "not_computed": {
+    "mcnemar_reroute_retry": "needs a real run through validation_node to produce a genuine misroute event - out of scope here, see README",
+    "escalation_triggers_excluded": [
+      "dependency_failure",
+      "misroute_unresolved",
+      "reflection_cap_reached"
+    ]
+  }
+}

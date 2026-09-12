@@ -16,7 +16,19 @@ BILLING_KEYWORDS = {"payment": 3, "charged": 3, "bank": 2, "refund": 3, "billed"
 # appears throughout ordinary billing tickets (payment failures, duplicate
 # charges, pending transactions) that have nothing to do with HR - keeping
 # it as an HR signal produced false positives on those real tickets.
-HR_HARD_TRIGGER_KEYWORDS = {"bank slip": 3, "medical": 3, "parental consent": 3, "instructor": 3}
+HR_HARD_TRIGGER_KEYWORDS = {
+    "bank slip": 3, "medical": 3, "parental consent": 3, "instructor": 3,
+    # Payment-linkage mismatch phrasing (paid successfully but the LMS
+    # doesn't reflect it) and the relocation/schedule-conflict circumstances
+    # course_cancellation.md also covers - added after Track B's 99-query
+    # pilot found HR recall stuck at 0.39 even with the correct category
+    # forced directly, because this branch never looked at category at all,
+    # only text (see decide_routing()'s docstring).
+    "not enrolled": 3, "course as unpaid": 3, "deposit slip": 3,
+    "hasn't been linked": 3, "not been linked": 3, "can't be matched": 3,
+    "cannot be matched": 3, "still doesn't appear": 3, "name on the slip": 3,
+    "relocat": 3, "schedule conflict": 3, "scheduling conflict": 3,
+}
 
 # Ambiguous enough that they keep the original strict-maximum-over-
 # everything requirement - e.g. "sponsorship" legitimately appears in
