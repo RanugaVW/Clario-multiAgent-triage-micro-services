@@ -1,14 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { Mail, KeyRound, ArrowRight, UserPlus, Eye, EyeOff } from 'lucide-react';
-import Link from 'next/link';
-import { GlassPanel, GlassButton, GlassInput } from '../../components/ui';
+import { useState } from "react";
+import { supabase } from "../../lib/supabase";
+import {
+  Mail,
+  KeyRound,
+  ArrowRight,
+  UserPlus,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import Link from "next/link";
+import { GlassPanel, GlassButton, GlassInput } from "../../components/ui";
 
 export default function Register() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +31,7 @@ export default function Register() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/login`,
-      }
+      },
     });
 
     if (signUpError) {
@@ -37,7 +44,10 @@ export default function Register() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
-      <GlassPanel tier={1} className="p-8 sm:p-12 w-full max-w-md animate-fade-in relative overflow-hidden">
+      <GlassPanel
+        tier={1}
+        className="p-8 sm:p-12 w-full max-w-md animate-fade-in relative overflow-hidden"
+      >
         <div className="absolute top-0 right-0 p-8 opacity-5">
           <UserPlus className="w-48 h-48" />
         </div>
@@ -47,14 +57,22 @@ export default function Register() {
             <div className="bg-[#2DD4BF]/15 p-3 rounded-2xl border border-[#2DD4BF]/25">
               <UserPlus className="text-[#2DD4BF] w-6 h-6" />
             </div>
-            <h1 className="text-3xl font-bold text-[#ECECEC]">Create an account</h1>
+            <h1 className="text-3xl font-bold text-[#ECECEC]">
+              Create an account
+            </h1>
           </div>
 
           {success ? (
             <div className="bg-[#2DD4BF]/10 border border-[#2DD4BF]/30 text-[#2DD4BF] p-6 rounded-2xl text-center">
               <h2 className="text-lg font-semibold mb-2">Check your email</h2>
-              <p className="text-sm mb-6">We sent you a confirmation link. Confirm your address, then sign in.</p>
-              <Link href="/login" className="text-[#2DD4BF] hover:text-[#5eead4] font-medium underline">
+              <p className="text-sm mb-6">
+                We sent you a confirmation link. Confirm your address, then sign
+                in.
+              </p>
+              <Link
+                href="/login"
+                className="text-[#2DD4BF] hover:text-[#5eead4] font-medium underline"
+              >
                 Return to sign in
               </Link>
             </div>
@@ -67,7 +85,9 @@ export default function Register() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-[#8A8F98] mb-2">Email address</label>
+                <label className="block text-sm font-medium text-[#8A8F98] mb-2">
+                  Email address
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-[#8A8F98]" />
@@ -84,13 +104,15 @@ export default function Register() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#8A8F98] mb-2">Password (min 6 characters)</label>
+                <label className="block text-sm font-medium text-[#8A8F98] mb-2">
+                  Password (min 6 characters)
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <KeyRound className="h-5 w-5 text-[#8A8F98]" />
                   </div>
                   <GlassInput
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     required
                     minLength={6}
                     value={password}
@@ -102,20 +124,39 @@ export default function Register() {
                     type="button"
                     onClick={() => setShowPassword((visible) => !visible)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#8A8F98] hover:text-[#ECECEC] transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
+                {password.length > 0 && password.length < 6 && (
+                  <p className="mt-2 text-xs text-[#FB7185]" role="alert">
+                    Password must be at least 6 characters.
+                  </p>
+                )}
               </div>
 
-              <GlassButton type="submit" variant="primary" disabled={loading} className="w-full">
-                <span>{loading ? 'Creating account…' : 'Create account'}</span>
+              <GlassButton
+                type="submit"
+                variant="primary"
+                disabled={loading}
+                className="w-full"
+              >
+                <span>{loading ? "Creating account…" : "Create account"}</span>
                 {!loading && <ArrowRight className="w-4 h-4" />}
               </GlassButton>
 
               <div className="text-center mt-4">
-                <Link href="/login" className="text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors">
+                <Link
+                  href="/login"
+                  className="text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors"
+                >
                   Already have an account? Sign in
                 </Link>
               </div>
