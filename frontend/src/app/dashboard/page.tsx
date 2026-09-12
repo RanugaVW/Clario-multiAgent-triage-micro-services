@@ -129,6 +129,9 @@ export default function Home() {
     trackingId: string;
   }>({ show: false, trackingId: "" });
   const [dataLoading, setDataLoading] = useState(false);
+  const [deleteTicketId, setDeleteTicketId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<
     UserTicketStatus | "all"
   >("all");
@@ -174,13 +177,16 @@ export default function Home() {
     }
   }, [user]);
 
-  const handleDeleteTicket = async (ticketId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this ticket? This will immediately stop processing.",
-      )
-    )
-      return;
+  const handleDeleteTicket = (ticketId: string) => {
+    setDeleteError(null);
+    setDeleteTicketId(ticketId);
+  };
+
+  const confirmDeleteTicket = async () => {
+    if (!deleteTicketId) return;
+    const ticketId = deleteTicketId;
+    setIsDeleting(true);
+
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
@@ -195,11 +201,14 @@ export default function Home() {
           setResult(null);
         }
       } else {
-        alert("Failed to delete the ticket.");
+        setDeleteError("Failed to delete the ticket.");
       }
     } catch (e) {
       console.error("Failed to delete ticket:", e);
-      alert("Failed to delete the ticket.");
+      setDeleteError("Failed to delete the ticket.");
+    } finally {
+      setIsDeleting(false);
+      setDeleteTicketId(null);
     }
   };
 
@@ -387,6 +396,40 @@ export default function Home() {
           >
             View my tickets
           </GlassButton>
+        </div>
+      </Modal>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        open={deleteTicketId !== null}
+        onClose={() => {
+          if (!isDeleting) setDeleteTicketId(null);
+        }}
+      >
+        <div className="text-center">
+          <h3 className="text-xl font-bold text-[#ECECEC] mb-2">
+            Delete this ticket?
+          </h3>
+          <p className="text-[#8A8F98] text-sm mb-6">
+            This will immediately stop processing and remove the ticket from
+            your history.
+          </p>
+          <div className="flex justify-end gap-3">
+            <GlassButton
+              variant="secondary"
+              onClick={() => setDeleteTicketId(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </GlassButton>
+            <GlassButton
+              variant="destructive"
+              onClick={confirmDeleteTicket}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </GlassButton>
+          </div>
         </div>
       </Modal>
 
@@ -589,6 +632,12 @@ export default function Home() {
               </h2>
               <RotateButton onClick={fetchHistory} isLoading={dataLoading} />
             </div>
+            {deleteError && (
+              <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/20 text-[#FB7185] px-4 py-3 rounded-xl flex items-start text-sm">
+                <AlertCircle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
+                <span>{deleteError}</span>
+              </div>
+            )}
             {pastTickets.length > 0 && (
               <div className="mb-6 space-y-4 px-2">
                 <div className="flex flex-wrap items-center justify-between gap-3">
