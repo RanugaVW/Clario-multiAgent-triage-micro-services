@@ -1,7 +1,7 @@
 # REST Assured Integration Test Report — Clario System
 
 **Date:** 2026-09-04
-**Tester:** Ranuga Weerasekara (ranugaweerasekara2@gmail.com), assisted by Claude Code
+**Tested by:** Ranuga Weerasekara, Clario QA Team
 **Branch:** `main`
 **Environment:** Production Supabase project (`mdvfvtpbwqhccmaarpli`), the live `next dev` server (`:3000`), and a locally-run `clario-ml-sidecar` (`:8600`). Tooling: [REST Assured](https://rest-assured.io/) 5.5.0 + JUnit 5 + Java 21, built and run with a locally-downloaded Apache Maven 3.9.9 (no system install — see `run_tests.sh`).
 

@@ -1,7 +1,8 @@
 # 03 — UI / End-to-End Testing
 
-**Status:** Complete — see [`TEST_REPORT.md`](TEST_REPORT.md). 9/9 automated
-checks passed, 0 skipped, 0 failed. Two real bugs (a production RLS policy
+**Status:** Complete — see [`TEST_REPORT.md`](TEST_REPORT.md). 10/10 automated
+checks passed, 0 skipped, 0 failed (grew from 9/9 on 2026-09-13 with a new
+`/agent` route-protection check). Two real bugs (a production RLS policy
 gap, and a PostgREST relationship-shape bug that broke the star-rating
 widget's persistence) were found, fixed, and re-verified live.
 

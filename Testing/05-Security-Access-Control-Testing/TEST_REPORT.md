@@ -1,13 +1,13 @@
 # Security & Access Control Test Report — Clario System
 
-**Date:** 2026-09-04
-**Tester:** Ranuga Weerasekara (ranugaweerasekara2@gmail.com), assisted by Claude Code
+**Date:** 2026-09-04, extended 2026-09-13
+**Tested by:** Ranuga Weerasekara, Clario QA Team
 **Branch:** `main`
 **Environment:** Production Supabase project (`mdvfvtpbwqhccmaarpli`), the live `next dev` server (`:3000`). There is no separate test/staging environment for this system — every result below is from the real, single production deployment, using disposable throwaway accounts created and destroyed by this phase's own script.
 
 **Original result: 12/18 automated checks passed, 6 failed** — five of them (`B1`–`B5`) **critical/high-severity**: the Next.js API routes that back the admin console and dashboard (`/api/tickets` GET/PUT/DELETE, `/api/user_tickets` GET, `/api/customer_feedback` POST) performed **zero authentication** while using the Supabase **service-role key**, which bypasses Row Level Security entirely. Row Level Security itself (Section A) and the PII-redaction boundary (Section C) both held up under real adversarial testing from the start.
 
-**All 6 findings have since been fixed and re-verified live: final result 23/23 automated checks passed, 0 failed.** See §9 for exactly what changed and the final clean run's evidence. The sections below are left as originally written (the initial run's findings) so the report shows the actual before/after, not a rewritten history.
+**All 6 findings have since been fixed and re-verified live: final result 23/23 automated checks passed, 0 failed.** See §9 for exactly what changed and the final clean run's evidence. The sections below are left as originally written (the initial run's findings) so the report shows the actual before/after, not a rewritten history. **A 7th finding was added 2026-09-13** (`D1`, found by `Testing/13-Accessibility-Testing`, fixed and verified here — see §10): `/agent`'s auth redirect had been disabled.
 
 ## 1. Scope
 
@@ -127,6 +127,7 @@ These three were backed by, and re-ran alongside, the existing 14-test `tests/to
 | `A7d` | `human_reviews` live RLS policy missing from checked-in schema files | **Low** | **Fixed — see §9** |
 | A1–A6, A7/A7b/A7c | RLS on `tickets`/`users`/`human_reviews` | — | **Verified correct**, no action needed |
 | C1–C3 | PII redaction boundary (`mask_pii`, `mask_pii_reversible`, ChromaDB precedent writes) | — | **Verified correct**, no action needed |
+| `D1` (added 2026-09-13) | `/agent` page's auth redirect was commented out — reachable unauthenticated | **Medium** | **Fixed — see §10** |
 
 ## 8. Follow-ups for a future run
 
@@ -179,3 +180,35 @@ Re-running `run_security_tests.py` (extended with `B6`–`B10`, `A7`–`A7d` **p
 One real bug surfaced by this re-verification itself, not by manual review: the first fix attempt's test script reassigned `fixtures["canary_id"]` when creating the second (positive-control) canary ticket, which meant `teardown_fixtures` lost track of the *first* canary and leaked it — invisible before the fix because `B5`'s old (vulnerable) behavior deleted that ticket itself, so nothing was ever left over. Caught by an explicit leftover-data check after the run, root-caused, and fixed by tracking `canary_id`/`canary2_id` as two independent fixture keys, both cleaned up in `teardown_fixtures`. Verified clean on the next run (`test-log-after-fix.txt`): 0 leftover test users, 0 leftover canary tickets.
 
 Every check's full evidence is in the current `security_test_results.json` (overwritten by the final run) and `test-log-after-fix.txt`.
+
+## 10. New finding, found by a different phase and fixed here: `/agent` had no auth redirect at all
+
+While auditing `frontend/src/app/agent/page.tsx` for
+`Testing/13-Accessibility-Testing` on 2026-09-13, its auth guard was found
+disabled: `router.push('/login')` was commented out inside the page's
+`useEffect`, so `/agent` and its ticket queue rendered for **any** visitor,
+authenticated or not. This is exactly the class of finding this phase
+owns (an application-level access-control gap), so the fix and
+verification are recorded here rather than in the accessibility phase.
+
+**Real impact today, and why it's still worth fixing:** the page currently
+renders `MOCK_TICKETS`, a hardcoded array — no real ticket data is fetched
+or exposed by this specific bug right now. It's still a real defect: the
+access-control gate was written and then disabled, and the page is one
+data-wiring change away from exposing whatever it's connected to. This
+report doesn't overstate today's impact, but doesn't wave the gap away
+either.
+
+**Fix:** the guard now redirects to `/login` unless the signed-in user's
+role is `agent` or `admin` (`frontend/src/app/agent/page.tsx`), matching
+the same `role`-check pattern `admin/page.tsx` already uses.
+
+**Verified:** `frontend/e2e/auth.spec.ts` gained a new real-browser test,
+`unauthenticated visitor to /agent is redirected to /login`, asserting the
+real redirect against the real Supabase-auth-backed session state (no
+mocking) — passing run captured in
+[`2026-09-13-agent-redirect-fix/auth-test-log.txt`](2026-09-13-agent-redirect-fix/auth-test-log.txt)
+(spec copy alongside it). The accessibility phase's `/agent` scan was
+updated to log in first, since visiting `/agent` unauthenticated is no
+longer the real behavior of the page — re-verified 6/6 clean in
+`Testing/13-Accessibility-Testing`.

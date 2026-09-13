@@ -1,7 +1,7 @@
 # JMeter Basic Performance Test Report — Clario System
 
 **Date:** 2026-09-04
-**Tester:** Ranuga Weerasekara (ranugaweerasekara2@gmail.com), assisted by Claude Code
+**Tested by:** Ranuga Weerasekara, Clario QA Team
 **Branch:** `main`
 **Environment:** Production Supabase project (`mdvfvtpbwqhccmaarpli`), the live `next dev` server (`:3000`), and a locally-run `clario-ml-sidecar` (`:8600`). Tooling: Apache JMeter 5.6.3, downloaded locally (no system install) and run in non-GUI mode (`-n`) with the HTML dashboard report generator (`-e -o`).
 

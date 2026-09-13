@@ -11,7 +11,9 @@ been fixed and re-verified live: final result 23/23 checks passed, 0
 failed** (see TEST_REPORT.md §9) — a shared `requireUser()` auth helper
 (`frontend/src/lib/apiAuth.ts`) now gates all three routes, the frontend
 sends real session tokens, and the missing `human_reviews` RLS policy was
-added to `supabase_schema.sql`.
+added to `supabase_schema.sql`. **A 7th finding was added and fixed
+2026-09-13** (`D1`, TEST_REPORT.md §10): `/agent`'s auth redirect had been
+disabled, found by `Testing/13-Accessibility-Testing`.
 
 **Sample-plan equivalent:** §3.1.6 Security and Access Control Testing.
 

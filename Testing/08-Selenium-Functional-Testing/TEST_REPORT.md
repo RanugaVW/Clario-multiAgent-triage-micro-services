@@ -1,7 +1,7 @@
 # Selenium Functional Test Report — Clario System
 
 **Date:** 2026-09-04
-**Tester:** Ranuga Weerasekara (ranugaweerasekara2@gmail.com), assisted by Claude Code
+**Tested by:** Ranuga Weerasekara, Clario QA Team
 **Branch:** `main`
 **Environment:** Production Supabase project (`mdvfvtpbwqhccmaarpli`), the live `next dev` server (`:3000`), and (for one scenario) the real Spring Boot `api-gateway` on `:8080`. Tooling: Selenium 4.48.0 + headless Chrome 145 + pytest 9.1.1, in a dedicated `.venv`.
 

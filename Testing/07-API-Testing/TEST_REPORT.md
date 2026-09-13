@@ -1,7 +1,7 @@
 # API Test Report — Clario System
 
 **Date:** 2026-09-04
-**Tester:** Ranuga Weerasekara (ranugaweerasekara2@gmail.com), assisted by Claude Code
+**Tested by:** Ranuga Weerasekara, Clario QA Team
 **Branch:** `main`
 **Environment:** Production Supabase project (`mdvfvtpbwqhccmaarpli`), the live `next dev` server (`:3000`), a locally-run `clario-ml-sidecar` (`:8600`, `uvicorn app.main:app --reload`), and the already-running `voice-to-text-service` (`:8002`). Tooling: [Postman](https://www.postman.com/) Collection Format v2.1 (`postman/Clario-API.postman_collection.json`, importable into the Postman desktop/web app) executed with [Newman](https://github.com/postmanlabs/newman), Postman's official CLI runner (`npx newman run ...`, no global install).
 

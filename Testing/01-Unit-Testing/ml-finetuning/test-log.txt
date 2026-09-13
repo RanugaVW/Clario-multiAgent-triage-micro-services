@@ -1,8 +1,9 @@
 ============================= test session starts ==============================
-platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/ranuga-weerasekara/Desktop/clario/clario-ml-sidecar/.venv/bin/python
 cachedir: .pytest_cache
 rootdir: /home/ranuga-weerasekara/Desktop/clario/ml_finetuning
-plugins: anyio-4.13.0
+plugins: langsmith-0.10.5, asyncio-1.4.0, Faker-20.1.0, anyio-4.14.2
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
 collecting ... collected 47 items
 
 tests/curation/test_collect_real_responses.py::test_collect_writes_csv_and_manifest PASSED [  2%]
@@ -53,4 +54,4 @@ tests/evaluation/test_compare_model_versions.py::test_model_registry_has_a_versi
 tests/evaluation/test_evaluate.py::test_evaluation_reports_required_quality_metrics SKIPPED [ 97%]
 tests/training/test_dataset.py::test_dataset_split_is_reproducible_and_disjoint SKIPPED [100%]
 
-======================== 44 passed, 3 skipped in 17.85s ========================
+======================== 44 passed, 3 skipped in 18.16s ========================
