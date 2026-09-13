@@ -78,6 +78,7 @@ def test_dual_low_relevance_never_reinvokes_routing(monkeypatch):
     assert "dual_domain_low_relevance" in result["escalation_reasons"] and calls["routing"] == 1
 
 
-def test_quality_reflects_exactly_twice_then_escalates(monkeypatch):
+def test_quality_reflects_exactly_twice_then_sends_anyway(monkeypatch):
     result, _ = _run(monkeypatch, "quality technical error")
-    assert result["reflection_count"] == 2 and "reflection_cap_reached" in result["escalation_reasons"]
+    assert result["reflection_count"] == 2 and result["escalation_reasons"] == []
+    assert not result["escalation_triggered"] and result["final_response"] == "draft"

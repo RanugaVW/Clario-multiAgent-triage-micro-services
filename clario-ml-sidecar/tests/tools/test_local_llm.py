@@ -19,6 +19,7 @@ from app.tools.local_llm import (
     PRIORITY_LABELS,
     SENTIMENT_LABELS,
     DraftGenerationError,
+    _correct_sentiment_priority,
     _repair_json_quoting,
     _sequence_confidence,
     generate_draft,
@@ -28,6 +29,39 @@ from app.tools.local_llm import (
 def test_priority_and_sentiment_labels_match_the_adapters_training_taxonomy() -> None:
     assert PRIORITY_LABELS == ("Low", "Medium", "High", "Critical")
     assert SENTIMENT_LABELS == ("Positive", "Neutral", "Negative")
+
+
+# _correct_sentiment_priority() is the deterministic correction layer on top
+# of the adapter's raw output: since its sentiment scale has no tier beyond
+# "Negative" (see module docstring), "Negative" is treated as that ceiling -
+# relabeled "Frustrated" - and priority is pulled up to at least "High" if
+# the model didn't already agree. It's a pure function specifically so this
+# logic is testable without the real ~3B model classify_ticket_local() itself
+# requires.
+
+@pytest.mark.parametrize(("priority", "sentiment"), [
+    ("Positive", "Positive"),
+    ("Neutral", "Neutral"),
+])
+def test_correct_sentiment_priority_is_a_noop_for_non_negative_sentiment(priority, sentiment) -> None:
+    assert _correct_sentiment_priority(priority, sentiment) == (priority, sentiment)
+
+
+def test_correct_sentiment_priority_relabels_negative_as_frustrated() -> None:
+    priority, sentiment = _correct_sentiment_priority("Medium", "Negative")
+    assert sentiment == "Frustrated"
+
+
+def test_correct_sentiment_priority_raises_low_or_medium_priority_to_high() -> None:
+    for starting_priority in ("Low", "Medium"):
+        priority, _ = _correct_sentiment_priority(starting_priority, "Negative")
+        assert priority == "High"
+
+
+def test_correct_sentiment_priority_leaves_high_and_critical_priority_alone() -> None:
+    for starting_priority in ("High", "Critical"):
+        priority, _ = _correct_sentiment_priority(starting_priority, "Negative")
+        assert priority == starting_priority
 
 
 @pytest.mark.parametrize(("raw", "expected"), [
