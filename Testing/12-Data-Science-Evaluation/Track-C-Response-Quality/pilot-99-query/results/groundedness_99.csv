@@ -1,0 +1,354 @@
+query_id,domain_drafted,sentence,max_similarity,supported
+Q001,hr,This sometimes happens if the payment system doesn't automatically sync with your account.,0.4372,True
+Q001,hr,"To get this resolved for you, could you please provide your transaction reference number, the approximate date of the payment, and the amount charged?",0.4889,True
+Q001,hr,"Once I have those details, I will have our team manually verify the transaction and update your account so you can get started with the course right away.",0.5564,True
+Q002,billing,"Hi there, I am sorry to hear you experienced trouble during the checkout process.",0.4389,True
+Q002,billing,It is common for a payment page to hang if there is a brief communication delay with your bank.,0.4801,True
+Q002,billing,Please check your bank statement to see if there is a 'pending' charge.,0.5373,True
+Q002,billing,"If the charge is only pending, it will typically drop off automatically within a few business days.",0.3681,True
+Q002,billing,"If you do not see a confirmation email from us, it means the order did not go through on our end.",0.3234,False
+Q002,billing,"Please feel free to try the checkout again, or if you continue to see the page freezing, let us know so we can investigate further.",0.3214,False
+Q003,billing,"Hi there, I am very sorry to hear that you were charged twice due to the page loading slowly.",0.4962,True
+Q003,billing,Could you please provide the dates and the exact amounts of the two charges?,0.4868,True
+Q003,billing,"Once I have those details, our team will verify the transactions and proceed with the necessary steps to resolve the duplicate charge for you.",0.6802,True
+Q004,billing,"Hi there, I am sorry to hear you are having trouble with your payment.",0.5047,True
+Q004,billing,It can be frustrating when a transaction doesn't go through as expected.,0.3823,True
+Q004,billing,"Sometimes, banks place a temporary hold on funds during a failed checkout attempt, which can make it look like a charge was processed even if the payment wasn't completed.",0.6458,True
+Q004,billing,"To help us look into this for you, could you please check with your bank to see if the transaction is currently listed as 'pending' or if it has been fully settled?",0.5312,True
+Q004,billing,"Once you have that information, please let us know, and we will be happy to look into this further with our billing team to get things sorted out for you.",0.4733,True
+Q005,hr,This can sometimes happen if there is a slight delay in syncing your bank's confirmation with our system.,0.407,True
+Q005,hr,"To get this resolved for you, could you please provide your transaction reference number, the date of the payment, and the approximate amount?",0.4836,True
+Q005,hr,"Once I have those details, I will have our team manually verify the transaction and ensure your course access is updated as quickly as possible.",0.5998,True
+Q006,billing,"Hi there, I am very sorry to hear that your discount code did not apply correctly to your recent purchase.",0.4393,True
+Q006,billing,I have initiated a billing review to look into this transaction for you.,0.4635,True
+Q006,billing,A member of our billing team will follow up with you shortly via email with an update.,0.4064,True
+Q007,billing,I understand it is frustrating to see a charge that differs from the expected amount.,0.4474,True
+Q007,billing,"When a transaction is processed in a currency different from your local bank account, your financial institution may apply their own exchange rates or additional foreign transaction fees.",0.6609,True
+Q007,billing,These rates are set by your bank and are separate from the price displayed on our platform at checkout.,0.5841,True
+Q007,billing,"To help us look into this further, could you please provide the date of the transaction and the exact amount shown on your bank statement?",0.3872,True
+Q007,billing,"Once we have those details, our billing team can review the transaction record to ensure everything was processed correctly.",0.4945,True
+Q008,billing,I apologize for the confusion regarding your payment schedule.,0.3733,True
+Q008,billing,It appears there is a temporary display issue on your dashboard that is preventing the next installment date from appearing correctly.,0.2638,False
+Q008,billing,"I have manually verified your account, and your next installment is scheduled for the upcoming month.",0.4096,True
+Q008,billing,Our team is currently working on a fix to ensure this information is visible to you again shortly.,0.2599,False
+Q008,billing,"In the meantime, if you need to confirm any specific dates, please feel free to reply to this message and I would be happy to look them up for you.",0.2644,False
+Q009,billing,I understand you are concerned about your enrollment status after not receiving a payment confirmation email.,0.4774,True
+Q009,billing,"Sometimes, there can be a slight delay between completing your payment and the system sending out the confirmation, or the transaction may still be in a 'pending' state with your bank.",0.5209,True
+Q009,billing,Could you please check your account dashboard to see if the course is showing as active?,0.2762,False
+Q009,billing,"If you don't see it there, please let us know the date and amount of the transaction, and we will be happy to verify the status of your enrollment and resend your receipt for you.",0.3557,True
+Q010,technical,"Hi there, I am very sorry to hear about the trouble you experienced with your payment.",0.3975,True
+Q010,technical,"Often, these instances occur when there is a temporary delay in communication between the bank and our system.",0.3352,False
+Q010,technical,"Could you please provide the date and time of the transaction, along with the transaction ID if you have one?",0.1762,False
+Q010,technical,This will help us locate the payment and ensure it is either correctly applied to your account or processed for a refund if the order did not complete.,0.2885,False
+Q010,billing,"Hi there, I am sorry to hear about the confusion regarding your recent transaction.",0.3472,False
+Q010,billing,What you are seeing on your bank statement is likely a 'pending authorization' hold.,0.4782,True
+Q010,billing,This is a temporary measure taken by your bank to reserve funds for a potential purchase.,0.3197,False
+Q010,billing,"Since the transaction did not complete, this hold will be automatically released by your bank, typically within a few business days depending on their specific policies.",0.3996,True
+Q010,billing,"I recommend checking your statement again in a few days; if the charge does not disappear or if you have further concerns, please feel free to reach back out to us with the date and amount of the transaction so we can investigate further.",0.5155,True
+Q011,hr,"I have forwarded your request to our review team, who will look into your specific circumstances.",0.457,True
+Q011,hr,A team member will be in touch with you soon to discuss the next steps regarding your request.,0.2074,False
+Q012,billing,I have forwarded your request to our billing department to review your account and the specific details of your purchase.,0.4896,True
+Q012,billing,A member of our team will evaluate your request based on our refund policy and will get back to you as soon as possible with an update.,0.4624,True
+Q013,billing,I have escalated this to our billing team to check the current status of your transaction.,0.5207,True
+Q013,billing,"Please note that once a refund is processed on our end, it can sometimes take several business days for your bank to reflect the change, depending on their specific processing times.",0.4892,True
+Q013,billing,I will personally look into this and provide you with an update as soon as I have more information from our billing department.,0.5289,True
+Q014,billing,"Hi there, I am sorry to hear that you were charged twice for your course.",0.6363,True
+Q014,billing,I would be happy to look into this for you.,0.1596,False
+Q014,billing,"To get started, could you please provide the dates and the exact amounts of the two charges you see on your statement?",0.4969,True
+Q014,billing,"Once I have those details, I will open a billing review to verify the transaction history and ensure any duplicate charges are corrected for you.",0.7467,True
+Q015,billing,"Hi there, I am sorry to hear that your work schedule has changed and is now conflicting with our live sessions.",0.2602,False
+Q015,billing,I have forwarded your request to our billing team to review your account and determine your eligibility for a refund.,0.5434,True
+Q015,billing,They will take a look at your purchase details and get back to you as soon as possible with an update.,0.4324,True
+Q016,billing,I understand you are looking for more information regarding the status of your refund request.,0.6187,True
+Q016,billing,"Our refund policy is based on specific eligibility criteria, which includes the time elapsed since the purchase and the amount of course content accessed.",0.5869,True
+Q016,billing,I would be happy to look into your account details to provide you with the specific reason for the denial.,0.335,False
+Q016,billing,Could you please provide your account email address or the transaction details so I can investigate this for you?,0.3876,True
+Q017,billing,I have forwarded your request to our billing team to review your account and the specific terms of your enrollment.,0.5333,True
+Q017,billing,They will take a look at your transaction details and get back to you as soon as possible regarding your eligibility for a refund.,0.573,True
+Q017,billing,We appreciate your feedback and hope to assist you further.,0.2207,False
+Q018,billing,"Hi, I am very sorry to hear that you have had such a frustrating experience trying to access the Robotics Intermediate course.",0.2415,False
+Q018,billing,I have forwarded your request to our billing team to review your account and the status of your refund.,0.5151,True
+Q018,billing,They will look into your purchase details and get back to you as soon as possible with an update.,0.4375,True
+Q019,billing,"To ensure you are eligible for a refund, please note that our policy allows for refund requests to be submitted within 14 days of your original enrollment date.",0.572,True
+Q019,billing,Please keep in mind that eligibility is subject to a review of your account activity and the specific terms of your purchase.,0.3151,False
+Q019,billing,"If you would like us to look into your account specifically, please provide your order details, and we would be happy to assist you further.",0.2801,False
+Q020,billing,I understand you are concerned about where your refund was sent.,0.4706,True
+Q020,billing,Please be assured that our system is designed to automatically return all refunds to the original payment method used at the time of your purchase.,0.5108,True
+Q020,billing,We are unable to manually redirect funds to a different bank account or provide alternative payment details.,0.4183,True
+Q020,billing,"If you no longer have access to the original account or card, please contact your bank directly.",0.4117,True
+Q020,billing,"They will be able to assist you in locating the funds or redirecting them to your current account, as they are the ones who manage the final deposit of these transactions.",0.3071,False
+Q021,billing,"Hi there, I am sorry to hear about the trouble you experienced with your recent payment.",0.4988,True
+Q021,billing,"This is not a completed charge, but rather a pending authorization that your bank will automatically release back into your account.",0.5566,True
+Q021,billing,We recommend checking with your financial institution to confirm the status of this transaction.,0.4402,True
+Q021,billing,"If the hold does not clear within a few business days, please let us know, and we will be happy to assist you further.",0.2495,False
+Q022,billing,"Since the OTP is sent directly by your bank to verify the transaction, it is possible there is a delay with their SMS service or your contact information on file with them may need to be updated.",0.3718,True
+Q022,billing,I recommend checking with your bank to ensure they have your current mobile number and that they are not blocking automated messages from our payment provider.,0.5078,True
+Q022,billing,"If the issue persists, you may want to try using a different payment method or contacting your bank's support team for further assistance.",0.5251,True
+Q023,hr,I apologize for the delay in updating your course access.,0.3998,True
+Q023,hr,"When a bank deposit slip is uploaded, our system sometimes requires a manual review to ensure the payment is correctly matched to your account, especially if there is a slight mismatch in the name or reference details.",0.6364,True
+Q023,hr,I have escalated your request to our verification team to manually confirm your payment.,0.5663,True
+Q023,hr,"They will review your deposit slip shortly, and your account status should be updated as soon as that is complete.",0.4677,True
+Q024,hr,"Hi there, I am sorry to hear that your bank slip payment was not processed as expected.",0.5219,True
+Q024,hr,"This often happens if there is a slight mismatch between the information on the bank slip and our enrollment records, which prevents our system from automatically linking the payment to your account.",0.6668,True
+Q024,hr,"I have escalated your case to our billing team, who will manually review your transaction details to ensure everything is corrected.",0.564,True
+Q024,hr,"You do not need to take any further action at this time, and a member of our team will reach out to you as soon as your payment has been verified and your access is updated.",0.4399,True
+Q025,billing,I understand your concern regarding the pending transaction on your account.,0.474,True
+Q025,billing,"When a payment shows as 'Pending' for an extended period, it is typically a temporary authorization hold placed by your bank while they process the request.",0.5678,True
+Q025,billing,"In most cases, if the transaction does not complete, the bank will automatically release these funds back to your account within a few business days.",0.4216,True
+Q025,billing,"I recommend checking with your bank to confirm the status of this hold, as they have the most up-to-date information on when those funds will be released.",0.3837,True
+Q025,billing,"If the charge eventually settles or if you have further concerns, please let us know and we would be happy to look into this further for you.",0.451,True
+Q026,billing,I would be happy to help you obtain a copy of your receipt for your expense records.,0.4944,True
+Q026,billing,"To ensure I send this to the correct account, could you please provide the email address used for the purchase and the date of the transaction?",0.3949,True
+Q026,billing,"Once I have those details, I will verify your account access and send the requested documentation over to you right away.",0.3814,True
+Q027,hr,I have escalated this to our billing team for a manual review.,0.439,True
+Q027,hr,"To help us resolve this as quickly as possible, could you please provide the transaction reference number, the approximate amount paid, and the date the payment was made?",0.5328,True
+Q027,hr,"Once we have these details, a team member will verify the transaction and update your account to ensure you have access to the correct course.",0.6213,True
+Q028,billing,"Hi there, I am sorry to hear that you are seeing two charges on your bank statement for your course.",0.6302,True
+Q028,billing,I would be happy to look into this for you.,0.1338,False
+Q028,billing,Could you please provide the dates and the exact amounts of the two charges?,0.4868,True
+Q028,billing,"Once I have that information, I will open a billing review to investigate your transaction history and ensure that any duplicate charges are corrected for you.",0.7332,True
+Q029,hr,"Sometimes, bank transfers require a manual review to ensure they are correctly matched to the right student profile.",0.5896,True
+Q029,hr,"To help us resolve this, could you please provide the transaction reference number, the approximate amount transferred, and the date the payment was made?",0.5249,True
+Q029,hr,"Once we have these details, a member of our team will manually verify the transaction and update your account for you.",0.5309,True
+Q030,billing,"It is possible that the payment is currently in a 'pending' state with your bank, which can sometimes prevent our system from finalizing the order and generating the receipt.",0.4817,True
+Q030,billing,Could you please check with your financial institution to confirm if the transaction has fully settled or if it is still showing as a pending authorization?,0.5404,True
+Q030,billing,"Once you have that information, please let us know the date and amount of the charge, and we will be happy to investigate this further for you and ensure you receive your documentation.",0.4714,True
+Q031,technical,"Hi there, I'm sorry to hear you're having trouble accessing your account.",0.5237,True
+Q031,technical,"To help us resolve this, could you please double-check that you are using the exact email address associated with your account?",0.4137,True
+Q031,technical,"Sometimes these emails can be delayed or filtered into your 'Spam' or 'Junk' folders, so please check those as well.",0.3192,False
+Q031,technical,"If you still don't see the email after a few minutes, please let us know, and we will be happy to look into this further for you.",0.3507,True
+Q032,technical,"Hi there, I am sorry to hear you are having trouble accessing your account.",0.5261,True
+Q032,technical,"For security reasons, our system automatically locks accounts after several unsuccessful login attempts.",0.4414,True
+Q032,technical,This is a temporary measure to keep your information safe.,0.1883,False
+Q032,technical,Please wait 30 minutes before attempting to sign in again.,0.5226,True
+Q032,technical,"If you are still unable to access your account after that time, you can use the 'Forgot Password' link on the sign-in page to reset your credentials, which will also clear the temporary lock.",0.5604,True
+Q032,technical,"If you continue to experience issues, please let us know!",0.3745,True
+Q033,technical,"Hi there, I am sorry to hear you are having trouble receiving your login code.",0.4936,True
+Q033,technical,This can sometimes happen due to a temporary delay with our messaging service or your mobile carrier.,0.3352,False
+Q033,technical,Please try waiting a few minutes and requesting the code again.,0.3003,False
+Q033,technical,"If it still does not arrive, please ensure your phone is not blocking messages from unknown numbers or short-code senders.",0.3104,False
+Q033,technical,"If the issue persists, please let me know, and I will be happy to look into this further for you.",0.4065,True
+Q034,technical,"Hi there, I am sorry to hear you are having trouble signing in.",0.5388,True
+Q034,technical,This issue often occurs due to a temporary conflict with your browser's saved data or a minor hiccup in the connection between our platform and your organization's login service.,0.4019,True
+Q034,technical,"To resolve this, please try opening your browser in a 'Private' or 'Incognito' window and attempt to sign in again.",0.4464,True
+Q034,technical,"If the issue persists, please ensure that any ad-blocking or privacy-enhancing browser extensions are temporarily disabled, as these can sometimes interfere with the secure sign-in process.",0.5741,True
+Q034,technical,"If you continue to see the redirect loop, please let us know, and we will be happy to investigate further.",0.3153,False
+Q035,technical,"Hi there, I'm sorry to hear you're having trouble logging in.",0.4799,True
+Q035,technical,This error can sometimes happen if your browser is holding onto old information or if there's a slight mismatch with the login details.,0.4258,True
+Q035,technical,"To help resolve this, could you please try opening your browser in a private or 'incognito' window and attempting to sign in again?",0.5664,True
+Q035,technical,"If that doesn't work, please double-check that you are using the exact email address associated with your account.",0.2837,False
+Q035,technical,"If you continue to see this message, please let us know, and we will be happy to look into this further for you.",0.2764,False
+Q037,technical,"Hi there, I'm sorry to hear you're having trouble accessing your account.",0.5237,True
+Q037,technical,"For security reasons, the verification link sent to your email expires after 30 minutes.",0.4351,True
+Q037,technical,"To resolve this, please head back to the sign-in page and request a new verification email.",0.4834,True
+Q037,technical,"Once you receive the new link, please click it as soon as possible to complete your account setup.",0.3498,False
+Q037,technical,"If you continue to have any trouble, please let us know!",0.4113,True
+Q038,technical,"Hi there, I'm sorry to hear you're having trouble logging in after your password reset.",0.5325,True
+Q038,technical,This can sometimes happen if your browser is holding onto old information or if there is a slight delay in the system updating your new credentials.,0.3438,False
+Q038,technical,Could you please try logging in using an 'Incognito' or 'Private' window in your browser?,0.4775,True
+Q038,technical,This will ensure you are starting with a fresh session.,0.2624,False
+Q038,technical,"If that doesn't work, please try clearing your browser's cache and cookies, and then attempt to sign in again.",0.3602,True
+Q038,technical,"If you continue to experience issues, please let us know and we will be happy to look into this further for you.",0.4167,True
+Q039,technical,This issue is often caused by temporary data stored in your browser or a conflict with a browser extension.,0.3417,False
+Q039,technical,"To resolve this, please try opening our site in a private or 'incognito' window.",0.3613,True
+Q039,technical,"If that works, it confirms that clearing your browser's cache and cookies should fix the problem permanently.",0.4536,True
+Q039,technical,"Additionally, please ensure you are using the latest version of your web browser.",0.4144,True
+Q039,technical,"If the issue persists, please let us know which browser and device you are using, and we will be happy to investigate further.",0.4477,True
+Q041,hr,This sometimes happens when a payment needs to be manually matched to your profile.,0.4849,True
+Q041,hr,"To help us resolve this for you, could you please provide the transaction reference number, the approximate amount paid, and the date of the transaction?",0.4542,True
+Q041,hr,"Once we have these details, our team will be able to verify the payment and update your account access for you.",0.5326,True
+Q042,billing,"Hi there, I am sorry to hear that you were charged a different amount than what you saw in your cart.",0.4637,True
+Q042,billing,This can sometimes happen due to currency exchange rate fluctuations or regional tax adjustments that are applied at the final stage of the payment process.,0.5456,True
+Q042,billing,"Additionally, some banks may apply their own transaction fees for international purchases.",0.5001,True
+Q042,billing,"To help me look into this for you, could you please provide the date of your purchase and the amount you were expecting to pay?",0.4152,True
+Q042,billing,"Once I have those details, I will be happy to review your transaction history and clarify exactly what occurred.",0.3515,True
+Q043,billing,"Hi there, I am sorry to hear you are having trouble using your international card.",0.4259,True
+Q043,billing,This issue is often caused by security settings on your bank's end that restrict transactions outside of your home country.,0.3911,True
+Q043,billing,I recommend contacting your bank to confirm that they are not blocking international charges from our service.,0.5071,True
+Q043,billing,"If they confirm the transaction is being authorized on their side, please let us know the date and the amount of the attempted payment, and we will be happy to look into this further with our billing team for you.",0.5635,True
+Q045,billing,"When using multiple cards, it is possible for one transaction to be processed while the other is declined, which can sometimes cause confusion regarding your enrollment status.",0.3914,True
+Q045,billing,"Please check your bank statement to see if the charge is listed as 'pending' or 'settled.' In the meantime, I recommend checking your account dashboard to see if your access has been granted.",0.5259,True
+Q045,billing,"If you do not see your enrollment reflected, please let me know the date and amount of the successful charge, and I will be happy to look into this further for you.",0.4755,True
+Q046,technical,An 'Error 500' typically means there was a temporary hiccup on our server.,0.38,True
+Q046,technical,"To ensure your payment was not processed, please check your email for a confirmation receipt or log into your bank account to see if there is a pending charge.",0.2999,False
+Q046,technical,"If you do not see any record of the transaction, please wait a few minutes and try again using a different browser or by clearing your current browser's cache.",0.2397,False
+Q046,technical,"If the issue persists, please let us know, and we will be happy to investigate this further for you.",0.3612,True
+Q046,billing,"Hi there, I am sorry to hear you ran into an error while trying to complete your payment.",0.5098,True
+Q046,billing,Please check your bank or credit card statement to see if there is a 'pending' charge from us.,0.5146,True
+Q046,billing,"If you see a pending charge, it is often just a temporary authorization hold that will disappear on its own within a few business days.",0.5489,True
+Q046,billing,"If you do not see any charge, please feel free to try the payment again.",0.4377,True
+Q046,billing,"If the issue persists, please let us know, and we will be happy to look into this further for you.",0.2544,False
+Q047,billing,It sounds like our system is mistakenly trying to create a new account for you instead of recognizing your existing one.,0.2357,False
+Q047,billing,"To resolve this, please try logging out of your account, clearing your browser's cache and cookies, and then logging back in before attempting the purchase again.",0.3166,False
+Q047,billing,"If the issue persists, please let us know, and we will be happy to look into this further for you.",0.2544,False
+Q048,billing,I understand your concern regarding the transition from your free trial to a paid subscription.,0.4125,True
+Q048,billing,Our system is designed to automatically convert trials to active plans to ensure you maintain uninterrupted access to your materials.,0.3269,False
+Q048,billing,I would be happy to look into your account details to review your billing status and see what options are available for you.,0.4937,True
+Q048,billing,"Please let us know if you would like us to initiate a billing review, and we can take a closer look at your transaction history.",0.4859,True
+Q049,billing,I am very sorry to hear that the flash-sale discount was not applied to your purchase.,0.3186,False
+Q049,billing,I would like to look into this for you right away.,0.0621,False
+Q049,billing,Could you please provide your order number or the email address associated with your account?,0.221,False
+Q049,billing,"Once I have those details, I will review the transaction and ensure that any price difference is corrected for you.",0.4493,True
+Q050,billing,I understand it can be frustrating to see an unexpected charge on your statement.,0.4694,True
+Q050,billing,"I have looked into this for you, and it appears that this charge was for the automatic renewal of your subscription.",0.5188,True
+Q050,billing,I have gone ahead and forwarded your account details to our billing review team so they can look into this further and determine if a refund is possible based on your account history.,0.4811,True
+Q050,billing,"In the meantime, I have ensured that your auto-renewal is turned off so that no further charges will occur.",0.5474,True
+Q050,billing,A member of our billing team will follow up with you shortly via email with an update.,0.3835,True
+Q053,billing,I am very sorry to hear that you were enrolled in the incorrect course level after your purchase.,0.3663,True
+Q053,billing,I have escalated this to our billing and enrollment team to manually correct your account access.,0.4892,True
+Q053,billing,You should see the correct 'Intermediate' level course reflected in your dashboard shortly.,0.239,False
+Q054,technical,"Hi there, I'm sorry to hear you ran into trouble with your first payment attempt.",0.3878,True
+Q054,technical,"To try again with a different card or payment method, please navigate to your account settings and select the 'Billing' or 'Payment Methods' section.",0.3275,False
+Q054,technical,"From there, you should be able to update your details or add a new payment method.",0.2809,False
+Q054,technical,"Once you have saved the new information, please return to your checkout page to complete your purchase.",0.2729,False
+Q054,technical,"If you continue to experience any issues, please let us know so we can look into this further for you.",0.4353,True
+Q054,billing,"Hi there, I'm sorry to hear you had trouble with your initial payment.",0.476,True
+Q054,billing,You can easily retry your purchase by using a different card or payment method through your account's secure billing settings.,0.5246,True
+Q054,billing,"Please log in to your account, navigate to the billing section, and you will be able to update your payment information there.",0.4862,True
+Q054,billing,"If you continue to see an error message after trying a new method, please let us know the specific error you are seeing, and our billing team will be happy to look into this further for you.",0.5127,True
+Q056,billing,"Hi there, I am very sorry to hear about the frustration caused by the postponement of your course batch.",0.2956,False
+Q056,billing,I have initiated a formal review of your enrollment and the status of the course with our billing team.,0.4982,True
+Q056,billing,We will examine your request and get back to you as soon as possible with an update on your refund eligibility.,0.5132,True
+Q057,hr,I am very sorry to hear that the change in instructor has impacted your learning experience.,0.5669,True
+Q057,hr,"I have forwarded your request to our review team, who will take a close look at the changes made to the course and compare them with the original enrollment details to determine the best way to support you.",0.5581,True
+Q057,hr,We will get back to you as soon as this review is complete.,0.3294,False
+Q058,hr,"Hi there, I am very sorry to hear about your medical emergency, and I hope you are doing okay.",0.1818,False
+Q058,hr,I have received your request regarding a refund.,0.5205,True
+Q058,hr,"Because this involves a personal emergency, I have forwarded your case to our human review team.",0.4671,True
+Q058,hr,They will carefully look into your specific circumstances to determine how we can best assist you.,0.3721,True
+Q058,hr,A member of our team will reach out to you directly once they have reviewed the details.,0.2743,False
+Q059,hr,I am very sorry to hear about the concerns regarding your child's enrollment.,0.338,False
+Q059,hr,"Because this involves a question of parental consent, I have escalated your request to our specialized review team.",0.4415,True
+Q059,hr,They will carefully look into the specific circumstances of this enrollment.,0.3658,True
+Q059,hr,A team member will be in touch with you once they have completed their assessment.,0.2458,False
+Q060,billing,I am very sorry to hear that you haven't received a response regarding your refund request.,0.594,True
+Q060,billing,I would like to look into this for you immediately.,0.1229,False
+Q060,billing,Could you please provide the email address associated with your account and the date you sent your initial request?,0.2441,False
+Q060,billing,"Once I have those details, I will personally check the status of your request with our billing team and ensure you receive an update as soon as possible.",0.3874,True
+Q061,billing,I am very sorry for the confusion regarding your refund.,0.5007,True
+Q061,billing,It appears that your request was processed as store credit by mistake.,0.3593,True
+Q061,billing,I have escalated this to our billing team to correct this for you.,0.3814,True
+Q061,billing,We will work to reverse the credit and ensure the funds are returned to your original payment method instead.,0.3763,True
+Q061,billing,"You should see an update on this within the next few business days, and I will personally follow up with you as soon as the transaction has been updated.",0.3493,False
+Q062,billing,I understand your concern regarding potential currency fluctuations during your refund process.,0.4858,True
+Q062,billing,"Please be aware that when we issue a refund, we return the exact amount originally charged to your account.",0.4805,True
+Q062,billing,"Because exchange rates are managed by your bank or payment provider and can fluctuate daily, any difference you see in the final amount returned to your account is typically due to these bank-side exchange rate changes or foreign transaction fees.",0.5852,True
+Q062,billing,"We recommend contacting your bank directly if you have specific questions about how they handle currency conversion for reversed transactions, as they are the ones who set those rates.",0.5361,True
+Q063,billing,"I am very sorry to hear that you experienced issues with our platform during a recent outage, and I understand how frustrating it is to have your progress incorrectly recorded.",0.2794,False
+Q063,billing,I have escalated your case to our billing and technical teams to investigate the system errors that occurred during that time.,0.4129,True
+Q063,billing,We will review your actual course activity to ensure your refund request is evaluated fairly based on your true progress.,0.6048,True
+Q063,billing,We will get back to you as soon as we have an update on this review.,0.2398,False
+Q064,billing,I would be happy to look into this for you.,0.1596,False
+Q064,billing,"To get started, could you please provide the dates and the amounts of the charges you see on your statement?",0.4004,True
+Q064,billing,"Once I have those details, I will open a billing review to check your transaction history and see what options we have available for a refund.",0.5222,True
+Q064,billing,We will get back to you as soon as we have an update.,0.1511,False
+Q065,billing,I understand you're looking for more information regarding your refund status.,0.6127,True
+Q065,billing,"When a refund shows as 'Processing,' it means we have successfully initiated the return of funds to your original payment method.",0.5117,True
+Q065,billing,"While we have completed our part of the process, the time it takes for the money to appear in your account depends on your bank's specific processing times, which can typically take several business days.",0.1922,False
+Q065,billing,We recommend checking with your bank if you do not see the funds reflected in your account after a few business days have passed.,0.3456,False
+Q066,billing,"For security and compliance reasons, our system is designed to automatically process all refunds back to the original payment method used for the initial purchase.",0.5114,True
+Q066,billing,We are unable to redirect funds to a different bank account or credit card.,0.3063,False
+Q066,billing,"I recommend contacting your bank directly; once the refund is processed to your original account, they may be able to assist you in transferring those funds to your preferred account.",0.316,False
+Q067,billing,"Regarding your refund request, our system is designed to automatically return funds to the original payment method used at the time of purchase.",0.5102,True
+Q067,billing,"Because this course was paid for by your employer, the refund will be processed back to their account.",0.4865,True
+Q067,billing,"We recommend coordinating with your company's finance or HR department once the refund is completed, as they will be able to reconcile the transaction on their end.",0.4977,True
+Q068,billing,I would be happy to help you clarify your account status.,0.3346,False
+Q068,billing,"To determine if you are still within the refund window for your free trial, I will need to take a look at your account's billing history.",0.4736,True
+Q068,billing,"Please reply with the email address associated with your account, and I will check your current status and let you know what options are available to you.",0.3508,True
+Q069,billing,I understand you are concerned about your refund.,0.4814,True
+Q069,billing,"Please be assured that once a refund is approved, we process the full amount back to your original payment method.",0.5024,True
+Q069,billing,"Depending on your bank's policies, these funds can sometimes appear in your account in separate parts or may take several business days to fully settle.",0.3232,False
+Q069,billing,I recommend checking with your bank to see if the remaining portion is currently showing as a pending transaction.,0.4612,True
+Q069,billing,"If you do not see the full amount reflected in your account after a few more business days, please let us know and we will be happy to look into this further for you.",0.2606,False
+Q070,hr,"Because your request involves specific personal circumstances, I have forwarded your case to our review team.",0.4252,True
+Q070,hr,They will carefully look into your situation and reach out to you directly to discuss the next steps.,0.3875,True
+Q071,billing,"When a session times out at the bank verification step, it can sometimes leave a 'pending' charge on your bank statement.",0.4897,True
+Q071,billing,Most banks will automatically release this hold within a few business days if the transaction is not completed.,0.3842,True
+Q071,billing,I recommend checking your bank statement in 3-5 business days to see if the charge has cleared.,0.4123,True
+Q071,billing,"If the charge remains or if you would like to try the payment again, please feel free to start a new checkout session.",0.5198,True
+Q071,billing,"If you need any further assistance, please let us know.",0.2711,False
+Q072,hr,"To ensure we can verify your payment as quickly as possible, please reply to this message with your transaction reference number, the exact amount paid, and the date of the transaction.",0.4816,True
+Q072,hr,"Once you provide these details, our team will manually review your payment and update your account access.",0.5499,True
+Q073,billing,This can sometimes happen due to how payment providers process international transactions or exchange rates applied by your bank.,0.5681,True
+Q073,billing,"To help us look into this for you, could you please provide the date of the transaction and the exact amount that was displayed on your screen at the time of checkout?",0.4335,True
+Q073,billing,"Once I have those details, I will forward them to our billing team to investigate the discrepancy and see how we can resolve this for you.",0.5235,True
+Q074,hr,Please don't worry about the name mismatch on your payment slip.,0.5341,True
+Q074,hr,Our system occasionally flags payments for manual review when the name on the bank record differs from the registered account name.,0.555,True
+Q074,hr,"To get this sorted out, please provide your transaction reference number, the approximate amount paid, and the date of the transaction.",0.4234,True
+Q074,hr,"Once we have those details, a member of our team will manually verify the payment and update your account access for you.",0.5658,True
+Q075,billing,I understand you are concerned about the status of your refund.,0.5511,True
+Q075,billing,"While we have initiated the process on our end, please keep in mind that once a refund is sent, it can sometimes take several business days for your bank to reflect the transaction, depending on their specific processing times.",0.5294,True
+Q075,billing,"If you do not see the funds in your account within a few more business days, I recommend contacting your bank directly, as they will be able to provide the most up-to-date information regarding pending deposits to your account.",0.4057,True
+Q076,hr,"Hi there, I am sorry to hear that you have misplaced your bank slip.",0.4805,True
+Q076,hr,"Please don't worry, we can still help you get this sorted out.",0.1933,False
+Q076,hr,"To help our team locate your payment, could you please provide us with the approximate date of the deposit, the exact amount paid, and the transaction reference number if you happen to have it?",0.4919,True
+Q076,hr,"Once we have these details, a member of our team will manually review our records to confirm the transaction and update your account status for you.",0.4841,True
+Q077,billing,This error usually indicates a temporary communication issue between our system and the payment provider.,0.4625,True
+Q077,billing,Please try clearing your browser cache or attempting the payment in an incognito/private window.,0.4529,True
+Q077,billing,"If the issue persists, please let us know, and we will investigate this further with our billing team to ensure you can complete your transaction successfully.",0.5132,True
+Q078,hr,"Hi there, I am sorry to hear about the trouble with your payment.",0.4677,True
+Q078,hr,"Because the funds were sent to an older account, our automated system is unable to link the payment to your profile.",0.5489,True
+Q078,hr,"Please provide us with the transaction reference number, the exact amount sent, and the date of the transfer.",0.339,False
+Q078,hr,"Once we have these details, a member of our team will manually review your transaction and update your account status accordingly.",0.4915,True
+Q080,billing,It looks like your recent payment was declined because the billing address entered during checkout does not match the address your bank has on file for your card.,0.5123,True
+Q080,billing,"To resolve this, please double-check that the billing address you are entering exactly matches the one listed on your most recent bank statement.",0.3662,True
+Q080,billing,"Once you have confirmed those details, please try the transaction again.",0.3756,True
+Q080,billing,"If you continue to experience issues, you may want to contact your bank directly to verify the exact billing address they have registered for your account.",0.4752,True
+Q081,billing,I understand you accidentally entered the wrong amount when making your payment.,0.3811,True
+Q081,billing,Please don't worry; we can certainly help you get this sorted out.,0.1484,False
+Q081,billing,Could you please provide the date of the transaction and the amount that was charged?,0.4252,True
+Q081,billing,"Once we have those details, our billing team will review the transaction and guide you on the next steps to ensure your course access is updated correctly.",0.5212,True
+Q082,hr,I would be happy to help you confirm that your bank slip has been correctly linked to your corporate sponsorship account.,0.5287,True
+Q082,hr,"Because bank slip payments often require a manual verification step to ensure they are accurately matched to the correct company profile, I have forwarded your request to our finance team for review.",0.6748,True
+Q082,hr,"To help them complete this as quickly as possible, could you please provide the transaction reference number, the exact amount paid, and the date the payment was submitted?",0.564,True
+Q082,hr,"Once they have verified these details, they will update your account status accordingly.",0.4222,True
+Q083,hr,"I have forwarded your request to our billing team, who will manually review your transaction records to verify the duplicate payment.",0.5279,True
+Q083,hr,"Once they have confirmed the details, they will reach out to you regarding the next steps for your refund.",0.5525,True
+Q085,billing,This typically happens when your bank or the intermediary financial institution deducts a processing or transfer fee during the transaction.,0.4019,True
+Q085,billing,"Because these fees are set by your bank and not by our platform, the final amount we receive can sometimes be slightly less than the total course cost.",0.3834,True
+Q085,billing,Please check with your bank to see if a service fee was applied to this transfer.,0.3419,False
+Q085,billing,"If you have any further questions or need assistance with your account balance, please let us know.",0.362,True
+Q086,technical,"Hi there, I understand you are having trouble logging into your account because you no longer have access to the phone number previously linked to your profile.",0.4456,True
+Q086,technical,I would be happy to help you regain access.,0.4099,True
+Q086,technical,"To ensure the security of your account, please reply to this message with the email address associated with your account.",0.4368,True
+Q086,technical,"Once we have that, we will verify your identity and update your contact information so you can receive the necessary verification codes on your current phone number.",0.2967,False
+Q087,technical,This can sometimes happen if the email is caught by a spam filter or if there is a slight delay in our automated system.,0.2726,False
+Q087,technical,Could you please check your spam or junk folder to see if the message arrived there?,0.3238,False
+Q087,technical,"If you still don't see it, please let me know the email address you used to sign up, and I will be happy to manually verify your account status and resend the activation details for you.",0.4161,True
+Q088,technical,"Hi there, I'm sorry to hear you're having trouble logging into the mobile app.",0.4031,True
+Q088,technical,"To help us get this resolved for you, could you please ensure that your mobile app is updated to the latest version available in your app store?",0.3626,True
+Q088,technical,"Additionally, please try restarting your device to clear any temporary data.",0.3368,False
+Q088,technical,"If the issue persists, could you let us know which device and operating system you are using, and if possible, share a screenshot of the error message you see?",0.4395,True
+Q088,technical,This will help our team investigate the cause further.,0.2504,False
+Q090,technical,"Hi there, I am sorry to hear that you are being logged out while trying to study.",0.3753,True
+Q090,technical,This can be quite frustrating when you are in the middle of your work.,0.1469,False
+Q090,technical,"To help resolve this, could you please try clearing your browser's cache and cookies, or try accessing the site using an Incognito or Private window?",0.34,False
+Q090,technical,"Often, stored data in the browser can cause issues with keeping your session active.",0.3445,False
+Q090,technical,"If the problem persists, please let us know which browser you are using and if this happens on any other devices, so we can look into this further for you.",0.3447,False
+Q092,technical,"Hi there, I'm sorry to hear you're having trouble accessing your account.",0.5237,True
+Q092,technical,This issue is often caused by browser settings or extensions that may be blocking the security verification tool on our login page.,0.4435,True
+Q092,technical,Could you please try opening our website in a private or 'incognito' window?,0.4046,True
+Q092,technical,"If that doesn't work, please try temporarily disabling any ad-blockers or privacy extensions you have active, as these can sometimes interfere with the login process.",0.3518,True
+Q092,technical,"If the issue persists, please let us know which browser you are using, and we will be happy to look into this further for you.",0.4518,True
+Q093,technical,It sounds like our security system may have flagged your login attempt due to the network connection you are currently using.,0.464,True
+Q093,technical,"To resolve this, please try temporarily disabling your VPN and attempting to log in again from a standard network connection.",0.3343,False
+Q093,technical,"If you continue to experience issues, please let us know, and we can look into this further for you.",0.4084,True
+Q095,technical,"Hi there, it sounds like your web browser is automatically filling in an outdated password that it saved previously.",0.3221,False
+Q095,technical,"This is a common browser feature, but it can be easily fixed by updating or removing the old information.",0.3553,True
+Q095,technical,"You can resolve this by going into your browser's settings, searching for 'Passwords' or 'Autofill,' and locating our website in the list of saved accounts.",0.3292,False
+Q095,technical,"From there, you can either update the password to the current one or delete the saved entry entirely.",0.2586,False
+Q095,technical,"Once you've done that, try logging in again, and your browser should prompt you to save the correct, updated password.",0.3547,True
+Q096,technical,"Hi there, I understand you're having trouble accessing your account due to the change in your organization's email domain.",0.421,True
+Q096,technical,"Because your account is linked to your previous email address, you are currently unable to receive the verification or password reset emails needed to log in.",0.5218,True
+Q096,technical,"To resolve this, please reach out to your organization's IT department or your account administrator.",0.38,True
+Q096,technical,They will need to update your account profile with your new email address.,0.3045,False
+Q096,technical,"Once that update is complete, you will be able to use your new email to sign in and regain access to your account and progress.",0.3311,False
+Q097,technical,"Hi there, I am sorry to hear you are having trouble accessing your course content after logging in.",0.404,True
+Q097,technical,This type of issue is often caused by temporary browser data or an extension interfering with the page loading correctly.,0.4357,True
+Q097,technical,Could you please try opening your course in a private or 'incognito' window?,0.3043,False
+Q097,technical,"If that works, it usually means you just need to clear your browser's cache and cookies.",0.3449,False
+Q097,technical,"If the issue persists, please let us know which browser you are using, and we will be happy to look into this further for you.",0.4518,True
+Q100,technical,"Hi there, I am sorry to hear that the login page is appearing in the wrong language.",0.3074,False
+Q100,technical,This usually happens because your web browser is trying to automatically translate the page for you.,0.2646,False
+Q100,technical,"To fix this, please look at the address bar at the top of your browser window; you should see a small icon (often a 'G' or a translation symbol) that allows you to click 'Show Original' or 'Turn off translation for this site.' Once you select that, the page should return to its original language.",0.2286,False
+Q100,technical,"If that doesn't work, please try opening our site in a private or 'incognito' window to see if the issue persists.",0.3613,True

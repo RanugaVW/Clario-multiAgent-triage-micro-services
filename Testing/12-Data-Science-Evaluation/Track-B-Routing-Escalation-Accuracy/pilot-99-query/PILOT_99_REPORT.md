@@ -4,6 +4,8 @@
 
 Two annotators (human1, human2) independently filled in `data/routing_annotation_sample_99.csv` per `HOW_TO_ANNOTATE_99.md`. This report covers: how much they agreed, what their disagreements revealed, and what the real `decide_routing()`/`decide_escalation()` code got right and wrong when scored against their combined answer.
 
+**Note:** two more gaps were found after this pilot, once the real 70-ticket round ran — a classifier-category-vocabulary mismatch ("General Support" labels carrying no domain signal) and a missing HR keyword pattern for plain cancellation requests. Both fixed in the same `routing_node.py` and re-checked against this pilot's own 71 rows with no regressions. Full story in `../TRACK_B_CONCLUSION.md`.
+
 ## Summary: gaps found and fix status
 
 | Gap | Fix status |

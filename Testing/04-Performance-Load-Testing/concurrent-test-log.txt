@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/concurrent-ticket-submission.spec.ts:73:5 › two different real customers submitting a ticket at the exact same instant never cross-contaminate data (17.6s)
+
+  1 passed (33.3s)

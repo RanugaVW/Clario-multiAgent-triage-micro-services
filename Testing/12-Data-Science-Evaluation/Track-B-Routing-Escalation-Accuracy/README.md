@@ -1,8 +1,6 @@
 # Track B — Routing and Escalation Accuracy
 
-**Status: annotation files ready for the 70-ticket round, but pilot-99-query/ should be scored FIRST.** Checks whether `routing_node.py:decide_routing()` and `escalation_node.py:decide_escalation()` make the correct call, per `DATA_SCIENCE_EVALUATION_PROPOSAL.md` §7.2.
-
-**Score `pilot-99-query/` first.** Same "check a second, independent dataset before trusting either" discipline Track D used, which caught a real problem there (a rubric fix that had silently reverted). Run the pilot, fix anything it finds in `routing_node.py`/`escalation_node.py`, re-verify, then come back here.
+**Status: complete.** Both the 99-query pilot and the 70-ticket real round are annotated, evaluated, and four real bugs found across the two rounds are fixed and re-verified against both datasets with no regressions. See `TRACK_B_CONCLUSION.md` for the presentation summary, `pilot-99-query/PILOT_99_REPORT.md` for the pilot's own detail. Checks whether `routing_node.py:decide_routing()` and `escalation_node.py:decide_escalation()` make the correct call, per `DATA_SCIENCE_EVALUATION_PROPOSAL.md` §7.2.
 
 ## What Track B checks, in two runs per ticket
 
