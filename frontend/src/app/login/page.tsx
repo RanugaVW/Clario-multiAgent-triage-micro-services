@@ -47,11 +47,14 @@ export default function Login() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* 3D Wave Background */}
+      {/* 3D Wave Background - purely decorative, hidden from assistive tech and keyboard focus */}
       <iframe
         src="/landing.html?bgOnly=true"
         className="absolute inset-0 w-full h-full border-none pointer-events-none"
         style={{ zIndex: 0 }}
+        title="Decorative background animation"
+        aria-hidden="true"
+        tabIndex={-1}
       />
 
       <div className="relative z-10 w-full max-w-md p-8 sm:p-10 rounded-[2.5rem] bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] animate-fade-in">

@@ -13,6 +13,15 @@ test('unauthenticated visitor to /dashboard is redirected to /login', async ({ p
   await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
 });
 
+test('unauthenticated visitor to /agent is redirected to /login', async ({ page }) => {
+  // Regression check: this route's redirect was previously commented out
+  // (found by Testing/13-Accessibility-Testing, fixed 2026-09-13 - see
+  // Testing/05-Security-Access-Control-Testing) so /agent and its ticket
+  // queue were reachable without authenticating at all.
+  await page.goto('/agent');
+  await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
+});
+
 test('login with wrong password shows a real error and does not navigate away', async ({ page }) => {
   const { customer } = loadFixtures();
   await page.goto('/login');

@@ -19,8 +19,9 @@ export default function AgentDashboard() {
   const [tickets] = useState(MOCK_TICKETS);
 
   useEffect(() => {
-    if (!loading && !user && !role) {
-      // router.push('/login');
+    if (loading) return;
+    if (!user || (role !== 'agent' && role !== 'admin')) {
+      router.push('/login');
     }
   }, [user, role, loading, router]);
 
