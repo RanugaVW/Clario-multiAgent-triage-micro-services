@@ -7,6 +7,23 @@ on:
     branches: [main]
 
 jobs:
+  architecture-guard:
+    name: Architecture guard (PR only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check for architectural changes
+        run: |
+          python3 .github/scripts/check_architecture.py \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}"
+
   contracts:
     name: Contract tests
     runs-on: ubuntu-latest
