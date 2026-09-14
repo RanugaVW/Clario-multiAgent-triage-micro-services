@@ -1,0 +1,17 @@
+
+Running 12 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/accessibility.spec.ts:42:5 › login page has no WCAG 2.1 A/AA violations (5.0s)
+  ✓   2 [chromium] › e2e/accessibility.spec.ts:48:5 › register page has no WCAG 2.1 A/AA violations (4.7s)
+  ✓   3 [chromium] › e2e/accessibility.spec.ts:54:5 › customer dashboard (authenticated) has no WCAG 2.1 A/AA violations (10.5s)
+  ✓   4 [chromium] › e2e/accessibility.spec.ts:61:5 › admin console (authenticated) has no WCAG 2.1 A/AA violations (9.2s)
+  ✓   5 [chromium] › e2e/accessibility.spec.ts:68:5 › agent dashboard has no WCAG 2.1 A/AA violations (8.7s)
+  ✓   6 [chromium] › e2e/accessibility.spec.ts:86:5 › login page is fully keyboard-operable with visible focus (4.0s)
+  ✓   7 [chromium] › e2e/auth.spec.ts:11:5 › unauthenticated visitor to /dashboard is redirected to /login (4.4s)
+  ✓   8 [chromium] › e2e/auth.spec.ts:16:5 › unauthenticated visitor to /agent is redirected to /login (4.0s)
+  ✓   9 [chromium] › e2e/auth.spec.ts:25:5 › login with wrong password shows a real error and does not navigate away (4.2s)
+  ✓  10 [chromium] › e2e/auth.spec.ts:36:5 › login with valid customer credentials redirects to /dashboard and shows the account email (5.0s)
+  ✓  11 [chromium] › e2e/auth.spec.ts:42:5 › login with valid admin credentials redirects straight to /admin (6.1s)
+  ✓  12 [chromium] › e2e/auth.spec.ts:47:5 › sign out clears the session and a protected route bounces back to /login (9.7s)
+
+  12 passed (1.3m)

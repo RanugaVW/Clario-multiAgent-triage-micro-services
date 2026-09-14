@@ -11,7 +11,6 @@ from app.graph.escalation_node import decide_escalation, escalation_node
     ({"routing_decision": "both", "confidence": 0.5}, "low_confidence_dual_domain"),
     ({"failure_type": "dependency_failure"}, "dependency_failure"),
     ({"failure_type": "misroute", "routing_decision": "technical", "reroute_attempted": True}, "misroute_unresolved"),
-    ({"failure_type": "quality", "reflection_count": 2}, "reflection_cap_reached"),
     ({"routing_decision": "hr", "priority": "Low", "sentiment": "Neutral", "confidence": 0.95}, "hr_process_required"),
 ])
 def test_each_escalation_branch(kwargs: dict, reason: str) -> None:
@@ -20,6 +19,19 @@ def test_each_escalation_branch(kwargs: dict, reason: str) -> None:
               "reroute_attempted": False, "needs_reroute": False, **kwargs}
     escalated, reasons = decide_escalation(**values)
     assert escalated and reason in reasons
+
+
+def test_reflection_cap_reached_does_not_escalate() -> None:
+    """Deliberately not a trigger yet: response-quality validation (deciding
+    whether a low-scoring draft is actually unfit to send) is future work,
+    not built yet. Until then, a draft that still fails validation after
+    every reflection attempt is sent anyway on an otherwise cleanly
+    classified ticket, rather than held for human review."""
+    values = {"priority": "Medium", "sentiment": "Neutral", "routing_decision": "technical", "confidence": 0.9,
+              "failure_type": "quality", "reflection_count": 2, "max_reflection_attempts": 2,
+              "reroute_attempted": False, "needs_reroute": False}
+    escalated, reasons = decide_escalation(**values)
+    assert not escalated and reasons == []
 
 
 def test_negative_sentiment_alone_does_not_escalate() -> None:

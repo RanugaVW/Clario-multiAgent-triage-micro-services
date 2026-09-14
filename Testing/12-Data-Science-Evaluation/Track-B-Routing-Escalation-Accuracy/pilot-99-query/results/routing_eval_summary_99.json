@@ -21,10 +21,10 @@
       ],
       [
         0,
-        25,
+        26,
         3,
         2,
-        5
+        4
       ],
       [
         0,
@@ -56,9 +56,9 @@
         "support": 17
       },
       "billing": {
-        "precision": 0.8928571428571429,
-        "recall": 0.7142857142857143,
-        "f1": 0.7936507936507936,
+        "precision": 0.896551724137931,
+        "recall": 0.7428571428571429,
+        "f1": 0.8125,
         "support": 35
       },
       "both": {
@@ -80,20 +80,20 @@
         "support": 0
       }
     },
-    "accuracy": 0.7464788732394366
+    "accuracy": 0.7605633802816901
   },
   "live_escalation": {
-    "precision": 0.7407407407407407,
+    "precision": 0.7692307692307693,
     "recall": 0.7142857142857143,
-    "f1": 0.7272727272727273,
+    "f1": 0.7407407407407407,
     "confusion_matrix": {
       "tp": 20,
-      "fp": 7,
+      "fp": 6,
       "fn": 8,
-      "tn": 36
+      "tn": 37
     },
     "missed_escalations_fn": 8,
-    "unnecessary_escalations_fp": 7
+    "unnecessary_escalations_fp": 6
   },
   "routing_logic_only_routing": {
     "labels": [

@@ -1,7 +1,7 @@
 # Failover & Recovery Test Report — Clario System
 
 **Date:** 2026-09-04
-**Tester:** Ranuga Weerasekara (ranugaweerasekara2@gmail.com), assisted by Claude Code
+**Tested by:** Ranuga Weerasekara, Clario QA Team
 **Branch:** `main`
 **Environment:** Production Supabase project (`mdvfvtpbwqhccmaarpli`) and a local Redis server (`localhost:6379`), driving the real `clario-ml-sidecar` code directly (`app/tools/circuit_breaker.py`, `app/graph/cache_check_node.py`, `app/tools/rag_tool.py`, `app/agents/technical_agent/node.py`, `app/main.py::background_orchestration`, `app/worker.py`'s exact Redis calls). No hand-written reimplementations of any of this logic — failures are injected at the narrowest possible point (a broken `CHROMA_PATH`, a monkeypatched Supabase `.table()` call, a dedicated test-only Redis key) so everything else in each call path is genuinely real.
 

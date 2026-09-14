@@ -91,8 +91,16 @@ services:
       # Absolute path so the index survives rebuilds instead of landing in the
       # image's own vector_store/, which COPY overwrites every build.
       - CHROMA_PATH=/chroma_data
+      # Overrides the .env's host-only absolute path, which doesn't exist
+      # inside the container filesystem - points local_llm.py at the bind
+      # mount below instead.
+      - LLAMA_ADAPTER_PATH=/models/llama3-adapter
     volumes:
       - chroma-data:/chroma_data
+      # The fine-tuned LoRA adapter isn't in git (it's local-only weights);
+      # mounted read-only instead of COPY-ing it into the image, matching
+      # how whisper-models is handled for voice-to-text-service.
+      - "./Fine Tuned LLama-3.2 (3B):/models/llama3-adapter:ro"
     depends_on:
       - redis-broker
       - nlp-classifier-service

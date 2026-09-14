@@ -44,6 +44,9 @@ yarn-error.log*
 /e2e-results.json
 /test-results/
 
+# playwright accessibility scan output (Testing/13-Accessibility-Testing)
+/e2e/a11y-results/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -1,8 +1,14 @@
 # 11 — OCR Vision Model vs Tesseract Evaluation
 
-**Status:** Infrastructure ready — awaiting real sample images (see
-"Providing sample images" below) before `TEST_REPORT.md` reflects a real
-run.
+**Status:** Complete — see [`TEST_REPORT.md`](TEST_REPORT.md). Corrected
+2026-09-13: this status previously said "awaiting real sample images," but
+34 real screenshots were already dropped into `sample_images/` and a real
+run against them (real local Qwen2-VL-2B-Instruct model on GPU) had
+already completed and was sitting in `TEST_REPORT.md` — the status line
+here just wasn't updated afterward. Result: the vision model beat
+Tesseract on 22/34 images (average similarity 0.59 vs. 0.38), with a real
+41% false-negative rate worth reading in full before trusting this model
+for anything beyond a demo.
 
 **Assigned-table mapping:** none. Unlike phases 01–10, this phase doesn't
 map to a section of the course's Master Test Plan template — it's an ML

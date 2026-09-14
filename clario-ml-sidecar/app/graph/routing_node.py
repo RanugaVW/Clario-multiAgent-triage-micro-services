@@ -7,8 +7,25 @@ TECHNICAL_KEYWORDS = {
     # Authentication wording: the most common technical ticket the scorer used to miss.
     "login": 3, "log in": 3, "sign in": 3, "signin": 3, "password": 3,
     "locked out": 3, "authenticate": 3, "2fa": 3, "verification code": 2,
+    # Real course-platform wording (recordings, live Zoom sessions,
+    # certificates, project submissions, account blocks) the classifier's
+    # own category label doesn't reliably name - see decide_routing()'s
+    # docstring on why keyword scoring has to carry this when category is
+    # a generic label like "General Support". Checked against KB docs
+    # first: data_sync.md and integration_error.md already document these
+    # exact phrasings as technical.
+    "recording": 2, "zoom": 3, "buffering": 2, "certificate": 2, "cannot submit": 2,
+    "account is blocked": 3, "account was blocked": 3, "account got blocked": 3,
+    "account has been blocked": 3,
 }
-BILLING_KEYWORDS = {"payment": 3, "charged": 3, "bank": 2, "refund": 3, "billed": 3, "buying": 2, "billing": 3}
+BILLING_KEYWORDS = {
+    "payment": 3, "charged": 3, "bank": 2, "refund": 3, "billed": 3, "buying": 2, "billing": 3,
+    # Same reasoning as TECHNICAL_KEYWORDS above - "paid" (not just
+    # "payment") and the wrong-course-selection wording plan_change.md
+    # already covers, but real customers rarely say "wrong course" outright.
+    "paid": 2, "discount code": 2, "picked the wrong": 2, "clicked the wrong": 2,
+    "accidentally selected": 2, "ended up enrolled": 2,
+}
 # Specific enough that a single hit justifies HR routing even against
 # ordinary billing wording - see decide_routing()'s comment for why these
 # don't need to out-score billing_score. "webxpay" is deliberately absent
@@ -28,6 +45,17 @@ HR_HARD_TRIGGER_KEYWORDS = {
     "hasn't been linked": 3, "not been linked": 3, "can't be matched": 3,
     "cannot be matched": 3, "still doesn't appear": 3, "name on the slip": 3,
     "relocat": 3, "schedule conflict": 3, "scheduling conflict": 3,
+    # "Wants to cancel over a personal circumstance" phrasing
+    # course_cancellation.md already covers in principle ("each require
+    # reviewing evidence or circumstances a policy document cannot cover in
+    # advance") but didn't have matching keywords for - found on the real
+    # 70-ticket round, where "I want to cancel, I've changed my mind" style
+    # requests were still falling through to billing/subscription_cancel
+    # territory. The distinguishing signal is the personal REASON attached
+    # to the cancellation, not the word "cancel" itself (bare "cancel" is
+    # also a routine, non-HR billing request - see subscription_cancel.md).
+    "changed my mind": 3, "schedule clashes": 3, "isn't for me": 3,
+    "no longer have time": 3, "decided to focus": 2,
 }
 
 # Ambiguous enough that they keep the original strict-maximum-over-

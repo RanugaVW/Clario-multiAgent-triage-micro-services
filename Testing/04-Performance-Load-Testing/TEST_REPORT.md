@@ -1,11 +1,13 @@
 # Performance & Load Test Report — Clario System
 
 **Date:** 2026-09-04
-**Tester:** Ranuga Weerasekara (ranugaweerasekara2@gmail.com), assisted by Claude Code
+**Tested by:** Ranuga Weerasekara, Clario QA Team
 **Branch:** `real-response-dataset`
 **Environment:** Production Supabase project (`mdvfvtpbwqhccmaarpli`), the live `clario-ml-sidecar` (`uvicorn` + `app.worker`, already running, already-loaded model — never a second copy), the live Spring Boot gateway (`clario-app` on `:8080`), and the live production ChromaDB store on disk. The machine: a single shared 6GB GPU + 15GB RAM box, already at ~10GB RAM used / ~4.3GB GPU used from the live service before this phase started. There is no separate staging environment or dedicated load-test rig — every number below is from the real, single production deployment, run against it while it kept serving.
 
 **Final result: all measurements completed successfully, 0 errors, 0 crashes, 0 timeouts.** Two things worth the team's attention were found: the worker queue processes tickets **serially, not in parallel**, even under concurrent submission (§4 — a real architectural fact, not a defect, but worth knowing); and one genuinely severe Supabase tail-latency spike that did **not** reproduce on retry (§5).
+
+**Update, 2026-09-13 (§6): a fourth stage answers a different question than Stages A–C ever did.** Stages A–C measure *timing*. None of them check whether two different people's tickets, submitted at literally the same instant, ever get their data crossed — a real UI-driven test was added for exactly that (real second browser session, real second disposable customer, real simultaneous form submission). Result: **no cross-contamination** — each ticket's `user_id` matched the customer who actually submitted it, and each customer's "My Tickets" view showed only their own ticket, never the other's.
 
 ## 1. Scope
 
@@ -191,7 +193,27 @@ speak to how these queries perform at a much larger table size, which
 would need real data growth (or a deliberately seeded large table) to
 measure honestly; noted as a follow-up rather than simulated.
 
-## 6. Final state
+## 6. Stage D (added 2026-09-13) — real UI-driven concurrent submission: does data ever cross between two different users?
+
+**Why this stage exists, and why it's separate from Stage B.** Stage B answers "does the pipeline process concurrent tickets in parallel, and how long does draining take?" — a timing question, measured by hitting the Java gateway's HTTP API directly with tokens fetched straight from Supabase's auth endpoint. It never drives the real frontend UI with two logged-in browser sessions, and it never checks whether the two tickets' *data* ever gets crossed under the race — a request-handling bug (e.g. a session resolved from the wrong request, or a `user_id` attributed to the wrong ticket) would not show up as a timing anomaly; it would show up as one customer's ticket appearing on another customer's dashboard. That's a correctness question, not a performance one, but it only exists *because* of concurrency, so it belongs in this phase rather than invented as a new one.
+
+**Method:** [`concurrent-ticket-submission.spec.ts`](concurrent-ticket-submission.spec.ts) (Playwright, reusing the same real-auth fixtures as `Testing/03-UI-E2E-Testing` and `Testing/13-Accessibility-Testing`) opens **two fully independent browser contexts** — not two tabs sharing one session, but two separate cookie/localStorage jars, the way two different people on two different computers actually would — logs into one as the existing disposable `customer` fixture and into the other as a freshly-created second disposable customer (`clario-concurrency-test-customer2@example.com`, deleted again afterward), fills in a distinctly-marked ticket in each, then fires **both real submit requests via `Promise.all`** so they hit the real gateway in the same instant rather than one after the other. It then checks three things a race condition could break: (1) the two tickets don't collide on the same id, (2) each ticket's real database row (`user_id`) is owned by the customer who actually submitted it — not the other one, and (3) each customer's own "My Tickets" view shows their ticket and **never** the other customer's.
+
+**A real environment obstacle hit while setting this up, worth recording:** this test needs the actual browser-to-gateway HTTP path working, which (unlike Stages A–C, which talk to the sidecar/Supabase/Chroma directly) requires the Java `api-gateway`, Redis, and the sidecar's Redis-consuming worker all genuinely running — none of which were up when this stage started. Bringing them up natively surfaced a live version of the same risk the original Stage B design section (§1) already named: this machine was already at **12GB/15GB RAM used with swap 100% full** from the tester's own other running applications (IDE, browser windows, a chat client) before any of this phase's own processes were started. Rather than start the Java gateway on top of that blind, this was flagged and paused; the tester closed several applications, memory recovered to a healthy 5.7GB available, and only then was the gateway started (capped at `-Xmx400m`) and the test run. This is itself a small real-world data point about this project's actual environment: **the ML sidecar's worker process alone (one local LLM copy) uses roughly 1GB RAM / 2.4GB GPU**, so this single shared machine has very little headroom left for anything else while it's running a real ticket through the pipeline — consistent with, and reinforcing, §1's original judgment call to keep load intentionally small here rather than the sample plan's "hundreds of concurrent users."
+
+**Result: PASS, run twice.** Both real submissions succeeded with distinct tracking ids. Direct database verification (not just the UI) confirmed `rowA.user_id` matched customer A's real auth id and `rowB.user_id` matched customer B's — no swap. Each customer's dashboard showed exactly their own ticket and zero occurrences of the other's marker text. The test was re-run a second time immediately after (see `concurrent-test-log.txt`) with identical results and independently-verified cleanup (`0` leftover disposable accounts, `0` leftover test tickets, confirmed via a direct Supabase query after both runs) — not a one-off pass.
+
+```
+Running 1 test using 1 worker
+
+  ✓  two different real customers submitting a ticket at the exact same instant never cross-contaminate data (17.6s)
+
+  1 passed (33.3s)
+```
+
+**What this does and doesn't cover:** this confirms request-level data isolation under real concurrent submission for the ticket-creation path specifically. It doesn't re-test RLS itself (that's `Testing/05-Security-Access-Control-Testing`, which found and fixed real cross-account issues in the *non-concurrent* case) or extend to other concurrent-write paths (e.g. two admins resolving the same ticket at once) — noted as a follow-up in §8.
+
+## 7. Final state
 
 All 6 real tickets created by this phase (3 in Stage A, 3 in Stage B) were
 deleted in the script's own cleanup, confirmed by the script's own log
@@ -207,8 +229,20 @@ Raw console output: [`test-log.txt`](test-log.txt). Structured results:
 [`performance_test_results.json`](performance_test_results.json).
 Supplementary re-run data: [`supabase_single_by_id_rerun.json`](supabase_single_by_id_rerun.json).
 
-## 7. Follow-ups for a future run
+Stage D's cleanup was verified independently too (§6): a direct Supabase
+query after both runs found 0 leftover disposable accounts matching
+`concurrency-test` and 0 leftover tickets matching its `CONC-` marker.
+Every process this phase started on the shared machine (the Java gateway,
+the sidecar worker) was also stopped afterward, and the machine's memory
+was confirmed to have recovered (9.1GB → 6.8GB used, 5.5GB available)
+before finishing.
 
+## 8. Follow-ups for a future run
+
+- §6's data-isolation check covers the ticket-creation path only — a
+  useful next step would be the same real-two-session treatment for a
+  concurrent-write path (e.g. two admins resolving the same ticket at
+  once), which this stage doesn't touch.
 - §4's serial-worker finding is worth a deliberate decision from the team:
   is bounded, linear-with-queue-depth latency acceptable, or does this
   need multiple worker processes? Any change there needs to budget GPU/RAM

@@ -23,6 +23,8 @@ def build_specialist_prompt(
         f"{critique}{extra}You are the {domain} support specialist. Answer ONLY from the "
         "retrieved context. Cite the source_file for every factual claim. If the context "
         "does not cover the ticket, reply exactly: I don't have enough information to "
-        "resolve this.\n\n"
+        "resolve this. Never invent or guess the customer's name - only use a name if it "
+        "appears verbatim in the ticket text below; otherwise use a neutral greeting such "
+        "as \"Hello,\" or no greeting at all.\n\n"
         f"Ticket:\n{ticket_text}\n\nRetrieved context:\n{context}"
     )

@@ -22,6 +22,7 @@
     "redis": "^6.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
@@ -35,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "jsdom": "^30.0.1",
+    "lighthouse": "^13.4.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"

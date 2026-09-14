@@ -216,6 +216,24 @@ SENTIMENT_LABELS = ("Positive", "Neutral", "Negative")
 _UNQUOTED_VALUE = re.compile(r'"(\w+)"\s*:\s*([^,{}\[\]]+?)(?=\s*[,}])')
 
 
+def _correct_sentiment_priority(priority: str, sentiment: str) -> tuple[str, str]:
+    """The adapter's sentiment scale tops out at "Negative" - there's no
+    finer "Strongly Negative" tier to ask it for (see the module comment
+    above; offering that as a prompt option produced malformed output
+    instead of a correct classification). Treat "Negative" as that
+    ceiling: relabel it "Frustrated" for the rest of the pipeline, and if
+    the model didn't already flag the ticket High/Critical priority to
+    match, correct that here - a frustrated customer should never end up
+    under-prioritized just because the model treated sentiment and
+    priority as independent guesses.
+    """
+    if sentiment != "Negative":
+        return priority, sentiment
+    if priority not in ("High", "Critical"):
+        priority = "High"
+    return priority, "Frustrated"
+
+
 def _repair_json_quoting(raw: str) -> str:
     def _requote(match: re.Match) -> str:
         key, value = match.group(1), match.group(2).strip().strip('"').strip()
@@ -318,10 +336,13 @@ def classify_ticket_local(text: str) -> dict[str, Any]:
             except json.JSONDecodeError:
                 # The common case for this adapter - see _repair_json_quoting.
                 data = json.loads(_repair_json_quoting(clean_resp))
+        priority, sentiment = _correct_sentiment_priority(
+            data.get("priority", "Low"), data.get("sentiment", "Neutral")
+        )
         return {
             "category": data.get("category", "General"),
-            "priority": data.get("priority", "Low"),
-            "sentiment": data.get("sentiment", "Neutral"),
+            "priority": priority,
+            "sentiment": sentiment,
             "confidence": confidence,
             "source": "llama32_lora"
         }

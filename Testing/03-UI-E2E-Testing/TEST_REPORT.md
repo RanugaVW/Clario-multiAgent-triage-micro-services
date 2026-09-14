@@ -1,18 +1,28 @@
 # UI / End-to-End Test Report — Clario System
 
 **Date:** 2026-09-04
-**Tester:** Ranuga Weerasekara (ranugaweerasekara2@gmail.com), assisted by Claude Code
+**Tested by:** Ranuga Weerasekara, Clario QA Team
 **Branch:** `real-response-dataset`
 **Environment:** Production Supabase project (`mdvfvtpbwqhccmaarpli`), the live `next dev` server (`:3000`), the live Spring Boot API gateway (`:8080`, routes `/api/tickets` → JPA insert + Redis dispatch), and the live, already-running `clario-ml-sidecar` worker (Redis-queue consumer, real Gemini API calls for drafting/classification). There is no separate test/staging environment for this system — every result below is from the real, single production deployment.
 
-**Final result: 9/9 automated checks passed, 0 skipped, 0 failed.**
+**Final result: 9/9 automated checks passed, 0 skipped, 0 failed** (original run), **10/10 after a 6th login/route-protection check was added 2026-09-13** (see below).
 Two real bugs were found by this phase's own earlier runs, root-caused,
 fixed, and re-verified live in this same final run: a production RLS
 policy gap that silently broke the "Requester" fix from earlier this
 session (§4), and a PostgREST relationship-shape bug that meant a
 customer's star rating never loaded back after a page reload (§5). A
 third, reproducible pipeline behavior (real ticket-text-dependent
-escalation) is documented in §6 so it isn't mistaken for a bug.
+escalation) is documented in §6 so it isn't mistaken for a bug. A fourth
+issue — the specialist agents inventing a customer name, seen in §6's
+placeholder-ticket run — was root-caused and fixed at the prompt level
+after this phase's original run; see `Testing/01-Unit-Testing`'s report §7.
+
+**Update 2026-09-13:** `e2e/auth.spec.ts` gained a 6th check,
+`unauthenticated visitor to /agent is redirected to /login`, added while
+fixing a real access-control gap found by `Testing/13-Accessibility-Testing`
+and owned by `Testing/05-Security-Access-Control-Testing` (that report's
+§10 has the fix). All 6 login/route-protection checks plus the original 4
+ticket-lifecycle checks pass — 10/10.
 
 ## 1. Scope
 
@@ -31,7 +41,7 @@ in the app (the star-rating widget) — end to end, through the real
 pipeline, checked in both the customer dashboard and the admin console.
 
 **Covered:**
-- Login: invalid credentials, valid customer login, valid admin login, logout, and route protection (`e2e/auth.spec.ts`, 5 checks)
+- Login: invalid credentials, valid customer login, valid admin login, logout, and route protection for `/dashboard` and `/agent` (`e2e/auth.spec.ts`, 6 checks)
 - A real support ticket, submitted through the dashboard form, processed by the real LangGraph pipeline, and its outcome rendered correctly for the customer (`e2e/ticket-lifecycle.spec.ts`, 4 checks)
 - The customer feedback star-rating widget: saves, stays colored, and stays editable after a reload
 - The admin console: ticket search, and rendering of Requester email, Pipeline time, LLM-call count, and Customer rating for a real ticket

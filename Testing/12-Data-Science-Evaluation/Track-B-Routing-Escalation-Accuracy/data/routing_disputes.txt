@@ -1,0 +1,19 @@
+17 disputes need manual resolution before run_routing_evaluation.py can use these rows:
+
+  RB002 (Q002), should_escalate: human1=True | human2=False
+  RB005 (Q005), should_escalate: human1=True | human2=False
+  RB012 (Q012), should_escalate: human1=True | human2=False
+  RB012 (Q012), routing_ground_truth: human1=hr | human2=technical
+  RB015 (Q015), should_escalate: human1=True | human2=False
+  RB024 (Q025), should_escalate: human1=False | human2=True
+  RB030 (Q031), should_escalate: human1=False | human2=True
+  RB031 (Q032), should_escalate: human1=True | human2=False
+  RB031 (Q032), routing_ground_truth: human1=hr | human2=billing
+  RB036 (Q037), should_escalate: human1=True | human2=False
+  RB041 (Q042), should_escalate: human1=False | human2=True
+  RB041 (Q042), routing_ground_truth: human1=billing | human2=hr
+  RB052 (Q053), should_escalate: human1=True | human2=False
+  RB059 (Q060), should_escalate: human1=False | human2=True
+  RB062 (Q063), should_escalate: human1=True | human2=False
+  RB069 (Q070), should_escalate: human1=False | human2=True
+  RB070 (Q071), should_escalate: human1=False | human2=True

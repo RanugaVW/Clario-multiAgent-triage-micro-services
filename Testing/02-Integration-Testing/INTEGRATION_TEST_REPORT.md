@@ -1,7 +1,7 @@
 # Integration Test Report — Clario System
 
 **Date:** 2026-09-03
-**Tester:** Ranuga Weerasekara (ranugaweerasekara2@gmail.com), assisted by Claude Code
+**Tested by:** Ranuga Weerasekara, Clario QA Team
 **Branch:** `real-response-dataset`
 **Environment:** Production Supabase project (`mdvfvtpbwqhccmaarpli`), production ChromaDB store, the sidecar's own already-running production `uvicorn`/`app.worker` processes, real Gemini judge LLM calls (`gemini-3.1-flash-lite`). There is no separate test/staging environment for this system.
 
@@ -119,13 +119,18 @@ chased further — see §8.
 
 The scenario text ("My payment failed but money was still taken from my
 bank account, and now I can't log in...") was written to probe the
-dual-domain/escalation path documented as a regression in
-[Phase 01](../01-Unit-Testing/UNIT_TEST_REPORT.md#5-defects-found--clario-ml-sidecar-4-failures).
-In practice, the real classifier confidently labeled it `"Payment Problem"`
-at 0.85 confidence every run, routing it straight to billing — never
-reaching the ambiguous/escalation branch. This is a limitation of the test
-wording against the real (not mocked) classifier, not a finding about the
-pipeline; left as a follow-up (§8) rather than iterating further.
+dual-domain/escalation path. At the time this scenario was run, that path
+was also dead code due to a real regression in `decide_routing()` —
+documented in [Phase 01](../01-Unit-Testing/UNIT_TEST_REPORT.md), and
+**since fixed and re-verified as of 2026-09-13** (see that report's §6).
+Independent of that regression, the real classifier confidently labeled
+this exact scenario text `"Payment Problem"` at 0.85 confidence every run,
+routing it straight to billing — never reaching the ambiguous/escalation
+branch even with `decide_routing()` working correctly, because high
+classifier confidence short-circuits the dual-domain path by design. This
+is a limitation of the test wording against the real (not mocked)
+classifier, not a finding about the pipeline; left as a follow-up (§8)
+rather than iterating further.
 
 ### 6. Fix 2 — `ticket_classifications` got a garbage row on every cache hit
 
@@ -186,10 +191,13 @@ single-instance baseline throughout.
   if it recurs — specifically, whether it's tied to the very first request
   after a cold restart. Not reproducible on demand from two direct retries.
 - Escalation path (`human_reviews` + the two-row `resolutions` write) was
-  not exercised live in this phase — the Phase 01 `"both"`-routing
-  regression means it's hard to trigger through the real classifier right
-  now; it is covered at the unit level but not confirmed against the real
-  Supabase writes.
+  not exercised live in this phase. At the time of the original run this
+  was additionally blocked by the Phase 01 `"both"`-routing regression;
+  that regression is now fixed (2026-09-13), so this is technically
+  unblocked, but a live re-run wasn't spent on it here since each attempt
+  costs real Gemini judge-model quota (see §2's finding on how easily that
+  quota exhausts) and this path is already covered at the unit level. Worth
+  a real live run next time this phase is re-verified.
 - This machine has no spare GPU/RAM headroom alongside the live service —
   any future tooling here should reuse the live process (HTTP) rather than
   loading its own model copy, per §2.

@@ -33,7 +33,7 @@ Q041,hr,True,Payment Processing,0.8927342849118369,hr,True,hr_process_required,h
 Q044,billing,False,General Support,0.8968230815310227,escalation,True,no_usable_routing_signal,billing,False,
 Q045,billing,True,Payment Processing,0.8731889923413595,billing,False,,billing,False,
 Q046,billing,False,Payment,0.8797608032822609,both,False,,both,False,
-Q048,billing,False,Security Notice,0.9340171232109978,escalation,True,no_usable_routing_signal,billing,False,
+Q048,billing,False,Security Notice,0.9340171232109978,billing,False,,billing,False,
 Q050,billing,False,Payment Issues,0.9195208506924766,billing,False,,billing,False,
 Q052,billing,True,General Support,0.8933164075016975,escalation,True,no_usable_routing_signal,billing,False,
 Q053,hr,True,Payment,0.8829553440213204,billing,False,,billing,False,

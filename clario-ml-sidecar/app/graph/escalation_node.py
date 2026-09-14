@@ -57,8 +57,16 @@ def decide_escalation(
         reasons.append("dependency_failure")
     if failure_type == "misroute" and reroute_attempted and not needs_reroute:
         reasons.append("dual_domain_low_relevance" if routing_decision == "both" else "misroute_unresolved")
-    if failure_type in {"quality", "policy"} and reflection_count >= max_reflection_attempts:
-        reasons.append("reflection_cap_reached")
+    # Hitting the reflection cap on a "quality"/"policy" failure_type is
+    # intentionally NOT an escalation trigger right now: response-quality
+    # validation (deciding whether a low-scoring draft is actually unfit to
+    # send, vs. just imperfect) hasn't been built yet - that's separate,
+    # future work. Until then, a draft that still fails validation after
+    # every reflection attempt is sent as final_response anyway rather than
+    # held for human review, for tickets that were otherwise cleanly
+    # classified (no other trigger above fired). reflection_count and
+    # max_reflection_attempts stay as parameters so reflection_node's own
+    # retry loop (a separate, still-useful mechanism) is unaffected.
     return bool(reasons), reasons
 
 
