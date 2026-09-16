@@ -34,12 +34,33 @@ BOILERPLATE_PATTERNS = [
         r"^(hi|hello|dear)\b.{0,40}$",
         r"thank(s| you) for (reaching out|contacting|getting in touch|your patience)",
         r"^i understand (how|this|that)",
-        r"^i (am|'m) sorry to hear",
+        r"\bi(\'m| am) (truly |very |so )?sorry (for|to hear)",
         r"sorry for the inconvenience",
         r"please rest assured",
         r"we appreciate your patience",
         r"please (let us know|feel free|don'?t hesitate) if you (have|need)",
         r"let us know if you (need|have) anything else",
+        # Added after the 70-ticket final round surfaced new phrasings from
+        # the priority/sentiment-aware drafting fix (Track C session 2) -
+        # forward-looking promises and offers-to-help, not factual claims:
+        r"^once i have (these|those) details",
+        r"i will be able to (look into|investigate)",
+        r"^i would be happy to help",
+        r"provide (you with )?(a |an )?(concrete )?update",
+        r"i will (personally )?(follow up|reach out|get back to you)",
+        r"you (can|will) expect (to hear|an? (status )?update)",
+        r"i expect to have (an |a )?update",
+        r"reach out to you (via|within|by)",
+        # Generalizes the pattern above rather than chasing every exact
+        # phrase: "[I/we/our team/a member] [will/would like to/would be
+        # happy to] [investigate-type verb]" is always a procedural
+        # next-step statement, never a factual claim - this covers variants
+        # the specific phrases above didn't (found on a third pass over the
+        # 70-ticket final round; every remaining flagged sentence at that
+        # point was still this shape, not a real fabrication).
+        r"\b(i|we|our team|a (team|staff) member)\s+(will|would like to|would be happy to)\s+"
+        r"(look into|examine|investigate|assess|determine|get back to|reach out|be in touch)",
+        r"^i understand you would like to",
     ]
 ]
 
@@ -51,6 +72,12 @@ def extract_customer_response(draft: str) -> str:
 
 
 def is_boilerplate(sentence: str) -> bool:
+    # A question is asking for information, not asserting a fact - it can
+    # never need grounding in retrieved KB content by definition. Cheaper
+    # and more general than trying to enumerate every "could you please
+    # tell me..." phrasing the model might use.
+    if sentence.rstrip().endswith("?"):
+        return True
     return any(p.search(sentence) for p in BOILERPLATE_PATTERNS)
 
 

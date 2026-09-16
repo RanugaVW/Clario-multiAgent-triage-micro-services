@@ -9,10 +9,14 @@ from app.tools.circuit_breaker import CircuitBreakerOpenError
 from app.tools.rag_tool import check_relevance, retrieve_context
 
 _HR_EXTRA_INSTRUCTIONS = (
-    "Do not promise a specific outcome (a refund amount, approval, or timeline) - "
-    "this ticket requires human review before any decision is made. Acknowledge "
-    "the issue, explain what will be reviewed, and set expectations for next "
-    "steps only."
+    "Do not promise a specific outcome (a refund amount, approval, or resolution "
+    "timeline) - this ticket requires human review before any decision is made. "
+    "Acknowledge the issue, explain what will be reviewed, and set expectations "
+    "for next steps only. You may still give a general response-time expectation "
+    "(e.g. \"you can expect to hear from our team within 1-2 business days\") for "
+    "when the customer will next hear from us, as long as it does not promise the "
+    "outcome itself - especially for a High-priority or Frustrated ticket, where "
+    "leaving the customer with no sense of timing at all reads as unhelpful."
 )
 
 
@@ -30,7 +34,8 @@ async def hr_agent_node(state: TicketState) -> TicketState:
     top_score = float(context[0]["score"]) if context else 0.0
     prior_critique = state["reflection_critiques"][-1] if state.get("reflection_count", 0) else None
     prompt = build_specialist_prompt(
-        state["redacted_text"], context, domain, prior_critique, _HR_EXTRA_INSTRUCTIONS
+        state["redacted_text"], context, domain, prior_critique, _HR_EXTRA_INSTRUCTIONS,
+        priority=state.get("priority"), sentiment=state.get("sentiment"),
     )
     try:
         draft, calls_made = await generate(prompt)

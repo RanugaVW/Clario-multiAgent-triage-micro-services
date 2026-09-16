@@ -20,6 +20,7 @@ from app.tools.local_llm import (
     SENTIMENT_LABELS,
     DraftGenerationError,
     _correct_sentiment_priority,
+    _parse_specialist_prompt,
     _repair_json_quoting,
     _sequence_confidence,
     generate_draft,
@@ -127,6 +128,32 @@ def test_sequence_confidence_stays_within_zero_and_one() -> None:
     assert 0.0 <= confidence <= 1.0
 
 
+# _parse_specialist_prompt() is what lets generate_draft() see the
+# priority/sentiment build_specialist_prompt() now optionally includes -
+# tested directly since it's a pure string-parsing function, same reasoning
+# as _repair_json_quoting/_sequence_confidence above.
+
+def test_parse_specialist_prompt_extracts_priority_and_sentiment_when_present() -> None:
+    prompt = build_specialist_prompt(
+        "My payment failed", [{"source_file": "billing/payment_failed.md", "text": "Check it."}],
+        "billing", priority="High", sentiment="Frustrated",
+    )
+    ticket_text, context_chunks, priority, sentiment = _parse_specialist_prompt(prompt)
+    assert ticket_text == "My payment failed"
+    assert priority == "High"
+    assert sentiment == "Frustrated"
+    assert context_chunks == [{"source": "Source: billing/payment_failed.md", "text": "Check it."}]
+
+
+def test_parse_specialist_prompt_returns_none_when_absent() -> None:
+    prompt = build_specialist_prompt(
+        "My payment failed", [{"source_file": "billing/payment_failed.md", "text": "Check it."}], "billing",
+    )
+    _, _, priority, sentiment = _parse_specialist_prompt(prompt)
+    assert priority is None
+    assert sentiment is None
+
+
 # generate_draft() calls the real Gemini API (google.genai), not the heavy
 # local model - unlike classify_ticket_local, it's cheap to mock and test.
 
@@ -134,6 +161,8 @@ _PROMPT = build_specialist_prompt(
     "My payment failed",
     [{"source_file": "billing/payment_failed.md", "text": "Check the payment processor."}],
     "billing",
+    priority="High",
+    sentiment="Frustrated",
 )
 
 

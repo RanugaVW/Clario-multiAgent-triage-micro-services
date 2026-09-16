@@ -20,7 +20,10 @@ async def technical_agent_node(state: TicketState) -> TicketState:
                 "failure_type": "dependency_failure"}
     top_score = float(context[0]["score"]) if context else 0.0
     prior_critique = state["reflection_critiques"][-1] if state.get("reflection_count", 0) else None
-    prompt = build_specialist_prompt(state["redacted_text"], context, domain, prior_critique)
+    prompt = build_specialist_prompt(
+        state["redacted_text"], context, domain, prior_critique,
+        priority=state.get("priority"), sentiment=state.get("sentiment"),
+    )
     try:
         draft, calls_made = await generate(prompt)
     except (RuntimeError, CircuitBreakerOpenError) as err:
