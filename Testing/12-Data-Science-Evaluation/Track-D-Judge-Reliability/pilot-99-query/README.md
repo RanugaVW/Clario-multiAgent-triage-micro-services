@@ -1,6 +1,6 @@
 # Track D PILOT — 99-Query Judge-Reliability Check
 
-**Status: draft generation complete, human scoring not yet started.** Run *before* the main Track D round on the 70 real tickets (see `../README.md`) — same "check on a second, independent dataset before trusting either" principle Track A used for its threshold tuning.
+**Status: complete — both humans scored all 99 pairs, agreement computed.** See `../TRACK_D_CONCLUSION.md` for the real numbers, the formulas, and what we did about the result. Short version: raw agreement is good (92-95% within one point) but kappa reads low because everyone's scores cluster on 3-4 — a rubric-anchor fix is the recommended next step before scoring the 70-ticket round.
 
 ## Why this exists
 
@@ -38,4 +38,4 @@ Score distribution — healthy and varied, consistent with the fixed rubric:
 
 ## Next step
 
-Two people (Ranuga, Sineth) score all 99 rows in `data/judge_calibration_sample_99.csv` independently per `HOW_TO_SCORE_99.md`, then run `scripts/compute_agreement_99.py`. If the result is weak, that's a signal to go back to `response_judge.py` before spending effort scoring the 70-ticket round — that's the whole point of running this pilot first.
+Done: both raters scored all 99 rows, `scripts/compute_agreement_99.py` has been run. Per `../TRACK_D_CONCLUSION.md`, the recommended next step is a rubric-anchor fix (clearer examples of what a 1 or 2 score looks like) before scoring the 70-ticket round.

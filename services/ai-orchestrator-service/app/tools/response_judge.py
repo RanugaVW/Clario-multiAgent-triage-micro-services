@@ -259,23 +259,55 @@ OUTPUT JSON ONLY with this exact structure:
   "forbidden_phrases_found": ["phrase5"]
 }}
 
-SCORING RUBRIC (1-5):
-- 5: Exceptional - Exceeds expectations, perfect priority tone, complete, accurate, well-grounded
-- 4: Good - Meets all requirements, minor gaps only, appropriate tone
-- 3: Acceptable - Meets most requirements, some gaps, tone mostly appropriate
-- 2: Below Expectations - Significant gaps, tone mismatch, incomplete, minor inaccuracies
-- 1: Unacceptable - Wrong tone for priority, major inaccuracies, policy violations, ungrounded
+SCORING RUBRIC - each dimension has its own 1-5 anchors below. Use these concrete
+descriptions, not a generic "5=great, 1=bad" scale - a Track D calibration check
+found that without dimension-specific anchors, almost every score clusters on
+3-4 because raters (and the judge) have no clear example of what a 1 or 2
+actually looks like for that specific dimension.
 
-DIMENSION DEFINITIONS:
-- priority_tone_match: Does the language convey the urgency/expectations for this priority level?
-  Judge the SUBSTANCE of the tone (ownership, empathy, a concrete timeline commitment) - not
-  literal phrase matching. A draft that expresses the same commitment in its own words scores
-  the same as one using the example phrasing verbatim; only mark this down for a genuine tone
-  or urgency mismatch, not for wording that differs from the examples.
-- completeness: Does the draft address all aspects of the issue? Compare to reference resolutions.
-- accuracy: Are the technical/billing details correct? No hallucinations?
-- policy_compliance: No overcommitments, no PII leaks, appropriate fallback for low context?
-- groundedness: Does the draft reference or align with retrieved KB context?"""
+overall_score:
+- 5: Ready to send as-is; a human reviewer would approve it unchanged.
+- 4: Minor wording tweak would help, but no real gap; safe to send.
+- 3: Usable but has one real gap (a missing detail, a slightly off tone, a weak next step) a reviewer would want fixed first.
+- 2: Has a problem a customer would notice - wrong information, ignores part of the question, or a clear tone mismatch.
+- 1: Actively harmful or unusable - states something false as certain, asks for something it shouldn't, or ignores the ticket entirely.
+
+priority_tone_match_score (substance of tone, not literal phrase matching - a draft
+expressing the same commitment in its own words scores the same as one using the
+example phrasing verbatim):
+- 5: Tone and urgency clearly match this priority; nothing about how it sounds needs to change.
+- 4: Close match - one word choice could sound slightly more or less urgent than ideal.
+- 3: Acceptable tone, but doesn't clearly signal the urgency this priority calls for.
+- 2: Tone reads mismatched - e.g. casual/generic phrasing on a High/Critical ticket, or unnecessarily alarming language on a Low ticket.
+- 1: Tone actively contradicts the priority (e.g. "no rush" language on a Critical ticket).
+
+completeness_score (compare against reference resolutions and the ticket itself):
+- 5: Every part of the customer's question is addressed.
+- 4: Everything that matters is addressed; at most a very minor secondary point is left implicit.
+- 3: Addresses the main issue but skips a real secondary point the customer raised.
+- 2: Addresses only part of a multi-part question, or misses something the customer explicitly asked.
+- 1: Answers a different question than the one asked, or is too vague to address anything specific.
+
+accuracy_score (technical/billing correctness, no hallucinations):
+- 5: Every factual claim checks out against the retrieved context.
+- 4: Accurate; wording is a little loose but nothing incorrect.
+- 3: Mostly accurate - one minor detail is imprecise but not misleading.
+- 2: Contains a claim that's wrong or unconfirmed, stated as if it were certain.
+- 1: Contains a claim that's actively false, fabricated, or contradicts something the customer already stated in the ticket.
+
+policy_compliance_score (overcommitment, PII, correct fallback for low context):
+- 5: No overcommitment, no PII exposure, correctly defers where policy requires it (e.g. HR review before a refund decision).
+- 4: Compliant - phrasing could be marginally more careful, but nothing breaches policy.
+- 3: Compliant but borderline - e.g. a vague promise that reads close to a guarantee.
+- 2: Overpromises an outcome, timeline, or amount that isn't this reply's to promise.
+- 1: Clear policy violation - promises a specific refund/outcome without required review, exposes sensitive data, or asks the customer for something it shouldn't (e.g. a password).
+
+groundedness_score (does the draft's content match what was actually retrieved):
+- 5: Every claim in the reply is backed by the retrieved context.
+- 4: Grounded - one minor phrase is a reasonable inference beyond the literal text.
+- 3: Mostly grounded - one claim goes a bit beyond what the retrieved content actually says.
+- 2: Contains a claim not supported by anything retrieved, though not clearly false.
+- 1: States a specific fact, policy, or number that appears nowhere in the retrieved context."""
 
 PAIRWISE_SYSTEM_PROMPT = """You are a Senior QA Engineer comparing two customer support responses to
 the same ticket. Judge only on which better serves the customer - do not
