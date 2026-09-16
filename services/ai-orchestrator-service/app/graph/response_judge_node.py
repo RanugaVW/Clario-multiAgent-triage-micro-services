@@ -19,6 +19,14 @@ async def response_judge_node(state: TicketState) -> TicketState:
     escalation, so every final draft gets a stored evaluation regardless of
     which path produced it. Failures here never change failure_type/routing -
     this node only attaches judge_evaluations for the dashboard/Supabase.
+
+    For a domain that went through reflection, this also scores the original
+    pre-reflection draft (saved by reflection_node) and keeps whichever of the
+    two actually scores higher - a real-data evaluation found reflection's own
+    internal pass/fail check disagrees with this judge often enough that
+    always accepting the rewrite made some replies measurably worse than the
+    one that was already there. Doubles the judge call for a reflected domain
+    only; every other domain is unaffected.
     """
     drafts = state.get("agent_drafts", {})
     if not drafts:
@@ -33,8 +41,11 @@ async def response_judge_node(state: TicketState) -> TicketState:
     priority = state.get("priority") or "Medium"
     category = state.get("category") or "Unknown"
     retrieved_context = state.get("retrieved_context", {})
+    reflected = state.get("reflection_count", 0) > 0
+    pre_reflection_drafts = state.get("pre_reflection_drafts", {})
 
     evaluations: dict[str, dict] = {}
+    final_drafts: dict[str, str] = {}
     llm_call_count = state.get("llm_call_count", 0)
     for domain, draft in drafts.items():
         if not draft:
@@ -54,10 +65,27 @@ async def response_judge_node(state: TicketState) -> TicketState:
                 few_shots,
                 retrieved_context.get(domain, []),
             )
-            evaluations[domain] = score.to_dict()
             llm_call_count += score.attempts_used
+            best_draft, best_score = draft, score
+
+            pre_draft = pre_reflection_drafts.get(domain)
+            if reflected and pre_draft and pre_draft != draft:
+                try:
+                    pre_score = await evaluate_draft(
+                        pre_draft, priority, category, ticket_issue, few_shots,
+                        retrieved_context.get(domain, []),
+                    )
+                    llm_call_count += pre_score.attempts_used
+                    if pre_score.overall_score > best_score.overall_score:
+                        best_draft, best_score = pre_draft, pre_score
+                except Exception as e:
+                    logger.warning(f"Pre-reflection re-score failed for domain={domain}: {e}")
+
+            evaluations[domain] = best_score.to_dict()
+            final_drafts[domain] = best_draft
         except Exception as e:
             logger.warning(f"Response judge failed for domain={domain}: {e}")
             llm_call_count += getattr(e, "attempts", 0)
 
-    return {**state, "judge_evaluations": evaluations, "llm_call_count": llm_call_count}
+    updated_drafts = {**drafts, **final_drafts}
+    return {**state, "agent_drafts": updated_drafts, "judge_evaluations": evaluations, "llm_call_count": llm_call_count}

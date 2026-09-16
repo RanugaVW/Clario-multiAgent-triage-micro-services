@@ -61,6 +61,10 @@ class TicketState(TypedDict):
     reflection_count: int
     # reflection_node writes; specialist nodes and handoff_node read.
     reflection_critiques: list[str]
+    # reflection_node writes once per domain (first draft only, never overwritten
+    # on a later retry); response_judge_node reads to fall back to the original
+    # draft when a reflection rewrite doesn't actually score better.
+    pre_reflection_drafts: dict[str, str]
     # cache_check_node writes; graph_builder and handoff_node read.
     cache_hit: bool
     # cache_check_node writes; handoff_node reads for cache provenance.

@@ -1,0 +1,41 @@
+{
+  "n_scored": 70,
+  "n_failed_to_run": 0,
+  "funnel_rates": {
+    "cache_hit_rate": {
+      "count": 0,
+      "n": 70,
+      "point": 0.0,
+      "ci_low": 0,
+      "ci_high": 0.052
+    },
+    "reflection_loop_rate": {
+      "count": 15,
+      "n": 70,
+      "point": 0.2143,
+      "ci_low": 0.1344,
+      "ci_high": 0.3239
+    },
+    "misroute_retry_rate": {
+      "count": 0,
+      "n": 70,
+      "point": 0.0,
+      "ci_low": 0,
+      "ci_high": 0.052
+    },
+    "escalation_rate": {
+      "count": 46,
+      "n": 70,
+      "point": 0.6571,
+      "ci_low": 0.5404,
+      "ci_high": 0.7575
+    }
+  },
+  "failure_type_counts": {
+    "quality": 10,
+    "none": 33,
+    "policy": 1,
+    "dependency_failure": 26
+  },
+  "note": "v3 run - same 70 tickets, live pipeline, with the real fallback-to-better-draft fix applied in response_judge_node.py."
+}

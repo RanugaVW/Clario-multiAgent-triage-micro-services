@@ -1,0 +1,41 @@
+{
+  "n_scored": 70,
+  "n_failed_to_run": 0,
+  "funnel_rates": {
+    "cache_hit_rate": {
+      "count": 0,
+      "n": 70,
+      "point": 0.0,
+      "ci_low": 0.0,
+      "ci_high": 0.052
+    },
+    "reflection_loop_rate": {
+      "count": 23,
+      "n": 70,
+      "point": 0.3286,
+      "ci_low": 0.23,
+      "ci_high": 0.445
+    },
+    "misroute_retry_rate": {
+      "count": 1,
+      "n": 70,
+      "point": 0.0143,
+      "ci_low": 0.0025,
+      "ci_high": 0.0766
+    },
+    "escalation_rate": {
+      "count": 28,
+      "n": 70,
+      "point": 0.4,
+      "ci_low": 0.2933,
+      "ci_high": 0.5171
+    }
+  },
+  "failure_type_counts": {
+    "quality": 18,
+    "none": 48,
+    "policy": 3,
+    "misroute": 1
+  },
+  "note": "n=70 real tickets, one pass each, live full pipeline. A CI this wide on n=70 is expected and reported, not smoothed over - see the proposal's own point that under ~30 examples per group, a bare percentage overstates precision."
+}

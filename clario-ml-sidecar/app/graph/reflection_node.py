@@ -27,8 +27,21 @@ def reflection_node(state: TicketState) -> TicketState:
         detail = f"{domain}: failed {reasons}"
         critiques.append(f"{detail}; judge: {judge_reasoning}" if judge_reasoning else detail)
     critique = " | ".join(critiques) or "Revise the response to satisfy validation requirements."
+
+    # Snapshot each domain's current draft the first time reflection sees it,
+    # before the specialist's retry overwrites agent_drafts - so response_judge_node
+    # can later compare the original against the rewrite and keep whichever is
+    # actually better, instead of always accepting the rewrite. A domain already
+    # in the snapshot (this is a second reflection pass) is left alone, since the
+    # first draft - not an intermediate one - is what a fallback should mean.
+    pre_reflection_drafts = {**state.get("pre_reflection_drafts", {})}
+    for domain, draft in state.get("agent_drafts", {}).items():
+        if draft and domain not in pre_reflection_drafts:
+            pre_reflection_drafts[domain] = draft
+
     return {
         **state,
         "reflection_count": state.get("reflection_count", 0) + 1,
         "reflection_critiques": [*state.get("reflection_critiques", []), critique],
+        "pre_reflection_drafts": pre_reflection_drafts,
     }

@@ -8,6 +8,7 @@ from app.graph import response_judge_node as rjn
 class _StubScore:
     def __init__(self, overall=4, attempts_used=1):
         self.overall = overall
+        self.overall_score = overall  # matches the real JudgeScore field the fallback comparison reads
         self.attempts_used = attempts_used
 
     def to_dict(self):
@@ -112,6 +113,73 @@ def test_successful_evaluation_adds_its_real_attempt_count_to_llm_call_count(mon
 
     result = asyncio.run(rjn.response_judge_node(_state(llm_call_count=3)))
     assert result["llm_call_count"] == 5
+
+
+def test_reflected_ticket_falls_back_to_pre_reflection_draft_when_it_scored_higher(monkeypatch) -> None:
+    # The rewrite (current agent_drafts) scores worse than the original draft
+    # reflection_node snapshotted - the fallback should keep the original.
+    async def few_shots(*_: object) -> list:
+        return []
+
+    scores = {"rewritten draft": _StubScore(overall=2), "original draft": _StubScore(overall=4)}
+
+    async def evaluate(draft, *_: object) -> _StubScore:
+        return scores[draft]
+
+    monkeypatch.setattr(rjn, "select_few_shots", few_shots)
+    monkeypatch.setattr(rjn, "evaluate_draft", evaluate)
+
+    result = asyncio.run(rjn.response_judge_node(_state(
+        agent_drafts={"technical": "rewritten draft"},
+        pre_reflection_drafts={"technical": "original draft"},
+        reflection_count=1,
+    )))
+    assert result["agent_drafts"]["technical"] == "original draft"
+    assert result["judge_evaluations"]["technical"]["overall_score"] == 4
+
+
+def test_reflected_ticket_keeps_the_rewrite_when_it_scored_higher(monkeypatch) -> None:
+    async def few_shots(*_: object) -> list:
+        return []
+
+    scores = {"rewritten draft": _StubScore(overall=5), "original draft": _StubScore(overall=3)}
+
+    async def evaluate(draft, *_: object) -> _StubScore:
+        return scores[draft]
+
+    monkeypatch.setattr(rjn, "select_few_shots", few_shots)
+    monkeypatch.setattr(rjn, "evaluate_draft", evaluate)
+
+    result = asyncio.run(rjn.response_judge_node(_state(
+        agent_drafts={"technical": "rewritten draft"},
+        pre_reflection_drafts={"technical": "original draft"},
+        reflection_count=1,
+    )))
+    assert result["agent_drafts"]["technical"] == "rewritten draft"
+    assert result["judge_evaluations"]["technical"]["overall_score"] == 5
+
+
+def test_non_reflected_ticket_never_triggers_the_fallback_comparison(monkeypatch) -> None:
+    # reflection_count == 0 (the default): even if pre_reflection_drafts were
+    # somehow present, a ticket that never reflected must not re-score anything.
+    calls = []
+
+    async def few_shots(*_: object) -> list:
+        return []
+
+    async def evaluate(draft, *_: object) -> _StubScore:
+        calls.append(draft)
+        return _StubScore(overall=4)
+
+    monkeypatch.setattr(rjn, "select_few_shots", few_shots)
+    monkeypatch.setattr(rjn, "evaluate_draft", evaluate)
+
+    result = asyncio.run(rjn.response_judge_node(_state(
+        agent_drafts={"technical": "only draft"},
+        pre_reflection_drafts={"technical": "should never be scored"},
+    )))
+    assert calls == ["only draft"]
+    assert result["agent_drafts"]["technical"] == "only draft"
 
 
 def test_failed_evaluation_still_adds_its_real_attempt_count_to_llm_call_count(monkeypatch) -> None:
