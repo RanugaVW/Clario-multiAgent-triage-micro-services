@@ -2,7 +2,7 @@
 
 This is the pilot round, on Track A's 99-query baseline set, run **before** the real 70-ticket round (see `../README.md`) — same "check a second, independent dataset first" principle used throughout this project.
 
-Two of us (Ranuga, Sineth) each fill in the `human1_*`/`human2_*` columns **independently** — don't compare notes or look at each other's answers until both are done. You will NOT see what the real system actually decided for any of these queries; that's deliberate, so your answer reflects your own read of the query, not a guess at what the pipeline probably does.
+Two of us (Vinma, Sineth) each fill in the `human1_*`/`human2_*` columns **independently** — don't compare notes or look at each other's answers until both are done. You will NOT see what the real system actually decided for any of these queries; that's deliberate, so your answer reflects your own read of the query, not a guess at what the pipeline probably does.
 
 ## Every column, and what to do with it
 

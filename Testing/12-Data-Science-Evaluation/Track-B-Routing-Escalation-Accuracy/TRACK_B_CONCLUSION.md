@@ -14,7 +14,7 @@ When a ticket comes in, two decisions get made automatically: **which team shoul
 
 ## How much the two human reviewers agreed (70 real tickets)
 
-Two people independently reviewed all 70 tickets. Cohen's kappa is the number below — it measures agreement *beyond what you'd expect from random chance*; 0 means no better than chance, 1 means perfect.
+Two people (Vinma, Sineth) independently reviewed all 70 tickets. Cohen's kappa is the number below — it measures agreement *beyond what you'd expect from random chance*; 0 means no better than chance, 1 means perfect.
 
 | What was compared | Agreement | Kappa | What it tells us |
 |---|---|---|---|
@@ -47,6 +47,18 @@ The 70-ticket numbers are the ones that matter — a second, independent dataset
 
 ---
 
+## Confusion matrices (70 real tickets, after all fixes)
+
+![Routing confusion matrix](figures/03_routing_confusion_matrix.png)
+
+**What I'd say showing this:** "Each row is the correct team, each column is what Clario actually picked. Almost everything sits on the diagonal, which means it got the right team. The one real weak spot is that row of 6 — those are technical tickets that got escalated to a human instead of routed automatically, not tickets sent to the wrong team."
+
+![Escalation confusion matrix](figures/04_escalation_confusion_matrix.png)
+
+**What I'd say showing this:** "This is the simpler yes/no version — should this ticket have gone to a human? 43 of the 70 are correct (top-left green and bottom-right green). The 6 in top-right are tickets that should have escalated but didn't — the more serious miss. The 7 in bottom-left escalated when they didn't need to — safer, but adds unnecessary human workload."
+
+---
+
 ## Four real bugs found and fixed
 
 1. **HR tickets were being sent to billing.** The routing code was supposed to use the AI's category label for HR tickets, but it only matched a handful of exact keywords in the raw text. Fixed by adding real payment-linkage wording patterns.
@@ -72,6 +84,6 @@ Say it in this order:
 2. **How we built the answer key.** "Two people independently reviewed all 70 tickets. They agreed strongly on which team a ticket belongs to (91%) and moderately on when to escalate (80%) — the disagreements were real judgment calls, and we left them for the two reviewers to settle rather than guessing."
 3. **Where we started.** "In our first pilot test, on 99 questions, routing was right about 63% of the time overall, but for HR tickets specifically it was right only 37% of the time — and about half of all escalation decisions were wrong."
 4. **What we found was wrong, and what we fixed.** "We found four real bugs: HR tickets falling through to billing because the routing code only checked a few exact keywords; too many tickets escalating just because they sounded negative; the AI classifier's category label often being a useless generic label like 'General Support,' with a keyword-list backup that didn't match real customer wording; and plain cancellation requests not being recognized as needing a person. We fixed all four, and re-checked the pilot set after every fix to make sure nothing broke."
-5. **Where we ended up.** "On the real 70 tickets — a separate, independent set from the one we found these bugs on — routing accuracy is now 84%, HR ticket recall is 93%, and escalation F1 is 67%. Because we validated on a second dataset, we know this is a real improvement, not a fix that only worked on the data we tuned it on."
+5. **Where we ended up.** "On the real 70 tickets — a separate, independent set from the one we found these bugs on — routing accuracy is now 84%, HR ticket recall is 93%, and escalation F1 is 67%. Because we validated on a second dataset, we know this is a real improvement, not a fix that only worked on the data we tuned it on." *(Show the two confusion matrices here — routing and escalation. Point at the diagonal for routing, and the two green corners for escalation.)*
 6. **The one honest gap.** "One ticket out of 14 HR cases is still missed — a cancellation request with no strong distinguishing wording. We're reporting it rather than forcing a rushed fix for one ticket."
 7. **Close it out.** "That's Track B — routing and escalation accuracy — complete, with four real bugs found and fixed, verified on two independent datasets."

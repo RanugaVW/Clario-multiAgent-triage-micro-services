@@ -2,7 +2,7 @@
 
 **Only start this after `pilot-99-query/` is fully scored and any fixes it found have been applied.** That pilot exists specifically to catch routing/escalation-rule problems before spending annotation effort here.
 
-Two of us (Ranuga, Sineth) each fill in the `human1_*`/`human2_*` columns **independently** — don't compare notes until both are done. You won't see what the real system actually decided for any of these tickets.
+Two of us (Vinma, Sineth) each fill in the `human1_*`/`human2_*` columns **independently** — don't compare notes until both are done. You won't see what the real system actually decided for any of these tickets.
 
 ## Every column, and what to do with it
 
