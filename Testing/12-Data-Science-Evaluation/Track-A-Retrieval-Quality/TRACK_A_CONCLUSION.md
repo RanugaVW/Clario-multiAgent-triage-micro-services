@@ -55,6 +55,19 @@ That second scraping round also caught a real software bug: one document grew ju
 
 ---
 
+## Challenges found in the 99-query pilot, and how we fixed them
+
+1. **Old, unused content was clogging up search.** The vector index still held outdated documents nobody had cleaned up, so every search competed against noise. Fixed by removing them.
+2. **The confidence check never said no.** It approved every retrieved document regardless of how weak the match was. Fixed by retuning the threshold so a bad match actually gets rejected.
+3. **A silent indexing bug, caught by an impossible number.** A document grew past a chunking-size boundary and quietly split into two index entries, and the indexer had no cleanup step for a document that later shrank. First sign: a Recall score of 111% — mathematically impossible, which is exactly why it got caught before being reported anywhere. Fixed at the root (the indexer now prunes stale entries).
+4. **Knowledge base wording didn't match how real customers actually write.** The original KB used formal/technical phrasing; real tickets said things like "the recording isn't available," not "error." Fixed by rewriting KB phrasing using real customer wording, including real Trustpilot reviews for comparable platforms (see below).
+
+## Confusion matrix? Only for one part of this track
+
+Track A's headline numbers (Precision@k, Recall@k) measure retrieval ranking, not classification — there's no fixed set of predicted-vs-actual labels to build a confusion matrix from there, and the two before/after bar charts above are the right diagram for that part. But the relevance gate *is* a genuine yes/no decision ("should this result be trusted?"), and that part does get a real 2×2 confusion matrix — see `figures/16_gate_confusion_matrix.png` (before the fix) and `figures/17_gate_confusion_matrix_after.png` (after), and `TRACK_A_FINAL_CONCLUSION_REPORT.md` §2–4, where each is shown next to the TP/FP/FN/TN numbers it's built from.
+
+---
+
 ## The one gap we found
 
 **The system does noticeably better on the 70 real tickets than on the 99-query set — and we know why.**
