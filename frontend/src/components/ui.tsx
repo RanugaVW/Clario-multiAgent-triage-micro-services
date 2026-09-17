@@ -135,3 +135,36 @@ export function Modal({
     </div>
   );
 }
+
+// UR-006: a blocking native window.confirm() cannot be styled, isn't
+// announced consistently by screen readers, and interrupts everything else
+// on the page. This replaces it wherever a destructive action needs explicit
+// confirmation.
+export function ConfirmDialog({
+  open,
+  title,
+  message,
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal open={open} onClose={onCancel}>
+      <h2 className="text-lg font-semibold text-[#ECECEC] mb-3">{title}</h2>
+      <p className="text-sm text-[#8A8F98] mb-8">{message}</p>
+      <div className="flex justify-end gap-3">
+        <GlassButton variant="secondary" onClick={onCancel}>{cancelLabel}</GlassButton>
+        <GlassButton variant="destructive" onClick={onConfirm}>{confirmLabel}</GlassButton>
+      </div>
+    </Modal>
+  );
+}

@@ -7,6 +7,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -68,7 +69,11 @@ public class SecurityConfig {
                 try {
                     return es256Decoder.decode(token);
                 } catch (JwtException e2) {
-                    throw new JwtException("JWT validation failed with both HS256 and ES256: " + e2.getMessage());
+                    // Must be BadJwtException specifically: JwtAuthenticationProvider maps
+                    // BadJwtException to a 401 InvalidBearerTokenException, but treats any
+                    // other JwtException as an AuthenticationServiceException (500-class
+                    // "the auth system is broken", not "the client sent a bad token").
+                    throw new BadJwtException("JWT validation failed with both HS256 and ES256: " + e2.getMessage());
                 }
             }
         };

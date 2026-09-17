@@ -36,10 +36,25 @@ describe('Login Authentication', () => {
 
   it('renders login form correctly', () => {
     render(<Login />);
-    
+
     expect(screen.getByPlaceholderText('Email address')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+  });
+
+  // UR-005: form controls must have descriptive, programmatically-associated
+  // labels, not just placeholder text (placeholders disappear on input and
+  // are not reliably announced by all screen readers).
+  it('associates an accessible label with the email and password inputs', () => {
+    render(<Login />);
+
+    const emailInput = screen.getByLabelText('Email address');
+    const passwordInput = screen.getByLabelText('Password');
+
+    expect(emailInput).toBeInTheDocument();
+    expect(emailInput).toHaveAttribute('type', 'email');
+    expect(passwordInput).toBeInTheDocument();
+    expect(passwordInput).toHaveAttribute('type', 'password');
   });
 
   it('shows error message on failed login', async () => {

@@ -375,9 +375,12 @@ describe('E2E Ticket Submission Pipeline', () => {
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
-    // Verify error message appears
+    // Verify the error message appears - and that it's the actual message the
+    // backend sent ("Gateway timeout"), not a generic string that discarded it.
+    // See NFR Testing/UR-002-Ease-of-Learning/ for why this is the fix, not a
+    // test-only adjustment.
     await waitFor(() => {
-      expect(screen.getByText(/Failed to submit ticket/i)).toBeInTheDocument();
+      expect(screen.getByText(/Gateway timeout/i)).toBeInTheDocument();
     });
 
     // Verify success modal does NOT appear

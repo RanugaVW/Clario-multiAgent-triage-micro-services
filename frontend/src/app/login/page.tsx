@@ -81,10 +81,12 @@ export default function Login() {
 
             <div className="space-y-4">
               <div className="relative group">
+                <label htmlFor="login-email" className="sr-only">Email address</label>
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-white/40 group-focus-within:text-[#E8A33D] transition-colors" />
                 </div>
                 <input
+                  id="login-email"
                   type="email"
                   required
                   value={email}
@@ -95,10 +97,12 @@ export default function Login() {
               </div>
 
               <div className="relative group">
+                <label htmlFor="login-password" className="sr-only">Password</label>
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <KeyRound className="h-5 w-5 text-white/40 group-focus-within:text-[#E8A33D] transition-colors" />
                 </div>
                 <input
+                  id="login-password"
                   type="password"
                   required
                   value={password}

@@ -4,6 +4,8 @@ import com.clario.entities.Ticket;
 import com.clario.repositories.TicketRepository;
 import com.clario.tracing.TraceEventPublisher;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,8 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @RequiredArgsConstructor
 public class TicketService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TicketService.class);
 
     private final TicketRepository ticketRepository;
     private final StringRedisTemplate redisTemplate;
@@ -52,9 +56,16 @@ public class TicketService {
             String jsonPayload = objectMapper.writeValueAsString(payload);
             redisTemplate.opsForList().leftPush("ticket_queue", jsonPayload);
             tracePublisher.publish(ticketId.toString(), correlationId, "enqueued", "done", Map.of());
-            System.out.println("Dispatched ticket " + ticketId + " to Redis queue.");
+            logger.info("Dispatched ticket {} to Redis queue.", ticketId);
         } catch (Exception e) {
-            System.err.println("Failed to dispatch to Redis queue: " + e.getMessage());
+            // REL-002/REL-006: this failure is intentionally swallowed here rather than
+            // propagated, since it runs on a fire-and-forget async path after the ticket
+            // row is already committed - there's no HTTP response left to fail. It must
+            // still be *recorded*, though; a println was not searchable/alertable and
+            // gave no operator any way to notice a ticket silently never reached the
+            // AI pipeline. This does not yet mark the ticket itself as dispatch-failed
+            // (see FR Testing/REL-002-Fault-Tolerance/README.md for that known gap).
+            logger.error("Failed to dispatch ticket {} to Redis queue: {}", ticketId, e.getMessage(), e);
         }
     }
 }

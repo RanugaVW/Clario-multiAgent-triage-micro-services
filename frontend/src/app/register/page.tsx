@@ -66,12 +66,13 @@ export default function Register() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-[#8A8F98] mb-2">Email address</label>
+                <label htmlFor="register-email" className="block text-sm font-medium text-[#8A8F98] mb-2">Email address</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-[#8A8F98]" />
                   </div>
                   <GlassInput
+                    id="register-email"
                     type="email"
                     required
                     value={email}
@@ -83,12 +84,13 @@ export default function Register() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#8A8F98] mb-2">Password (min 6 characters)</label>
+                <label htmlFor="register-password" className="block text-sm font-medium text-[#8A8F98] mb-2">Password (min 6 characters)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <KeyRound className="h-5 w-5 text-[#8A8F98]" />
                   </div>
                   <GlassInput
+                    id="register-password"
                     type="password"
                     required
                     minLength={6}

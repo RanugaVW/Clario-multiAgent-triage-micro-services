@@ -10,7 +10,7 @@ import {
   CreditCard, Wrench, Brain, GitBranch, Eye, RotateCcw, ArrowRightLeft,
   Shield, Layers, CheckCircle2, Image as ImageIcon, Pencil,
 } from 'lucide-react';
-import { StatusBadge } from '../../components/ui';
+import { StatusBadge, ConfirmDialog } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 import ShakeButton from '../../components/ShakeButton';
@@ -199,6 +199,7 @@ export default function AdminDashboard() {
   const [dataLoading, setDataLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [ticketPendingDelete, setTicketPendingDelete] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
 
@@ -248,8 +249,16 @@ export default function AdminDashboard() {
     queueMicrotask(fetchData);
   }, [isFullyLoaded, user, role, fetchData, router]);
 
-  const handleDeleteTicket = async (ticketId: string) => {
-    if (!confirm("Are you sure you want to permanently delete this ticket from the system?")) return;
+  // UR-006: replaces a blocking native confirm()/alert() with the app's own
+  // ConfirmDialog (rendered further down) and the existing debugInfo banner.
+  const handleDeleteTicket = (ticketId: string) => {
+    setTicketPendingDelete(ticketId);
+  };
+
+  const confirmTicketDeletion = async () => {
+    const ticketId = ticketPendingDelete;
+    if (!ticketId) return;
+    setTicketPendingDelete(null);
     try {
       // Bypass gateway/sidecar and delete directly via our Next.js API
       const res = await fetch(`/api/tickets?id=${ticketId}`, {
@@ -261,11 +270,11 @@ export default function AdminDashboard() {
         sessionStorage.removeItem('tickets:list:metadata');
         fetchData();
       } else {
-        alert("Failed to delete ticket.");
+        setDebugInfo("Failed to delete ticket.");
       }
     } catch (e) {
       console.error(e);
-      alert("Error deleting ticket.");
+      setDebugInfo("Error deleting ticket.");
     }
   };
 
@@ -332,6 +341,15 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen flex">
+
+      <ConfirmDialog
+        open={ticketPendingDelete !== null}
+        title="Delete this ticket?"
+        message="This will permanently delete the ticket from the system and cannot be undone."
+        confirmLabel="Delete ticket"
+        onConfirm={confirmTicketDeletion}
+        onCancel={() => setTicketPendingDelete(null)}
+      />
 
       {/* ── Sidebar (desktop) ─────────────────────────────────────────────────── */}
       <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-white/10 bg-white/[0.02] backdrop-blur-xl">

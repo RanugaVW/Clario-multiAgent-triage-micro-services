@@ -270,7 +270,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to submit ticket/i)).toBeInTheDocument();
+      expect(screen.getByText(/Server error/i)).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 

@@ -3,6 +3,8 @@ package com.clario.services;
 import com.clario.entities.Ticket;
 import com.clario.repositories.TicketRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,8 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @RequiredArgsConstructor
 public class TicketService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TicketService.class);
 
     private final TicketRepository ticketRepository;
     private final StringRedisTemplate redisTemplate;
@@ -50,9 +54,9 @@ public class TicketService {
             
             String jsonPayload = objectMapper.writeValueAsString(payload);
             redisTemplate.opsForList().leftPush("ticket_queue", jsonPayload);
-            System.out.println("Dispatched ticket " + ticketId + " to Redis queue.");
+            logger.info("Dispatched ticket {} to Redis queue.", ticketId);
         } catch (Exception e) {
-            System.err.println("Failed to dispatch to Redis queue: " + e.getMessage());
+            logger.error("Failed to dispatch ticket {} to Redis queue: {}", ticketId, e.getMessage(), e);
         }
     }
 }

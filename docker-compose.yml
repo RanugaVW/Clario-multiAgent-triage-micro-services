@@ -44,6 +44,16 @@ services:
     environment:
       - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
       - SPRING_PROFILES_ACTIVE=docker
+      # Was missing entirely: without this, the service's Redis client defaults
+      # to localhost:6379 inside its own container, where nothing listens (the
+      # broker is the separate redis-broker container). Every ticket created
+      # through this service silently never reached the AI pipeline in the
+      # real deployment - REL-002's new logging surfaces exactly this failure
+      # (see NFR Testing/REL-002-Fault-Tolerance/), which is what caught it.
+      - SPRING_DATA_REDIS_HOST=redis-broker
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      - redis-broker
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "db.mdvfvtpbwqhccmaarpli.supabase.co:host-gateway"
