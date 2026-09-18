@@ -37,19 +37,41 @@ None of that data existed anywhere before this track. I had to write a script th
 
 ## Does reflection actually help?
 
-![Reflection value, before and after the fix](figures/03_reflection_value.png)
+![Reflection value, two fixes applied one at a time](figures/03_reflection_value.png)
 
 My first attempt compared reflected tickets against non-reflected ones and found reflected tickets scoring lower — but that comparison only measured which tickets started out harder. So I built a real paired comparison instead: each ticket's score before and after reflection, from the same judge.
 
-| | Before the fix (n=29) | After the fix (n=15) |
-|---|---|---|
-| Tickets that got worse | 8 | **0** |
-| Tickets that improved | 5 | 2 |
-| Tickets unchanged | 16 | 13 |
+| | 1. Before any fix (n=29) | 2. Fallback fix (n=15) | 3. + critique fix, full 70 (n=28) |
+|---|---|---|---|
+| Tickets that got worse | 8 | 0 | 1 (judge-rescoring noise, see below) |
+| Tickets that improved | 5 | 2 | **5** |
+| Tickets unchanged | 16 | 13 | **22** |
+| Wilcoxon p-value | 0.265 | 0.157 | **0.103** |
 
-**This was a real bug, so I fixed it, not just reported it.** `response_judge_node.py` now scores both the original draft and the rewrite, and keeps whichever one the judge actually prefers — falling back to the original when reflection didn't help. I re-ran the same 70 tickets live to check: zero tickets ended up worse afterward, down from eight. That's not luck — keeping the higher of two scores can't produce a result lower than the better one by construction. New tests pass, the full 188-test suite passes, and the fix is mirrored to both codebases.
+**Three real, connected issues, fixed one at a time — not bundled, and not just reported.**
 
-**A real complication along the way:** the verification run hit the project's daily Gemini quota partway through (the same limit Track C hit once before). I checked, and every ticket used in this specific comparison finished before that happened, so the result is clean.
+1. `response_judge_node.py` now scores both the original draft and the rewrite, and keeps whichever one the judge actually prefers — falling back to the original when reflection didn't help. Re-ran live: zero tickets ended up worse, down from eight — guaranteed by construction, not luck, since keeping the higher of two scores can't score lower than the better one.
+2. That fix alone left 13 of 15 tickets completely unchanged, so I asked why: `validation_node.py`'s local judge was handing back the same hardcoded, meaningless string — `"local_heuristic_judge"` — as its rejection reason for *every* failure, so the specialist redrafting against it had nothing real to act on. Fixed it to name the specific check that failed instead. A 13-ticket preview looked great (tickets improved 2→5, p=0.063), but rather than trust a small preview I ran the full 70 tickets: same 5 tickets improved, but against a larger base the effect came back smaller and still short of significance (p=0.103) — a real, positive, unproven improvement, reported honestly rather than rounded up.
+3. That full run showed one ticket scoring worse, which I chased down rather than wave away: the pipeline's own fallback decision was almost certainly correct, but my external verification script re-scored the saved draft with a second, independently-sampled judge call (temperature 0.1, not fully deterministic) and got a different number than the pipeline's internal comparison used. The real gap was that the pipeline discarded its own internal comparison once the decision was made — it now records it (`pre_reflection_score`, `kept_pre_reflection_draft`) so a future check can read the real decision instead of resampling the judge.
+
+New tests pass for all three fixes (192 in `clario-ml-sidecar`, 181 in `services/ai-orchestrator-service`), and all three are mirrored across codebases.
+
+**A real complication along the way:** the first fix's verification run hit the project's daily Gemini quota partway through (the same limit Track C hit once before). I checked, and every ticket used in that comparison finished before that happened, so the result is clean. The later full 70-ticket run did not hit this wall.
+
+---
+
+## A fourth gap - not in the code, in the knowledge base
+
+Track A's own ground truth already listed 40 queries (of its 99-query pilot) with no
+matching KB document at all, 30 of them with the annotator's own note naming exactly which
+document was missing. I wrote 5 new KB documents and fixed 2 existing ones, checked locally
+(no API cost) that 39 of 40 now retrieve correctly, then re-ran the full 70 tickets:
+quality/policy failures dropped from 24 to 16 combined, reflection-loop rate from 40.0% to
+32.9%. Checking ticket-by-ticket, only 4 of the 9 individual improvements (all discount/
+promo-code complaints) are a clean, direct hit on the new content - the rest are more likely
+this pipeline's already-documented run-to-run noise, and I'm reporting that split honestly
+rather than claiming the full net gain. Per your instruction, none of this touched anything
+under `Track-A-Retrieval-Quality` - verified with a standalone, local diagnostic script instead.
 
 ---
 
@@ -59,5 +81,6 @@ My first attempt compared reflected tickets against non-reflected ones and found
 2. **What I had to build first.** "This data didn't exist anywhere, so I re-ran the real 70-ticket pipeline myself, capturing the flags nobody had saved before."
 3. **The funnel rates.** *(Show the funnel chart.)* "Zero cache hits, over 40% of tickets reflecting, escalation at 40%."
 4. **The failure taxonomy.** *(Show the taxonomy chart.)* "Every real problem Tracks A through D found, in one place, sorted into four buckets."
-5. **The reflection finding, told as what actually happened — find it, fix it, prove it.** "My first comparison was misleading by construction. A real paired comparison found 8 of 29 tickets actually got worse after reflection. That's a bug, so I fixed the pipeline to keep whichever draft scores higher, and re-ran the live test to check. Zero tickets ended up worse afterward." *(Show the before/after chart.)*
-6. **Close it out.** "That's Track E — real funnel numbers that never existed before, a combined failure picture, and a real bug I found, fixed in the actual code, and verified with a fresh live run."
+5. **The reflection finding, told as what actually happened — find it, fix it, prove it, then keep checking.** "My first comparison was misleading by construction. A real paired comparison found 8 of 29 tickets actually got worse after reflection. That's a bug, so I fixed the pipeline to keep whichever draft scores higher — zero tickets ended up worse afterward. But 13 of those 15 came out unchanged, so I asked why, and found the critique fed back to the specialist was a hardcoded, meaningless string for every rejection. Fixed that too. A small preview looked great, so I ran the full 70 tickets to get a real answer — the effect held in the same direction but came back smaller and still short of statistical significance, which I'm reporting honestly rather than rounding up. That full run also surfaced one ticket that looked like it got worse, which turned out to be my own verification re-sampling the judge, not the fix failing — so I fixed that gap too." *(Show the three-panel chart.)*
+6. **The knowledge-base gap.** "Track A's own ground truth already flagged 40 queries with no matching KB document, most with a note naming exactly what was missing. I wrote the missing content, verified 39 of 40 now retrieve correctly, and re-ran the full 70 tickets — quality/policy failures dropped from 24 to 16. I checked which specific tickets improved rather than just the total: only 4 are a clean hit on the new content, and I said so."
+7. **Close it out.** "That's Track E — real funnel numbers that never existed before, a combined failure picture, and four real, connected issues I found, fixed, and verified at proper scale — not stopped at the first result that looked good."

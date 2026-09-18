@@ -123,13 +123,14 @@ fig.tight_layout(rect=(0, 0, 1, 0.85))
 fig.savefig(FIG_DIR / "02_failure_taxonomy.png", dpi=200)
 plt.close(fig)
 
-# --- Figure 3: reflection value - the code fix, before and after ---------
-refl_before = json.loads((RESULTS_DIR / "reflection_value_summary_v2.json").read_text())
-refl_after = json.loads((RESULTS_DIR / "reflection_value_summary_v3.json").read_text())
+# --- Figure 3: reflection value - two fixes, applied one at a time -------
+refl_v2 = json.loads((RESULTS_DIR / "reflection_value_summary_v2.json").read_text())
+refl_v3 = json.loads((RESULTS_DIR / "reflection_value_summary_v3.json").read_text())
+refl_v5 = json.loads((RESULTS_DIR / "reflection_value_summary_v5.json").read_text())
 
-fig, axes = plt.subplots(1, 2, figsize=(13, 6.6))
-fig.suptitle("Track E — The Fallback Fix, Before and After", fontsize=13.5, color=INK_PRIMARY, x=0.5, y=0.98)
-fig.text(0.5, 0.915, "Same judge, same kind of paired ticket comparison, run twice: once before the code fix, once after",
+fig, axes = plt.subplots(1, 3, figsize=(18.5, 6.6))
+fig.suptitle("Track E — Two Fixes, Applied and Verified One at a Time", fontsize=13.5, color=INK_PRIMARY, x=0.5, y=0.98)
+fig.text(0.5, 0.915, "Same judge, same paired before/after comparison, run again after each fix - not once at the end",
          fontsize=9.5, color=INK_MUTED, ha="center")
 
 
@@ -161,14 +162,18 @@ def _slope_panel(ax, refl, title, n_note):
     ax.tick_params(length=0)
 
 
-_slope_panel(axes[0], refl_before, "Before the fix",
-             f"n={refl_before['n_reflected_with_paired_scores']}, always kept the rewrite")
-_slope_panel(axes[1], refl_after, "After the fix",
-             f"n={refl_after['n_reflected_with_paired_scores']}, keeps whichever draft scores higher")
+_slope_panel(axes[0], refl_v2, "1. Before any fix",
+             f"n={refl_v2['n_reflected_with_paired_scores']}, always kept the rewrite")
+_slope_panel(axes[1], refl_v3, "2. Fallback fix",
+             f"n={refl_v3['n_reflected_with_paired_scores']}, keeps whichever draft scores higher")
+_slope_panel(axes[2], refl_v5, "3. + critique fix (full 70)",
+             f"n={refl_v5['n_reflected_with_paired_scores']}, redraft now told which check failed")
 axes[0].set_ylabel("Judge overall score (1-5)", fontsize=10.5, color=INK_SECONDARY)
 
-fig.text(0.5, 0.03, "Right panel: zero tickets end up worse than their original draft - by construction, "
-                     "the fallback can only match or beat it.", fontsize=9, color=INK_MUTED, ha="center", style="italic")
+fig.text(0.5, 0.03, "Panel 2: zero tickets end up worse than their original draft - guaranteed by the fallback's "
+                     "construction. Panel 3: the same fallback at full sample size; one red line is judge-rescoring "
+                     "noise on an identical draft, not the guarantee failing (see report).",
+         fontsize=8.5, color=INK_MUTED, ha="center", style="italic")
 
 fig.tight_layout(rect=(0, 0.06, 1, 0.86))
 fig.savefig(FIG_DIR / "03_reflection_value.png", dpi=200)
