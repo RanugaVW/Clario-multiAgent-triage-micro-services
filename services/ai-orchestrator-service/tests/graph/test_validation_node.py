@@ -2,7 +2,7 @@
 
 import asyncio
 
-from app.graph.validation_node import validation_node
+from app.graph.validation_node import llm_judge_check, validation_node
 
 
 def _state(**overrides: object) -> dict:
@@ -49,3 +49,27 @@ def test_policy_and_quality_failures_are_distinguished(monkeypatch) -> None:
     monkeypatch.setattr("app.graph.validation_node.llm_judge_check", judge)
     quality = asyncio.run(validation_node(_state(rag_top_score={"technical": 0.0})))
     assert quality["failure_type"] == "quality"
+
+
+def test_judge_reasoning_names_the_specific_check_that_failed() -> None:
+    # Before this fix, every rejection's "reasoning" was the static string
+    # "local_heuristic_judge" regardless of which check failed - reflection_node
+    # folds this straight into the redraft prompt, so a specialist redrafting
+    # against that text had no idea what to actually change.
+    context = [{"text": "invoice payment gateway reconciliation steps", "score": 0.9}]
+    result = asyncio.run(llm_judge_check("Hello, invoice wrong details noted here for you.", "my invoice is wrong", context))
+    assert result["reasoning"] == "wasn't grounded in the retrieved knowledge-base content"
+
+
+def test_judge_reasoning_names_every_failed_check_when_several_fail() -> None:
+    result = asyncio.run(llm_judge_check("you idiot, bad request", "totally unrelated ticket content", []))
+    assert "didn't address enough of the ticket's specific details" in result["reasoning"]
+    assert "used inappropriate tone or language" in result["reasoning"]
+
+
+def test_judge_reasoning_when_all_checks_pass() -> None:
+    context = [{"text": "invoice billing account reconciliation", "score": 0.9}]
+    draft = "Regarding your invoice billing account, here is the reconciliation update."
+    result = asyncio.run(llm_judge_check(draft, "invoice billing account issue", context))
+    assert result["on_topic"] and result["grounded_in_context"] and result["appropriate_tone"]
+    assert result["reasoning"] == "local_heuristic_judge_passed"

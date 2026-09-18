@@ -118,11 +118,24 @@ async def llm_judge_check(draft: str, ticket_text: str, retrieved_context: list[
     bad_phrases = ("i refuse", "this is stupid", "you idiot", "bad request")
     appropriate_tone = not any(p in draft_lower for p in bad_phrases)
 
+    # reflection_node folds this straight into the redraft prompt as the
+    # specialist's only signal for what to fix - it used to be the static
+    # string "local_heuristic_judge" for every rejection regardless of which
+    # check actually failed, which told the redraft nothing. Naming the
+    # failed check(s) here is what gives the redraft something to act on.
+    failed_checks = []
+    if not on_topic:
+        failed_checks.append("didn't address enough of the ticket's specific details")
+    if not grounded_in_context:
+        failed_checks.append("wasn't grounded in the retrieved knowledge-base content")
+    if not appropriate_tone:
+        failed_checks.append("used inappropriate tone or language")
+
     return {
         "on_topic": on_topic,
         "grounded_in_context": grounded_in_context,
         "appropriate_tone": appropriate_tone,
-        "reasoning": "local_heuristic_judge",
+        "reasoning": "; ".join(failed_checks) if failed_checks else "local_heuristic_judge_passed",
     }
 
 

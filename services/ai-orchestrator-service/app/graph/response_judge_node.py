@@ -69,6 +69,8 @@ async def response_judge_node(state: TicketState) -> TicketState:
             best_draft, best_score = draft, score
 
             pre_draft = pre_reflection_drafts.get(domain)
+            pre_reflection_score = None
+            kept_pre_reflection_draft = False
             if reflected and pre_draft and pre_draft != draft:
                 try:
                     pre_score = await evaluate_draft(
@@ -76,12 +78,24 @@ async def response_judge_node(state: TicketState) -> TicketState:
                         retrieved_context.get(domain, []),
                     )
                     llm_call_count += pre_score.attempts_used
+                    pre_reflection_score = pre_score.overall_score
                     if pre_score.overall_score > best_score.overall_score:
                         best_draft, best_score = pre_draft, pre_score
+                        kept_pre_reflection_draft = True
                 except Exception as e:
                     logger.warning(f"Pre-reflection re-score failed for domain={domain}: {e}")
 
-            evaluations[domain] = best_score.to_dict()
+            evaluation = best_score.to_dict()
+            if pre_reflection_score is not None:
+                # Otherwise-discarded once the fallback decision is made - kept here
+                # so a later audit can see which of the two scores this ticket's
+                # decision actually rested on, instead of a verification script
+                # having to re-score the pre-reflection draft itself (a second,
+                # independently-sampled judge call, at a nonzero temperature, that
+                # can legitimately disagree with this one on the same text).
+                evaluation["pre_reflection_score"] = pre_reflection_score
+                evaluation["kept_pre_reflection_draft"] = kept_pre_reflection_draft
+            evaluations[domain] = evaluation
             final_drafts[domain] = best_draft
         except Exception as e:
             logger.warning(f"Response judge failed for domain={domain}: {e}")

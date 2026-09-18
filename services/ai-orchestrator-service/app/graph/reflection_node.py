@@ -23,7 +23,7 @@ def reflection_node(state: TicketState) -> TicketState:
         if result.get("passed", False):
             continue
         reasons = ", ".join(result.get("failed_rules", [])) or "judge rejected the draft"
-        judge_reasoning = result.get("judge_reasoning") or result.get("reasoning")
+        judge_reasoning = result.get("reasoning")
         detail = f"{domain}: failed {reasons}"
         critiques.append(f"{detail}; judge: {judge_reasoning}" if judge_reasoning else detail)
     critique = " | ".join(critiques) or "Revise the response to satisfy validation requirements."

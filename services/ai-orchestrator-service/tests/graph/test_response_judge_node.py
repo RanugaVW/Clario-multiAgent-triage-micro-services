@@ -136,6 +136,10 @@ def test_reflected_ticket_falls_back_to_pre_reflection_draft_when_it_scored_high
     )))
     assert result["agent_drafts"]["technical"] == "original draft"
     assert result["judge_evaluations"]["technical"]["overall_score"] == 4
+    # The pre-reflection score is recorded even when it wins, so an external
+    # audit can see the actual comparison instead of re-sampling the judge.
+    assert result["judge_evaluations"]["technical"]["pre_reflection_score"] == 4
+    assert result["judge_evaluations"]["technical"]["kept_pre_reflection_draft"] is True
 
 
 def test_reflected_ticket_keeps_the_rewrite_when_it_scored_higher(monkeypatch) -> None:
@@ -157,6 +161,9 @@ def test_reflected_ticket_keeps_the_rewrite_when_it_scored_higher(monkeypatch) -
     )))
     assert result["agent_drafts"]["technical"] == "rewritten draft"
     assert result["judge_evaluations"]["technical"]["overall_score"] == 5
+    # The losing pre-reflection score (3) is still recorded, not discarded.
+    assert result["judge_evaluations"]["technical"]["pre_reflection_score"] == 3
+    assert result["judge_evaluations"]["technical"]["kept_pre_reflection_draft"] is False
 
 
 def test_non_reflected_ticket_never_triggers_the_fallback_comparison(monkeypatch) -> None:
@@ -180,6 +187,7 @@ def test_non_reflected_ticket_never_triggers_the_fallback_comparison(monkeypatch
     )))
     assert calls == ["only draft"]
     assert result["agent_drafts"]["technical"] == "only draft"
+    assert "pre_reflection_score" not in result["judge_evaluations"]["technical"]
 
 
 def test_failed_evaluation_still_adds_its_real_attempt_count_to_llm_call_count(monkeypatch) -> None:
