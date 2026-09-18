@@ -56,7 +56,7 @@ The JWT decoder (in `api-gateway`, and copied into the two fixed services) threw
 `JwtAuthenticationProvider` only maps `BadJwtException` to a 401; any other `JwtException`
 becomes an `AuthenticationServiceException`, which is treated as a server-side failure, not
 "the client sent an invalid token" — meaning a forged or malformed token was not reliably
-producing a clean 401 in any of the three services, including `api-gateway`, which was
+producing a clean 401 in any of the three services, including `api-gateway`, which wasv
 already relying on this exact decoder in production. Fixed in all three
 (`throw new BadJwtException(...)` instead of `throw new JwtException(...)`), with a unit
 test added directly against `api-gateway`'s decoder (`SecurityConfigTest`, previously had

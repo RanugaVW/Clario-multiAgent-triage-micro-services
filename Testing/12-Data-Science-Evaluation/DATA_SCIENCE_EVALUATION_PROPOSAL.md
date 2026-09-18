@@ -102,7 +102,34 @@ Because only a small part of this dataset is HR-specific, any HR-only result dra
 
 A 99-query set, each mapped to the knowledge-base document(s) that should answer it, covering technical, billing, and HR topics. Built from real ticket text from the §5.1 dataset, checked by two people, with any disagreement talked through before the final answer was recorded. This is the dataset behind the Track A baseline already written up in `Track-A-Retrieval-Quality/TEST_REPORT_V1.md`.
 
-### 5.4 Privacy
+### 5.4 Two-Phase Evaluation Design and Human Annotators
+
+Every track that needed a human-made ground truth (A–D) ran it in two separate phases, in this order, for a deliberate reason:
+
+**Phase 1 — the 99-query/99-ticket pilot.** Run first, on the smaller, earlier dataset (§5.3). Its job was to cheaply surface real problems — bad knowledge-base content, misrouting logic, misconfigured thresholds and gates — before those problems could contaminate the real 70-ticket test. Every Phase 1 fix (new knowledge-base documents, the new HR agent, the relevance-gate retuning, etc.) exists because of what this phase found.
+
+**Phase 2 — the 70 real-ticket test.** Run second, after the Phase 1 fixes were applied, using the fresh dataset in §5.2. Its job was to test the real pipeline and its agentic behaviour end to end, on real production-style tickets, and confirm the Phase 1 fixes actually held up outside the data that found them — not to go hunting for new problems from scratch.
+
+In every phase, across every track, the human labelling was done by **two people working independently** (neither saw the other's answers, or the system's own output, while labelling), with one documented exception: Track A's Phase 1 pilot (the original 99-query ground truth) was a single-reviewer pass, before the two-person process was adopted for every phase that followed. This is stated plainly in Track A's own report rather than glossed over.
+
+| Track | Phase 1 (99-query/ticket pilot) — who / what was hand-labelled | Phase 2 (70 real tickets) — who / what was hand-labelled |
+|---|---|---|
+| A — Retrieval | **One reviewer** (name not recorded). Correct KB document + domain, per query. | **Ranuga, Sineth**, independently. Same task, on 70 real tickets; disagreements resolved by taking the union of both answers. |
+| B — Routing/Escalation | **Vinma, Sineth**, independently. For unclear cases, which team; for every ticket, should it have escalated (yes/no). | **Vinma, Sineth**, independently. Same two questions, on the 70 real tickets. |
+| C — Response Quality | **Ranuga, Vinma**, independently. A 6-way quality flag plus a written note, per AI-drafted reply. | **No human annotation pass** — scored automatically instead (judge score, groundedness check, semantic similarity, pairwise judge). |
+| D — Judge Reliability | **Ranuga, Sineth**, independently. A 1–5 score on 6 quality dimensions, per draft, without seeing the automatic judge's score. | **Ranuga, Sineth**, independently. Same scoring, on 82 rows (70 tickets; some produce two rows for dual-domain cases). |
+| E — End-to-End | *(none run — reuses Track A's Phase 1 ground truth as a reference)* | **No manual labelling** — Ranuga alone ran the live pipeline on the 70 tickets and captured its own telemetry (cache hits, reflection firing, retries, escalation, timing). |
+
+### 5.5 Additional Real-World Issue Data Used to Improve the Knowledge Base
+
+Separately from the annotation work above, two attempts were made to bring real, web-sourced customer language into the knowledge base itself:
+
+- **First attempt (scraped, but not used).** 63 posts were scraped from `discuss.openedx.org`, the Open edX project's own community forum, and saved as `ml_finetuning/data/real_responses/real_responses_unrelated.csv`. Reading through all 63 rows showed this forum is for self-hosting administrators and plugin developers — the content was Docker/Kubernetes configuration, GitHub pull requests, and platform-architecture discussion, not a paying customer describing a problem. None of it was written in an end-user's voice, so none of it was added to the knowledge base. (This is why the file is literally named "unrelated" — real, scraped data, kept in the repository for transparency, but never usable for its intended purpose.)
+- **Second attempt (used).** Real Trustpilot reviews for three comparable, real online-course platforms — **Udemy, Coursera, and Skillshare** — were read directly. Unlike the developer forum, these are paying customers describing billing, refund, cancellation, login, and app-crash problems in their own words — exactly the voice the knowledge base needed. Every phrase used was checked against the real 70-ticket set first, to rule out accidental overlap (none found, as expected — different products entirely). Content from these reviews was added to six existing knowledge-base documents without removing anything already there: `billing/refund_status.md`, `billing/subscription_cancel.md`, `technical/app_crash.md`, `technical/slow_performance.md`, `technical/login_reset.md`, and `hr/course_issues.md`.
+
+Full detail and before/after retrieval numbers for this change are in `Track-A-Retrieval-Quality/TEST_REPORT_V2.md`.
+
+### 5.6 Privacy
 
 Both real-ticket files contain real personal information (name, email). Every script that touches either file removes those two columns first, before anything else happens to the data. No report from this evaluation quotes a name, an email address, or any ticket text that contains either. Both files stay out of version control.
 
@@ -159,7 +186,7 @@ Full reading list in §12.
 
 **Tools:** `routing_node.py` / `escalation_node.py` (and `classification_node.py` for the live run only) run directly; `pandas`; `scikit-learn` (`confusion_matrix`, `classification_report`); `statsmodels.stats.contingency_tables.mcnemar`; `matplotlib`/`seaborn` for the confusion-matrix chart.
 
-### 7.3 Track C — Final Response Quality vs. Real Human Replies (planned, not yet completed)
+### 7.3 Track C — Final Response Quality vs. Real Human Replies (complete — see `Track-C-Response-Quality/TRACK_C_FINAL_CONCLUSION_REPORT.md`)
 
 **Objective, in plain terms:** find out if the reply Clario writes is as good as the reply a real human support agent wrote, for the same ticket. This is checked on all 70 tickets, including a first look at the small HR group inside it (§7.1's domain breakdown, n=12).
 
@@ -178,7 +205,7 @@ Full reading list in §12.
 
 **Tools:** `run_pairwise_evaluation.py` and `response_judge.py` (both already exist and are reused, not rebuilt); `sentence-transformers` (MiniLM); the `bert-score` package; `pandas`; `matplotlib`.
 
-### 7.4 Track D — Judge Reliability (planned, not yet completed)
+### 7.4 Track D — Judge Reliability (complete — see `Track-D-Judge-Reliability/TRACK_D_FINAL_CONCLUSION_REPORT.md`)
 
 **Objective, in plain terms:** Track C leans heavily on `ResponseJudge`, an automatic scorer, to say whether a reply is good. Before trusting that score, it needs to be checked against what a real person would say — otherwise the whole of Track C could be built on a number that doesn't actually mean much. This idea comes directly from the ARES paper (§6), which found that automatic RAG judges need this kind of check before their scores can be trusted at scale.
 
@@ -194,7 +221,7 @@ Full reading list in §12.
 
 **Tools:** `scikit-learn` (`cohen_kappa_score`); `scipy.stats.spearmanr`; `pandas`.
 
-### 7.5 Track E — End-to-End System Metrics and Failure Patterns (planned, not yet completed)
+### 7.5 Track E — End-to-End System Metrics and Failure Patterns (complete — see `Track-E-End-to-End-Behaviour/TRACK_E_FINAL_CONCLUSION_REPORT.md`)
 
 **Objective, in plain terms:** put Tracks A–D together into one overall picture of the system — how often each part of the pipeline actually fires, what kinds of mistakes happen most, and whether the extra "reflection" step (where the system re-checks and re-writes its own answer) is actually worth the extra time it takes.
 
@@ -268,4 +295,29 @@ Every track's final write-up follows the same shape: how the ground truth was bu
 - Confident AI. *RAG Evaluation Metrics: Assessing Answer Relevancy, Faithfulness, Contextual Relevancy, And More.*
 - Towards Data Science. *How to Evaluate Retrieval Quality in RAG Pipelines: DCG@k and NDCG@k.*
 - Weaviate. *Evaluation Metrics for Search and Recommendation Systems.*
+
+---
+
+## Appendix A — Local LLM Selection for Initial Ticket Triage (Category / Priority / Sentiment)
+
+Before a ticket reaches the multi-agent pipeline evaluated in the tracks above, it first passes through an initial classification step that predicts three labels: **Category**, **Priority**, and **Sentiment**. Four small open-weight language models were fine-tuned for this step and compared against a traditional machine-learning baseline, to decide which one to run in production.
+
+**Models compared:**
+- Fine-tuned Gemma-3-1B-it
+- Fine-tuned Llama-3.2 (3B) — **selected model**
+- Fine-tuned Ministral-3 (3B)
+- Fine-tuned Qwen2.5-0.5B-Instruct
+- Traditional machine learning: TF-IDF vectorization + a tuned Support Vector Classifier (non-LLM baseline)
+
+**How the selected model (Llama-3.2 3B) was fine-tuned.** Using QLoRA: the base model was loaded in **4-bit precision** (NF4 quantization, double quantization enabled, `bnb_4bit_compute_dtype=float16`), then a LoRA adapter (rank 16, alpha 32) was trained on top of it, targeting the attention and MLP projection layers (`q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj`). Training used a knowledge-distillation setup: Gemini acted as a "teacher" model, generating step-by-step reasoning plus the final Category/Priority/Sentiment labels for each training example, and Llama was trained to reproduce that same reasoning-and-label pattern (`ml_finetuning/src/finetune_llama3_qlora.py`, trained on `ml_finetuning/data/curated_synthetic_lms/distilled_train.jsonl`). The same 4-bit QLoRA approach was used to fine-tune the other three comparison models.
+
+**Results (overall accuracy), from `CSV Files/Results.xlsx`:**
+
+| Task | Gemma-3-1B-it | Llama-3.2 (3B) | Ministral-3 (3B) | Qwen2.5-0.5B-Instruct | Traditional ML (TF-IDF+SVM) |
+|---|---|---|---|---|---|
+| Category | 95.8% | **96.5%** | 96.0% | 95.7% | 94.0% |
+| Priority | 75.7% | **77.1%** | 75.4% | 75.2% | 57.0% |
+| Sentiment | 76.1% | **77.6%** | 75.8% | 62.3% | 65.3% |
+
+**Why Llama-3.2 (3B) was selected.** It had the highest overall accuracy on all three tasks among the four fine-tuned LLMs — narrowly on Category and Priority, more clearly on Sentiment, where Qwen2.5-0.5B in particular fell off (62.3%). All four fine-tuned LLMs comfortably beat the traditional TF-IDF+SVM baseline on Priority and Sentiment — the two harder, more subjective tasks — while the gap on Category, a more clear-cut classification task, was much smaller. This consistent edge across all three tasks, combined with a moderate 3B parameter size that keeps 4-bit inference practical, is why Llama-3.2 (3B) was chosen as the production initial-triage model over the alternatives tested.
 - Ragas documentation. *List of available metrics.* docs.ragas.io.
