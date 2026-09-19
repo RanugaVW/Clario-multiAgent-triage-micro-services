@@ -4,6 +4,8 @@
 
 This page is a short summary for a presentation. Full detail lives in `pilot-99-query/PILOT_99_REPORT.md` (the pilot round that found the first bugs) and `data/`/`results/` in this folder (the final 70-ticket numbers).
 
+*(Update: the classifier feeding routing was since replaced with a new Gemini-distilled, multi-label Llama 3.2 adapter — see Section 7, "After the Gemini-Distilled Llama 3.2 Adapter," in `TRACK_B_FINAL_CONCLUSION_REPORT.md` for that re-test.)*
+
 ---
 
 ## What we were checking

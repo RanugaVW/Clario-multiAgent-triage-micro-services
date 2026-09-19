@@ -172,3 +172,21 @@ All four routing/escalation fixes were re-checked against the 99-query pilot aft
 6. **I'll show the fix and the proof.** "We fixed all four, and — this matters — re-checked the pilot set after every single change to make sure nothing broke that used to work." *(Show figure 02, then the two confusion matrices, then the precision/recall scatter — point out technical's perfect precision but lower recall, and note that 'both' is one ticket and shouldn't be over-read.)*
 7. **I'll give the one honest gap.** "One HR ticket out of 14 is still missed — a cancellation request with no strong distinguishing wording. We're reporting it rather than forcing a rule for one case."
 8. **I'll close with what I'd do next.** "If I extended this, I'd plot ticket-text embeddings colored by domain to see whether those 6 escalated-instead-of-routed technical tickets genuinely sit near billing/HR tickets in meaning-space, or whether that's a rule gap we haven't found yet."
+
+---
+
+## 7. After the Gemini-Distilled Llama 3.2 Adapter
+
+Everything above was measured with the earlier classifier feeding routing and escalation. We then replaced it with a new one - the **Llama 3.2 3B adapter, fine-tuned with Gemini-distilled step-by-step reasoning as the teaching signal**, upgraded from a single free-text category guess to genuine multi-label prediction from a fixed 12-label taxonomy. This section re-runs the same live routing + escalation test on the same 70 real tickets, against the same human-annotated ground truth used throughout this report - nothing about the answer key changed, only the classifier feeding it.
+
+![After the Gemini-Distilled Llama 3.2 Adapter](figures/03_after_gemini_distilled_llama_adapter.png)
+
+| Metric | Before | After | Change |
+|---|---|---|---|
+| Routing accuracy | 83.9% | **92.9%** | +9.0 pts |
+| Escalation precision | 65.0% | **100%** | +35.0 pts |
+| Escalation F1 | 66.7% | **81.2%** | +14.5 pts |
+
+**The clearest win: escalation precision hit 100%.** Every ticket the new pipeline flagged for a human went to the right place - zero unnecessary escalations, on this 70-ticket set. Escalation recall stayed the same (68.4%, so a few genuine escalations are still missed), but the false-alarm rate that dragged the old F1 score down disappeared.
+
+**Why this happened:** the old classifier's category output was a single, often-generic guess ("General Support" on 63% of these 70 tickets) that the routing logic frequently couldn't act on with confidence. The new adapter gives routing a real, specific, multi-label category almost every time, so far fewer tickets fall back to the cautious "send to both / escalate" path that used to inflate false alarms.
