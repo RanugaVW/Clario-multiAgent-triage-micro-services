@@ -194,3 +194,23 @@ This time we measured it properly, since two of us built this ground truth indep
 5. **I'll show the fix and the proof.** "We removed stale content, retuned the confidence threshold, and fixed the indexing bug. Then - this is the important part - we tested the fix on two separate datasets at once, not just the one we found the bugs on." *(Show figure 14 and the rank-cutoff curves, figure 15.)*
 6. **I'll give the one honest caveat, unprompted.** "Our best number, 71.4% Precision@1, came partly from knowledge-base wording written with direct knowledge of those specific 70 tickets. The independently-built 99-query set scores a bit lower, 64.4%, and that's the more honest number for how this will do on a ticket nobody's seen before."
 7. **I'll close with what I'd do next.** "If I extended this, I'd plot the actual document embeddings in 2D and color them by success or failure, to see exactly where in the meaning-space retrieval still struggles - right now we know Precision@4 tops out around 32%, but not precisely why for each miss."
+
+---
+
+## 7. After the Gemini-Distilled Llama 3.2 Adapter
+
+Everything above this section was measured on the earlier classifier. Since then we replaced it with a new one: the **Llama 3.2 3B adapter, fine-tuned using Gemini-distilled step-by-step reasoning as the teaching signal**, upgraded from single-category output to genuine multi-label prediction. This section is the same 70-real-ticket test, re-run end-to-end (the model's own routing decision, feeding its own retrieval) after that switch, so it measures the real thing a customer would experience, not a best case.
+
+![After the Gemini-Distilled Llama 3.2 Adapter](figures/18_after_gemini_distilled_llama_adapter.png)
+
+| Metric | Before | After | Change |
+|---|---|---|---|
+| Precision@1 | 47.1% | **52.9%** | +5.8 pts |
+| Recall@4 | 75.7% | **82.9%** | +7.2 pts |
+| MRR | 58.2% | **65.5%** | +7.3 pts |
+
+**Where the gain actually comes from.** The biggest single lever isn't a smarter search algorithm - it's that the new classifier hands routing a real answer far more often. Under the old model, 11 of these 70 tickets got escalated before retrieval ever ran at all (no category the routing logic trusted, so no search happened). Under the new model, that number is **zero** - every ticket reaches a knowledge-base search.
+
+**A newer, smaller feature we also tested: letting the model's own predicted labels re-rank search results**, on top of the usual similarity search, when the model is confident. Tested against a plain search on this same 70-ticket set, it didn't move the needle - roughly flat, and on this small a sample not something to claim as a proven win yet. We're keeping the numbers above to the routing + search improvement, which is the real, measured gain.
+
+**Honest caveat:** the routing decision behind this result depends on the classifier's category output, and the reference used to sanity-check that category output was Gemini's own judgment - the same model the adapter was distilled from - not independent human labels. Track A's actual retrieval ground truth above (Sections 1-3), and the document-relevance answer key this section is scored against, is unaffected by this - it's still the two-person-annotated, human-built answer key throughout.

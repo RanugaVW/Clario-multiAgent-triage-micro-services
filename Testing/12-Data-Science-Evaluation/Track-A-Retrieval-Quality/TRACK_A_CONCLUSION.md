@@ -6,6 +6,8 @@ This page is a short summary for a presentation. It only shows the two evaluatio
 
 *(2026-09-08: the "70 real tickets" numbers below were corrected after the original annotator files turned out to be the wrong version — see `TEST_REPORT_V2.md` §0 for the full explanation. The 99-query baseline numbers are unaffected.)*
 
+*(Update: the classifier feeding routing was since replaced with a new Gemini-distilled, multi-label Llama 3.2 adapter — see Section 7, "After the Gemini-Distilled Llama 3.2 Adapter," in `TRACK_A_FINAL_CONCLUSION_REPORT.md` for that re-test.)*
+
 ---
 
 ## What we were checking
