@@ -1,0 +1,179 @@
+# Automated dependency update proposals (DC-012).
+#
+# Dependabot only PROPOSES updates as pull requests; nothing is merged or deployed automatically.
+# Every proposal must pass the CI workflow (.github/workflows/ci.yml) before it can be reviewed, which is
+# how "updates are evaluated for compatibility before deployment" is enforced. See DEPENDENCIES.md.
+#
+# Intentionally NOT listed (kept in sync with EXCLUDED in the test below): the root requirements.txt (a UTF-16 pip freeze
+# Dependabot may misread - re-save as UTF-8 to include it), clario-app (legacy monolith), Testing/, legacy/.
+#
+# Rules of thumb encoded below:
+#  * one weekly run, minor+patch updates grouped per ecosystem to keep review load small
+#  * MAJOR updates of core frameworks are ignored here - they need a deliberate migration, not a bot PR
+#  * every directory holding a manifest must be listed; tests/contracts/test_dependency_management.py fails CI if one is missed
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    labels: [dependencies, frontend]
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: maven
+    directory: /services/api-gateway
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, java]
+    groups:
+      maven-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: org.springframework.boot:spring-boot-starter-parent
+        update-types: [version-update:semver-major]
+      - dependency-name: org.springframework.cloud:spring-cloud-dependencies
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: maven
+    directory: /services/ticket-core-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, java]
+    groups:
+      maven-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: org.springframework.boot:spring-boot-starter-parent
+        update-types: [version-update:semver-major]
+      - dependency-name: org.springframework.cloud:spring-cloud-dependencies
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: maven
+    directory: /services/agent-review-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, java]
+    groups:
+      maven-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: org.springframework.boot:spring-boot-starter-parent
+        update-types: [version-update:semver-major]
+      - dependency-name: org.springframework.cloud:spring-cloud-dependencies
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: pip
+    directory: /services/ai-orchestrator-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, python]
+    groups:
+      pip-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /services/nlp-classifier-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, python]
+    groups:
+      pip-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /services/voice-to-text-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, python]
+    groups:
+      pip-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /clario-ml-sidecar
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, python]
+    groups:
+      pip-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /ml_finetuning
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, python]
+    groups:
+      pip-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /Visualizer/relay
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 3
+    labels: [dependencies, python]
+    groups:
+      pip-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /services/api-gateway
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 2
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker
+    directory: /services/ticket-core-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 2
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker
+    directory: /services/agent-review-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 2
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker
+    directory: /services/ai-orchestrator-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 2
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker
+    directory: /services/nlp-classifier-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 2
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker
+    directory: /services/voice-to-text-service
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 2
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker
+    directory: /clario-ml-sidecar
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 2
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker
+    directory: /ml_finetuning
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 2
+    labels: [dependencies, docker]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    labels: [dependencies, ci]
