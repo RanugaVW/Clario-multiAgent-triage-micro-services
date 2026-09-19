@@ -16,6 +16,7 @@ import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 import ShakeButton from '../../components/ShakeButton';
 import { formatDate, formatDateTime, formatElapsed, formatDuration, formatRelative, formatTime } from '../../lib/datetime';
 import { fetchJson } from '../../lib/fetchJson';
+import { categoryDomain, priorityColor, sentimentColor, splitCategories } from '../../lib/classification';
 import RotateButton from '../../components/RotateButton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
@@ -179,7 +180,7 @@ const AI_AGENTS = [
 const PIPELINE_NODES = [
   { id: 'surrogate_node', name: 'SurrogateShield', description: 'PII anonymization & redaction', icon: Shield },
   { id: 'analyzer_node', name: 'Semantic Distiller', description: 'Extracts key concepts', icon: Brain },
-  { id: 'classification_node', name: 'Classifier (Gemini)', description: 'LLM-based category, priority, sentiment', icon: Tag },
+  { id: 'classification_node', name: 'Classifier (Llama-3.2 LoRA)', description: 'Fine-tuned LLM: categories, priority, sentiment (Gemini fallback)', icon: Tag },
   { id: 'routing_node', name: 'Router', description: 'Routes to billing, technical, or both agents', icon: GitBranch },
   { id: 'validation_node', name: 'EGC Validator', description: 'Evidence Graph Consistency + LLM Judge', icon: Eye },
   { id: 'reflection_node', name: 'Reflection Node', description: 'Bounded retry on quality/policy failures', icon: RotateCcw },
@@ -201,7 +202,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [ticketPendingDelete, setTicketPendingDelete] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
+  const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high' | 'critical'>('all');
 
   const isFullyLoaded = !loading && !roleLoading;
 
@@ -287,8 +288,7 @@ export default function AdminDashboard() {
       const draft = t.ticket_drafts?.find(d => d.domain === agentDomain);
       if (draft) return true;
       // Fallback: match by classification category
-      if (agentDomain === 'billing') return ['billing', 'account', 'Billing', 'Account'].includes(cls?.category || '');
-      if (agentDomain === 'technical') return ['technical', 'Technical'].includes(cls?.category || '');
+      if (agentDomain === 'billing' || agentDomain === 'technical') return categoryDomain(cls?.category) === agentDomain;
       return false;
     });
   };
@@ -306,15 +306,17 @@ export default function AdminDashboard() {
   // Distinct categories actually present in the data, most common first —
   // derived rather than hardcoded so it stays in sync with the taxonomy.
   const categoryCounts = allTickets.reduce<Record<string, number>>((acc, t) => {
-    const category = t.ticket_classifications?.[0]?.category;
-    if (category) acc[category] = (acc[category] || 0) + 1;
+    // A ticket can carry several categories; count it under each one.
+    for (const category of splitCategories(t.ticket_classifications?.[0]?.category)) {
+      acc[category] = (acc[category] || 0) + 1;
+    }
     return acc;
   }, {});
   const ticketCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
 
   const filteredAllTickets = allTickets
     .filter(t => !searchQuery || t.id.toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter(t => categoryFilter === 'all' || t.ticket_classifications?.[0]?.category === categoryFilter)
+    .filter(t => categoryFilter === 'all' || splitCategories(t.ticket_classifications?.[0]?.category).includes(categoryFilter))
     .filter(t => priorityFilter === 'all' || t.ticket_classifications?.[0]?.priority?.toLowerCase() === priorityFilter);
 
   const handleLogout = async () => {
@@ -629,7 +631,7 @@ export default function AdminDashboard() {
             {/* Priority filter */}
             <div className="px-6 pt-4 flex items-center gap-2">
               <span className="text-xs text-[#8A8F98] mr-1">Priority:</span>
-              {(['all', 'high', 'medium', 'low'] as const).map(p => (
+              {(['all', 'critical', 'high', 'medium', 'low'] as const).map(p => (
                 <PriorityPill key={p} active={priorityFilter === p} onClick={() => setPriorityFilter(p)} priority={p} />
               ))}
             </div>
@@ -668,9 +670,9 @@ export default function AdminDashboard() {
 function HumanReviewTabs({ humanReviewTickets, onDelete }: { humanReviewTickets: Ticket[], onDelete?: (id: string) => void }) {
   const [activeSubTab, setActiveSubTab] = useState<'billing' | 'technical' | 'other'>('other');
 
-  const billingTickets = humanReviewTickets.filter(t => ['billing', 'account', 'Billing', 'Account'].includes(t.ticket_classifications?.[0]?.category || ''));
-  const technicalTickets = humanReviewTickets.filter(t => ['technical', 'Technical'].includes(t.ticket_classifications?.[0]?.category || ''));
-  const otherTickets = humanReviewTickets.filter(t => !['billing', 'account', 'Billing', 'Account', 'technical', 'Technical'].includes(t.ticket_classifications?.[0]?.category || ''));
+  const billingTickets = humanReviewTickets.filter(t => categoryDomain(t.ticket_classifications?.[0]?.category) === 'billing');
+  const technicalTickets = humanReviewTickets.filter(t => categoryDomain(t.ticket_classifications?.[0]?.category) === 'technical');
+  const otherTickets = humanReviewTickets.filter(t => categoryDomain(t.ticket_classifications?.[0]?.category) === 'other');
 
   let activeTickets = otherTickets;
   if (activeSubTab === 'billing') activeTickets = billingTickets;
@@ -1028,9 +1030,9 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                 <span className="text-xs text-[#8A8F98] block mb-2">Pipeline telemetry</span>
                 <div className="flex flex-wrap gap-2">
                   <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#ECECEC]">Category: {classification.category || 'unknown'}</span>
-                  <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: classification.priority?.toLowerCase() === 'high' ? '#FB923C' : '#8A8F98' }}>Priority: {classification.priority}</span>
+                  <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: priorityColor(classification.priority) ?? '#8A8F98' }}>Priority: {classification.priority}</span>
                   {classification.sentiment && (
-                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: classification.sentiment.toLowerCase() === 'negative' ? '#FB7185' : '#8A8F98' }}>Sentiment: {classification.sentiment}</span>
+                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: sentimentColor(classification.sentiment) ?? '#8A8F98' }}>Sentiment: {classification.sentiment}</span>
                   )}
                   {classification.confidence != null && (
                     <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#2DD4BF]">Confidence: {(classification.confidence * 100).toFixed(0)}%</span>
@@ -1233,6 +1235,7 @@ function CategoryPill({ active, onClick, label, count }: {
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
+  critical: '#F43F5E',
   high: '#FB7185',
   medium: '#FB923C',
   low: '#8A8F98',
@@ -1240,7 +1243,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 /** One priority pill in the All Tickets filter row. */
 function PriorityPill({ active, onClick, priority }: {
-  active: boolean; onClick: () => void; priority: 'all' | 'low' | 'medium' | 'high';
+  active: boolean; onClick: () => void; priority: 'all' | 'low' | 'medium' | 'high' | 'critical';
 }) {
   const color = PRIORITY_COLORS[priority];
   return (

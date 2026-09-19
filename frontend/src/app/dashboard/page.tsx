@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, LogOut, Star } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
+import { priorityColor } from '../../lib/classification';
 import { GlassPanel, GlassButton, GlassTextarea, Modal, ConfirmDialog, StatusBadge } from '../../components/ui';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
@@ -651,7 +652,7 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
                   label="Priority"
                   value={classification.priority}
                   mono
-                  color={classification.priority.toLowerCase() === 'high' ? '#FB923C' : undefined}
+                  color={priorityColor(classification.priority)}
                 />
               )}
               <UserMetaItem label="Handled by" value={handledBy} />
