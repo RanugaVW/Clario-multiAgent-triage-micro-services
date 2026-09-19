@@ -35,7 +35,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.5",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "16.2.12",
     "jsdom": "^30.0.1",
     "lighthouse": "^13.4.1",
