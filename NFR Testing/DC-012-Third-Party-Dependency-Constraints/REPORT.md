@@ -18,5 +18,5 @@
 ## Honest limits
 - **No automation means no reminders.** Nothing tells you a library is outdated or has an advisory; you must look (`npm audit`, `./mvnw versions:display-dependency-updates`, `pip list --outdated`). `npm audit` currently reports advisories in `next`, `postcss`, `nanoid` and `sharp` that are worth a deliberate update.
 - The guardrail checks that the *inventory is documented*, not that versions are current.
-- GitHub's separate **Dependabot security updates** and **alerts** are repository settings, not files. Automatic security-update PRs were switched off (see the maintainer notes in the commit); vulnerability *alerts* (notifications only) are left as a repository setting for the maintainer to decide.
+- GitHub's separate **Dependabot security updates** and **alerts** are repository settings, not files. Automatic security-update PRs were already **disabled** on this repository (verified via the API: `enabled: false`); no setting was changed. Vulnerability *alerts* (notifications only) are the maintainer's choice in Settings → Code security.
 - The root `requirements.txt` is UTF-16 and remains outside the process; `clario-app/`, `legacy/`, `Testing/` are excluded.
