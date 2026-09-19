@@ -4,6 +4,8 @@
 
 This page is a short summary for a presentation. Full detail lives in `pilot-99-query/TRACK_C_PILOT_99_REPORT.md` (the pilot round that found the fixes) and `TRACK_C_70_TICKET_REPORT.md` (the final numbers).
 
+*(Update: the classifier upstream of drafting was since replaced with a new Gemini-distilled, multi-label Llama 3.2 adapter — see Section 7, "After the Gemini-Distilled Llama 3.2 Adapter," in `TRACK_C_FINAL_CONCLUSION_REPORT.md` for that re-test.)*
+
 ---
 
 ## What we were checking

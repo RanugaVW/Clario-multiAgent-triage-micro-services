@@ -1,0 +1,95 @@
+query_id,domain_drafted,sentence,max_similarity,supported
+Q001,technical,"Additionally, if you could provide the names of the specific sessions or courses where the recordings and notes are missing, it will help me investigate this further for you.",0.3833,True
+Q003,technical,"Additionally, please try refreshing your page or clearing your browser cache to see if that allows you to proceed.",0.295,False
+Q003,technical,I will personally review the details you provide and follow up with you via email within 24 hours with an update on the next steps.,0.3366,False
+Q005,technical,"Additionally, please provide the specific names or identifiers of the affected recordings.",0.3828,True
+Q006,technical,"Additionally, please try refreshing your page or logging out and back in to see if the content appears.",0.2854,False
+Q006,technical,"If the issue persists, please let me know if you see any specific error messages when you attempt to access these items, as this will help me investigate further.",0.4141,True
+Q007,technical,"Additionally, if you could provide the name of the course you are trying to access, I will be happy to investigate the status of your enrollment and see why the button is not appearing as expected.",0.4662,True
+Q008,technical,"Additionally, please let me know which course you are trying to access and if you see any specific error messages when the page refreshes.",0.3994,True
+Q009,technical,"Once I have that information, I will check the course materials for you and provide instructions on how to access the session recording.",0.2899,False
+Q010,technical,"Additionally, it would be helpful to know if you have tried refreshing the page or attempting the update in a different web browser or a private/incognito window.",0.3396,False
+Q011,hr,"Because bank slip payments often require a manual verification step to ensure they are correctly linked to your account, your payment is currently waiting for a member of our finance team to review the documentation.",0.6795,True
+Q013,technical,This sounds like a connection issue between your browser and our learning environment.,0.3886,True
+Q013,technical,"Additionally, if you are using any browser extensions, such as ad-blockers or script-blockers, please try disabling them temporarily.",0.4561,True
+Q014,technical,"Additionally, please try opening the login page in a private or 'incognito' browser window to see if that allows you to proceed.",0.4047,True
+Q016,technical,"Additionally, please try opening the page in a private or incognito browser window to see if the link appears there.",0.2361,False
+Q017,technical,"Since the notebook viewer is showing the file tag but not the content, it is possible that there is a connection issue between our platform and the integrated service.",0.3602,True
+Q017,technical,"If the content still does not appear, please let us know if you see any specific error codes or messages in your browser's console when the page loads, as this will help our team pinpoint the cause.",0.3885,True
+Q018,technical,"Additionally, please try disconnecting and reconnecting your Zoom integration in your account settings to see if that clears the connection.",0.3565,True
+Q022,hr,I have forwarded your request to our billing team to review your account status and the upcoming payment cycle.,0.4676,True
+Q023,hr,"I have forwarded your request to our review team, who will look into your specific circumstances and the details of your enrollment.",0.4666,True
+Q024,billing,I am going to look into your account details right now to identify the correct steps for your specific plan.,0.3755,True
+Q025,billing,"Hi there, I would be happy to assist you with your request to cancel your course subscription.",0.5546,True
+Q025,billing,"To ensure this is processed correctly, please log in to your account and navigate to your billing settings.",0.4037,True
+Q025,billing,"Once you have completed the cancellation steps there, your account will reflect the change.",0.5776,True
+Q025,billing,"Please let me know once you have done this, and I will be happy to verify the status of your subscription and provide you with the written confirmation you requested regarding your future billing.",0.4717,True
+Q026,billing,"Hi there, I understand that you need to cancel your subscription for the [REDACTED_ORG] course.",0.5014,True
+Q026,billing,You can manage your subscription and stop future renewals directly through your account billing settings on your dashboard.,0.6647,True
+Q026,billing,"Once you process the cancellation, you will typically retain access to the course materials until the end of your current billing period.",0.594,True
+Q026,billing,"If you have questions regarding your specific billing cycle or potential refund eligibility, please let me know, and I can have our billing team review your account details for you.",0.5071,True
+Q027,billing,I have escalated this to our billing team to investigate why your previous request did not prevent this renewal.,0.5577,True
+Q027,billing,I will have an update for you regarding the status of your request within 24 hours.,0.2168,False
+Q028,billing,I would like to get this resolved for you as quickly as possible.,0.2054,False
+Q028,billing,Please do not share your full card number or any bank login credentials.,0.279,False
+Q029,hr,I have flagged your account for a manual review so our team can ensure your records correctly reflect your single payment.,0.5278,True
+Q029,hr,A member of our billing team will review the submitted documents and clear the duplicate entry.,0.3943,True
+Q030,billing,Please do not share your full card number or any bank login details.,0.3712,True
+Q031,billing,Please do not share your full card number or any bank login details.,0.3712,True
+Q034,technical,I am going to look into the status of your account right now to identify why this block has occurred.,0.3986,True
+Q036,technical,I want to clarify that our system does not automatically block accounts due to refund requests.,0.3888,True
+Q036,billing,I am escalating this to our technical team to investigate your account status and the cause of this restriction.,0.3171,False
+Q037,technical,I want to get this resolved for you as quickly as possible.,0.2401,False
+Q037,technical,I will personally review this and follow up with you via email within the next 24 hours.,0.2728,False
+Q038,technical,"Once I have that, I will review the security logs and reach out to you with an update or the next steps by the end of the business day.",0.4518,True
+Q039,technical,"Hi there, I'm glad to hear you've regained access to your account.",0.4427,True
+Q039,technical,"To protect the security of your information, our system automatically monitors for unusual activity or multiple unsuccessful login attempts.",0.3983,True
+Q039,technical,"When these thresholds are met, the system temporarily restricts access as a safety precaution.",0.2534,False
+Q039,technical,"While I cannot provide the specific logs that triggered this for your account, you can help prevent this in the future by ensuring your login credentials are saved securely and checking that no other devices or browser sessions are attempting to sign in with your details simultaneously.",0.4718,True
+Q039,technical,"If you experience this again, please reach out so we can look into it further for you.",0.3151,False
+Q040,hr,I have forwarded your request to our billing and enrollment team so they can manually review your account and check your eligibility for a refund.,0.5361,True
+Q041,hr,"I have forwarded your request to our review team, who will look into your account and the specific details of your enrollment to determine the next steps.",0.4142,True
+Q042,billing,"To assist you with this, I have forwarded your request to our billing team.",0.2837,False
+Q042,billing,They will review your enrollment details and your account activity to determine eligibility based on our current refund policy.,0.6973,True
+Q042,billing,You will hear back from us once that review is complete.,0.2759,False
+Q043,hr,I understand you have requested a refund for your course and are waiting for an update.,0.5619,True
+Q043,hr,I have escalated your request to our billing team for a manual review of your account and refund eligibility.,0.5142,True
+Q045,technical,I understand you are looking to cancel your enrollment and would like to know if you are eligible for a partial refund given that you have already attended some sessions.,0.4258,True
+Q045,technical,I have forwarded your request to our billing and support team to review your account and the specific course policy.,0.501,True
+Q045,technical,They will take a look at your enrollment details and get back to you shortly with information on what options may be available to you.,0.3999,True
+Q046,hr,"I have escalated your request to our review team, who will look into the details of the instructor change and assess your refund request based on the course's original enrollment terms.",0.7342,True
+Q047,hr,"I have escalated your request to our course management team, who will manually review the details of your enrollment and the recent instructor change to determine if a batch transfer is possible.",0.4524,True
+Q048,hr,"Because your request involves a change in course delivery, I have escalated this to our review team.",0.5021,True
+Q048,hr,A specialist will look into the details of your enrollment and the instructor changes to assess the situation.,0.4452,True
+Q049,hr,"Because this involves a change in the course delivery, I have escalated your case to our review team.",0.6069,True
+Q049,hr,"They will look into the details of your specific course and the change that occurred to determine how we can best support you, whether that involves a transfer to a different batch or another form of accommodation.",0.4725,True
+Q049,hr,A member of our team will review your situation and reach out to you directly with the next steps.,0.3218,False
+Q050,hr,"Because your request involves a change in course instruction, I have escalated this to our review team.",0.5522,True
+Q050,hr,A human reviewer will assess your case to determine if the change materially affected your learning experience as promised at enrollment.,0.5972,True
+Q051,billing,I am escalating your request to our billing review team to conduct a thorough audit of your account against our current refund policy.,0.4721,True
+Q051,billing,They will look into the specific details of your enrollment and usage to determine the exact reason for the decision.,0.4656,True
+Q052,billing,I am escalating your request to our billing team to investigate the specific reason for this status.,0.432,True
+Q052,billing,I will personally review your account details and the policy criteria applied to your request.,0.358,True
+Q055,billing,I have escalated your request to our billing department to conduct a formal review of your account and the specific eligibility criteria regarding your purchase.,0.4588,True
+Q060,technical,Please don't worry—we can certainly look into getting you moved over to the correct course.,0.3266,False
+Q060,billing,Please don't worry about falling behind—we will do our best to get this sorted out for you.,0.167,False
+Q061,billing,I have escalated this to our billing team to investigate the transaction details and the status of the discount code you used.,0.6007,True
+Q061,billing,Please reply to this email with the specific discount code you attempted to use and the date of your purchase so we can locate your transaction quickly.,0.4925,True
+Q061,billing,A member of our team will review your account and reach out to you with an update within 24 hours.,0.2764,False
+Q062,billing,I am going to look into your account and the specific transaction details right now to see exactly what happened during your checkout.,0.4121,True
+Q062,billing,I will have an update for you regarding the status of this charge and the potential for a price adjustment by the end of the day tomorrow.,0.4314,True
+Q062,billing,This will help me narrow down the issue quickly.,0.2281,False
+Q063,billing,I understand you were hoping to secure the early-bird discount for your course.,0.299,False
+Q063,billing,"Promotional offers, such as early-bird pricing, are typically available for a limited time and expire once the designated window closes.",0.2649,False
+Q065,billing,I understand you intended to use a discount code for your recent course enrollment but were charged the full price.,0.5624,True
+Q066,technical,"Additionally, it would be very helpful to know if the freezing happens when you join the session directly through the Zoom app instead of our platform.",0.3462,False
+Q067,technical,"Once I have that, I will check your account status and look into why the certificate has not been generated yet.",0.324,False
+Q069,technical,"Additionally, if you could let me know which browser and device you are currently using, it will help me narrow down the cause.",0.5151,True
+Q069,technical,I will personally review the information you provide and follow up with you by the end of the day tomorrow with a status update or further instructions.,0.3312,False
+Q070,technical,I am going to look into your account right now to see if your submission was recorded on our end.,0.294,False
+Q070,technical,I will have an update for you on your quiz status within the next 24 hours.,0.314,False
+Q071,technical,"In the meantime, please ensure your app is updated to the latest version in your app store and try restarting your device.",0.4002,True
+Q053,billing,"It is completely understandable that you would want a clear explanation for this decision, and I apologize that our communication has not met your expectations.",0.2048,False
+Q053,billing,I have escalated your request to our billing review team to conduct a thorough audit of your account and the specific reasons for the denial.,0.477,True
+Q054,billing,I would like to take a closer look at this for you.,0.0014,False
+Q054,billing,I am going to escalate your request to our billing review team so they can re-examine your account activity and the specific details of your enrollment against our current refund policy.,0.6058,True
