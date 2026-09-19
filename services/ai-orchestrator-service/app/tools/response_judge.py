@@ -21,6 +21,8 @@ from dataclasses import dataclass, asdict, field
 from google import genai
 from google.genai import types
 
+from app.tools.gemini_pool import gemini_client, is_permanently_dead, mark_dead
+
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -487,15 +489,25 @@ class ResponseJudge:
         # real async accessor (client.aio.models...) instead; awaiting the
         # sync one raised "GenerateContentResponse can't be used in 'await'
         # expression" on every call that would otherwise have succeeded.
-        response = await self.client.aio.models.generate_content(
-            model=self.config.model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=self.config.temperature,
-                response_mime_type="application/json",
-            ),
-        )
+        # A fresh pool client each call, not the one from __init__: evaluate()'s
+        # retry loop calls _call_gemini() again on failure, so a rate-limited
+        # key gets swapped out for the next one on the very next attempt
+        # instead of retrying the same exhausted key.
+        client = gemini_client()
+        try:
+            response = await client.aio.models.generate_content(
+                model=self.config.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=self.config.temperature,
+                    response_mime_type="application/json",
+                ),
+            )
+        except Exception as e:
+            if is_permanently_dead(e):
+                mark_dead(client)
+            raise
         return response.text
 
     async def _call_openai(self, prompt: str, system_prompt: str = JUDGE_SYSTEM_PROMPT) -> str:
