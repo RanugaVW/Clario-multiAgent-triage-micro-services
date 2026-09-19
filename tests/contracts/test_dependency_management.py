@@ -1,106 +1,53 @@
-"""DC-012: dependency versions are managed with the project's tooling, and updates are proposed for evaluation.
+"""DC-012: dependency versions are documented, and the inventory in DEPENDENCIES.md stays complete.
 
-Fails when a manifest is added without being registered with Dependabot (so it would silently never get
-update proposals), or when dependabot.yml points at a directory/manifest that does not exist.
+Fails when a manifest (pom.xml, package.json, requirements*.txt, Dockerfile) is added to the repository without its
+directory being listed in DEPENDENCIES.md, so the documented inventory cannot silently go stale.
 """
 import subprocess
 from pathlib import Path
 
 import pytest
-import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+DOC = (ROOT / "DEPENDENCIES.md").read_text(encoding="utf-8")
 
-MANIFEST_ECOSYSTEM = {
-    "pom.xml": "maven",
-    "package.json": "npm",
-    "Dockerfile": "docker",
-}
-# requirements*.txt -> pip, handled separately below.
-
-# Manifests deliberately not covered, each with the reason.
+# Manifests deliberately outside the process, each with the reason (also stated under "Known exceptions").
 EXCLUDED = {
-    "requirements.txt": "root pip freeze is UTF-16 encoded; Dependabot may misread it. Re-save as UTF-8 to include it",
+    "requirements.txt": "root pip freeze is UTF-16 encoded",
     "clario-app/pom.xml": "legacy monolith, only its .env is still used by docker-compose",
 }
 EXCLUDED_PREFIXES = ("legacy/", "Testing/", ".worktrees/")
+MANIFEST_NAMES = {"pom.xml", "package.json", "Dockerfile"}
 
 
-def tracked_manifests():
+def tracked_manifest_dirs():
     files = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.splitlines()
-    found = []
+    found = set()
     for f in files:
         name = Path(f).name
         if f in EXCLUDED or f.startswith(EXCLUDED_PREFIXES):
             continue
-        if name in MANIFEST_ECOSYSTEM:
-            found.append((f, MANIFEST_ECOSYSTEM[name]))
-        elif name.startswith("requirements") and name.endswith(".txt"):
-            found.append((f, "pip"))
-    return found
+        if name in MANIFEST_NAMES or (name.startswith("requirements") and name.endswith(".txt")):
+            found.add(str(Path(f).parent))
+    return sorted(found)
 
 
-@pytest.fixture(scope="module")
-def config():
-    return yaml.safe_load((ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8"))
+@pytest.mark.parametrize("directory", tracked_manifest_dirs())
+def test_every_manifest_directory_is_listed_in_the_policy_document(directory):
+    assert f"{directory}/" in DOC, f"{directory}/ holds a dependency manifest but is not listed in DEPENDENCIES.md"
 
 
-def entries(config):
-    return [(u["package-ecosystem"], u["directory"]) for u in config["updates"]]
+def test_the_inventory_is_not_empty_and_the_parser_sees_the_known_manifests():
+    dirs = set(tracked_manifest_dirs())
+    assert {"frontend", "services/api-gateway", "services/ai-orchestrator-service", "clario-ml-sidecar"} <= dirs
 
 
-def test_config_is_version_2_with_weekly_schedules(config):
-    assert config["version"] == 2
-    for update in config["updates"]:
-        assert update["schedule"]["interval"] == "weekly", update
+def test_the_policy_names_every_ecosystem_and_the_ci_gate():
+    for word in ("npm", "Maven", "pip", "Docker", "GitHub Actions", "CI", "major"):
+        assert word.lower() in DOC.lower(), word
 
 
-@pytest.mark.parametrize("manifest,ecosystem", tracked_manifests())
-def test_every_tracked_manifest_is_registered(config, manifest, ecosystem):
-    directory = "/" + str(Path(manifest).parent).replace("\\", "/")
-    directory = "/" if directory == "/." else directory
-    assert (ecosystem, directory) in entries(config), f"{manifest} is not covered by a {ecosystem} entry for {directory}"
-
-
-def test_every_entry_points_at_a_real_manifest(config):
-    manifests = {(eco, "/" + str(Path(f).parent).replace("\\", "/")) for f, eco in tracked_manifests()}
-    for eco, directory in entries(config):
-        if eco == "github-actions":
-            assert (ROOT / ".github" / "workflows").is_dir()
-            continue
-        assert (eco, directory) in manifests, f"dependabot entry {eco} {directory} matches no tracked manifest"
-
-
-def test_no_duplicate_entries(config):
-    e = entries(config)
-    assert len(e) == len(set(e))
-
-
-def test_core_framework_major_upgrades_are_not_automatic(config):
-    ignored = {}
-    for u in config["updates"]:
-        for rule in u.get("ignore", []):
-            ignored.setdefault(u["package-ecosystem"], set()).add(rule["dependency-name"])
-    assert {"next", "react", "react-dom"} <= ignored["npm"]
-    assert "org.springframework.boot:spring-boot-starter-parent" in ignored["maven"]
-
-
-def test_dependency_policy_document_exists_and_names_every_ecosystem():
-    text = (ROOT / "DEPENDENCIES.md").read_text(encoding="utf-8")
-    for word in ("npm", "Maven", "pip", "Docker", "GitHub Actions", "Dependabot", "CI"):
-        assert word in text
-
-
-def test_open_pull_requests_are_capped_at_one_per_entry(config):
-    """Every Dependabot PR starts a full CI run. The first activation once opened ~25 PRs at once and buried the
-    project's own CI run in a queue, so the cap is part of the contract."""
-    for update in config["updates"]:
-        assert update.get("open-pull-requests-limit") == 1, update
-
-
-def test_major_version_bumps_are_never_proposed_automatically(config):
-    for update in config["updates"]:
-        rules = update.get("ignore", [])
-        assert any(
-            r["dependency-name"] == "*" and "version-update:semver-major" in r["update-types"] for r in rules
-        ), f"{update['package-ecosystem']} {update['directory']} does not ignore major updates"
+def test_no_bot_configuration_is_committed():
+    """Updates are made by hand from a maintainer's account; no bot may open PRs or push commits."""
+    for name in ("dependabot.yml", "dependabot.yaml", "renovate.json", ".renovaterc", ".renovaterc.json"):
+        assert not (ROOT / ".github" / name).exists() and not (ROOT / name).exists(), f"{name} must not be committed"
