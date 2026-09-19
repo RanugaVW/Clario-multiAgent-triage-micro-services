@@ -14,10 +14,10 @@ How third-party libraries, frameworks and base images are versioned, documented 
 
 ## How updates are proposed and evaluated
 
-1. **Dependabot** (`.github/dependabot.yml`) opens pull requests weekly for every ecosystem above. Minor and patch updates are grouped per ecosystem.
+1. **Dependabot** (`.github/dependabot.yml`) opens pull requests weekly for every ecosystem above. Minor and patch updates are grouped per ecosystem, and **at most one PR is open per manifest directory** — each PR starts a full CI run, and the first activation (unbounded) opened ~25 at once and queued the project's own CI behind them.
 2. **CI must pass** (`.github/workflows/ci.yml`: frontend lint + tests, Java tests per service, contract tests). A failing update PR is not merged — this is the
    compatibility evaluation before deployment. Nothing is auto-merged or auto-deployed.
-3. **Major upgrades of core frameworks** (Next.js, React, Spring Boot, Spring Cloud) are *ignored* by the bot. They are planned migrations with their own change and test pass.
+3. **Major upgrades are never proposed by the bot** (all ecosystems); Next.js, React, Spring Boot and Spring Cloud are additionally listed by name. A major is a planned migration with its own change and test pass — enable one deliberately by removing its ignore rule for the duration of the migration.
 4. **External AI providers** are only reached through the integration modules in the orchestrator/sidecar (not called ad hoc from feature code), so a provider or SDK change is confined to that seam.
 5. **Guardrail:** `tests/contracts/test_dependency_management.py` fails CI if a new manifest is added without being registered with Dependabot, or if the config points at something that no longer exists.
 

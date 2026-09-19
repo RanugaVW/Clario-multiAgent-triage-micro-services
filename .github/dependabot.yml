@@ -9,19 +9,24 @@
 #
 # Rules of thumb encoded below:
 #  * one weekly run, minor+patch updates grouped per ecosystem to keep review load small
-#  * MAJOR updates of core frameworks are ignored here - they need a deliberate migration, not a bot PR
+#  * MAJOR updates are ignored everywhere - they need a deliberate migration, not a bot PR (the framework-specific
+#    entries below are kept so the intent stays explicit)
+#  * at most ONE open PR per manifest directory: every PR starts a full CI run, and an unbounded first run buried the
+#    project's own CI in a queue of ~25 Dependabot runs
 #  * every directory holding a manifest must be listed; tests/contracts/test_dependency_management.py fails CI if one is missed
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /frontend
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     labels: [dependencies, frontend]
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
     ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
       - dependency-name: next
         update-types: [version-update:semver-major]
       - dependency-name: react
@@ -32,12 +37,14 @@ updates:
   - package-ecosystem: maven
     directory: /services/api-gateway
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels: [dependencies, java]
     groups:
       maven-minor-patch:
         update-types: [minor, patch]
     ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
       - dependency-name: org.springframework.boot:spring-boot-starter-parent
         update-types: [version-update:semver-major]
       - dependency-name: org.springframework.cloud:spring-cloud-dependencies
@@ -46,12 +53,14 @@ updates:
   - package-ecosystem: maven
     directory: /services/ticket-core-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels: [dependencies, java]
     groups:
       maven-minor-patch:
         update-types: [minor, patch]
     ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
       - dependency-name: org.springframework.boot:spring-boot-starter-parent
         update-types: [version-update:semver-major]
       - dependency-name: org.springframework.cloud:spring-cloud-dependencies
@@ -60,12 +69,14 @@ updates:
   - package-ecosystem: maven
     directory: /services/agent-review-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels: [dependencies, java]
     groups:
       maven-minor-patch:
         update-types: [minor, patch]
     ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
       - dependency-name: org.springframework.boot:spring-boot-starter-parent
         update-types: [version-update:semver-major]
       - dependency-name: org.springframework.cloud:spring-cloud-dependencies
@@ -74,106 +85,153 @@ updates:
   - package-ecosystem: pip
     directory: /services/ai-orchestrator-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels: [dependencies, python]
     groups:
       pip-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: pip
     directory: /services/nlp-classifier-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels: [dependencies, python]
     groups:
       pip-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: pip
     directory: /services/voice-to-text-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels: [dependencies, python]
     groups:
       pip-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: pip
     directory: /clario-ml-sidecar
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels: [dependencies, python]
     groups:
       pip-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: pip
     directory: /ml_finetuning
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels: [dependencies, python]
     groups:
       pip-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: pip
     directory: /Visualizer/relay
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels: [dependencies, python]
     groups:
       pip-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /services/api-gateway
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     labels: [dependencies, docker]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /services/ticket-core-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     labels: [dependencies, docker]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /services/agent-review-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     labels: [dependencies, docker]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /services/ai-orchestrator-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     labels: [dependencies, docker]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /services/nlp-classifier-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     labels: [dependencies, docker]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /services/voice-to-text-service
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     labels: [dependencies, docker]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /clario-ml-sidecar
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     labels: [dependencies, docker]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: docker
     directory: /ml_finetuning
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     labels: [dependencies, docker]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 1
     labels: [dependencies, ci]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+

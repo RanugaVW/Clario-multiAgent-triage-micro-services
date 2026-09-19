@@ -89,3 +89,18 @@ def test_dependency_policy_document_exists_and_names_every_ecosystem():
     text = (ROOT / "DEPENDENCIES.md").read_text(encoding="utf-8")
     for word in ("npm", "Maven", "pip", "Docker", "GitHub Actions", "Dependabot", "CI"):
         assert word in text
+
+
+def test_open_pull_requests_are_capped_at_one_per_entry(config):
+    """Every Dependabot PR starts a full CI run. The first activation once opened ~25 PRs at once and buried the
+    project's own CI run in a queue, so the cap is part of the contract."""
+    for update in config["updates"]:
+        assert update.get("open-pull-requests-limit") == 1, update
+
+
+def test_major_version_bumps_are_never_proposed_automatically(config):
+    for update in config["updates"]:
+        rules = update.get("ignore", [])
+        assert any(
+            r["dependency-name"] == "*" and "version-update:semver-major" in r["update-types"] for r in rules
+        ), f"{update['package-ecosystem']} {update['directory']} does not ignore major updates"
