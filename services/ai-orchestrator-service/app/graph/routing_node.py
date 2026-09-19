@@ -1,6 +1,7 @@
 """First-pass routing and the v3 one-time explicit reroute flip."""
 
 from app.graph.state import TicketState
+from app.tools.taxonomy import domains_for, split_category
 
 TECHNICAL_KEYWORDS = {
     "error": 2, "failed": 1, "crash": 3, "not working": 1, "bug": 2,
@@ -99,16 +100,56 @@ def check_rag_required(text: str) -> bool:
     return True
 
 
-def decide_routing(category: str | None, confidence: float | None, text: str) -> str:
-    """Choose the initial specialist domain without modifying state. Routes to
-    "both" (send to both specialists, not a guess) whenever the classifier
-    itself is unsure or the ticket text carries a genuine dual-domain signal;
-    "escalation" is reserved for when there's no usable signal at all."""
-    # Low classifier confidence: don't trust the category, give both specialists a shot.
-    if confidence is not None and confidence < 0.7:
-        return "both"
+# Below this classifier confidence the category isn't trusted and routing falls
+# back to the ticket text. Confidence is the model's certainty about the category
+# labels (see local_llm._category_confidence): on 150 held-out tickets the
+# category was right only ~1/3 of the time under 0.5 and 96% of the time from
+# 0.95. On 127 human-labelled real tickets, sending every low-confidence ticket
+# to "both" specialists at the old 0.7 cut cost 11 points of routing accuracy
+# (0.89 -> 0.77) and never fixed a wrong route; falling back to the text at 0.5
+# costs at most ~2 points.
+LOW_CATEGORY_CONFIDENCE = 0.5
 
-    # No category at all: same reasoning as low confidence.
+
+def _route_by_category(category: str | list[str], tech_score: int, billing_score: int) -> str | None:
+    """The specialist domain a category points at, or None if it names none."""
+    labels = category if isinstance(category, list) else split_category(category)
+    if labels:
+        # Labels from the fine-tuned classifier's taxonomy. A ticket can carry
+        # several; if they point at both domains the ticket text decides.
+        domains = domains_for(labels)
+        if len(domains) == 1:
+            return next(iter(domains))
+        if len(domains) == 2:
+            if billing_score > tech_score:
+                return "billing"
+            if tech_score > billing_score:
+                return "technical"
+            return "both"
+        return None  # e.g. Feature Request / Content & Media: no domain of their own
+
+    # Free-text categories from other classifiers (or older rows).
+    cat_lower = category.lower() if isinstance(category, str) else ""
+    if "technical" in cat_lower or "tech" in cat_lower:
+        return "technical"
+    # Access wording wins over billing wording, so "Account Access" is not
+    # swallowed by the billing branch on the bare word "account".
+    if any(term in cat_lower for term in ACCOUNT_ACCESS_TERMS):
+        return "technical"
+    if any(term in cat_lower for term in ACCOUNT_BILLING_TERMS):
+        return "billing"
+    # A bare "Account" is genuinely ambiguous: fall through to scoring the
+    # ticket text rather than guessing a domain from the label alone.
+    return None
+
+
+def decide_routing(category: str | list[str] | None, confidence: float | None, text: str) -> str:
+    """Choose the initial specialist domain without modifying state. Routes to
+    "both" (send to both specialists, not a guess) whenever the ticket text
+    carries a genuine dual-domain signal, or when neither the category (too
+    uncertain) nor the text says anything; "escalation" is reserved for when
+    there's no usable signal at all."""
+    # No category at all: give both specialists a shot.
     if not category:
         return "both"
 
@@ -147,18 +188,11 @@ def decide_routing(category: str | None, confidence: float | None, text: str) ->
     if tech_score > 0 and billing_score > 0:
         return "both"
 
-    # Primary logic: Trust the LLM's classification category
-    cat_lower = category.lower()
-    if "technical" in cat_lower or "tech" in cat_lower:
-        return "technical"
-    # Access wording wins over billing wording, so "Account Access" is not
-    # swallowed by the billing branch on the bare word "account".
-    if any(term in cat_lower for term in ACCOUNT_ACCESS_TERMS):
-        return "technical"
-    if any(term in cat_lower for term in ACCOUNT_BILLING_TERMS):
-        return "billing"
-    # A bare "Account" is genuinely ambiguous: fall through to scoring the
-    # ticket text rather than guessing a domain from the label alone.
+    category_trusted = confidence is None or confidence >= LOW_CATEGORY_CONFIDENCE
+    if category_trusted:
+        domain = _route_by_category(category, tech_score, billing_score)
+        if domain:
+            return domain
 
     if tech_score > 0 or billing_score > 0:
         if billing_score > tech_score:
@@ -168,7 +202,10 @@ def decide_routing(category: str | None, confidence: float | None, text: str) ->
         # If scores are exactly tied and > 0, we can't decide confidently
         return "escalation"
 
-    return "escalation"
+    # Nothing to go on. With an untrusted category that is uncertainty, so
+    # both specialists get a look; with a trusted one that names no domain,
+    # it is the "no usable routing signal" case for a human.
+    return "escalation" if category_trusted else "both"
 
 
 def routing_node(state: TicketState) -> TicketState:
@@ -186,7 +223,7 @@ def routing_node(state: TicketState) -> TicketState:
     if not needs_reroute and not reroute_attempted:
         text = state.get("redacted_text", "")
         decision = decide_routing(
-            state.get("category"),
+            state.get("categories") or state.get("category"),
             state.get("classification_confidence"),
             text,
         )

@@ -282,9 +282,8 @@ async def background_orchestration(ticket: TicketRequest, initial_state: dict, s
                 "priority": final_state.get("priority"),
                 "sentiment": final_state.get("sentiment"),
                 "confidence": final_state.get("classification_confidence"),
-                # Was hardcoded to "gemini" regardless of what actually classified
-                # the ticket - classify_ticket_local runs the local fine-tuned
-                # adapter (source "llama32_lora"), never Gemini directly.
+                # The real provenance - "llama32_lora_v2", or "gemini_fallback" when
+                # the local adapter couldn't run - not a hardcoded provider name.
                 "source": final_state.get("classification_source"),
             }
             supabase_client.table("ticket_classifications").insert(classification_payload).execute()

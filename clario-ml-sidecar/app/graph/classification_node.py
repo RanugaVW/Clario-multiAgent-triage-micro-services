@@ -1,4 +1,4 @@
-"""Graph node that records the temporary Gemini ticket classification."""
+"""Graph node that records the ticket classification (Llama-3.2 v2 adapter, Gemini fallback)."""
 
 from app.graph.state import TicketState
 from app.tools.classification_tool import classify_ticket
@@ -10,6 +10,7 @@ async def classification_node(state: TicketState) -> TicketState:
     return {
         **state,
         "category": result["category"],
+        "categories": result["categories"],
         "priority": result["priority"],
         "sentiment": result["sentiment"],
         "classification_confidence": result["confidence"],

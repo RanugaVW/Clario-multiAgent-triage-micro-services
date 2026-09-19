@@ -3,8 +3,7 @@
 from app.graph.state import TicketState
 
 _REASONING = {
-    "urgent_priority": "This ticket is marked urgent and needs priority human handling.",
-    "strongly_negative_sentiment": "The customer sentiment indicates a sensitive interaction requiring review.",
+    "critical_priority": "The classifier rated this ticket Critical priority, so it needs priority human handling.",
     "low_confidence_dual_domain": "Classification confidence was low and both specialist domains may be relevant.",
     "hr_process_required": "This ticket involves an HR-sensitive process and must always be reviewed by a human.",
     "dependency_failure": "A required service was unavailable, so the response could not be verified safely.",
@@ -20,7 +19,7 @@ def build_handoff_package(state: TicketState) -> dict:
     JSON shape:
     {
       "ticket": {"ticket_id": str, "redacted_text": str},
-      "classification": {"category": str|null, "priority": str|null,
+      "classification": {"category": str|null, "categories": [str], "priority": str|null,
         "sentiment": str|null, "confidence": number|null, "source": str|null},
       "routing_decision": str|null, "specialists_ran": [str],
       "specialists": {domain: {"final_draft": str|null, "retrieved_sources": [dict],
@@ -48,7 +47,8 @@ def build_handoff_package(state: TicketState) -> dict:
         summary = "Validation passed without requiring human escalation."
     return {
         "ticket": {"ticket_id": state.get("ticket_id"), "redacted_text": state.get("redacted_text")},
-        "classification": {"category": state.get("category"), "priority": state.get("priority"),
+        "classification": {"category": state.get("category"), "categories": state.get("categories", []),
+                           "priority": state.get("priority"),
                            "sentiment": state.get("sentiment"), "confidence": state.get("classification_confidence"),
                            "source": state.get("classification_source")},
         "routing_decision": state.get("routing_decision"), "specialists_ran": list(drafts),
