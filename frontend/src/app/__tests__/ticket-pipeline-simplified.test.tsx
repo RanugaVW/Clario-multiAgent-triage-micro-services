@@ -135,7 +135,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalled();
-      const call = mockFetch.mock.calls.find((c) => c[0].includes('/api/tickets'));
+      const call = mockFetch.mock.calls.find((c) => c[0].includes('/api/v1/tickets'));
       expect(call).toBeDefined();
     });
   });
@@ -206,7 +206,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
 
     await waitFor(() => {
       const call = mockFetch.mock.calls.find((c) =>
-        c[0].includes('/api/tickets') && c[1]?.method === 'POST'
+        c[0].includes('/api/v1/tickets') && c[1]?.method === 'POST'
       );
       expect(call).toBeDefined();
       expect(call![1].headers['Authorization']).toContain('Bearer');
@@ -238,7 +238,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
 
     await waitFor(() => {
       const call = mockFetch.mock.calls.find((c) =>
-        c[0].includes('/api/tickets') && c[1]?.method === 'POST'
+        c[0].includes('/api/v1/tickets') && c[1]?.method === 'POST'
       );
       const payload = JSON.parse(call![1].body);
       expect(payload.rawText).toBe(testText);
@@ -375,8 +375,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     });
 
     // Should show admin button
-    const adminButton = screen.queryByRole('button', { name: /Admin Panel/i });
-    expect(adminButton).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Admin Panel/i })).toHaveAttribute('href', '/admin');
   });
 
   // ==================== Test 14: Agent Navigation ====================
@@ -395,8 +394,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     });
 
     // Should show agent button
-    const agentButton = screen.queryByRole('button', { name: /Agent Workspace/i });
-    expect(agentButton).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Agent Workspace/i })).toHaveAttribute('href', '/agent');
   });
 
   // ==================== Test 15: Verify API Endpoint ====================
@@ -423,9 +421,9 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
 
     await waitFor(() => {
       const call = mockFetch.mock.calls.find((c) =>
-        c[0].includes('/api/tickets') && c[1]?.method === 'POST'
+        c[0].includes('/api/v1/tickets') && c[1]?.method === 'POST'
       );
-      expect(call![0]).toContain('http://localhost:8080/api/tickets');
+      expect(call![0]).toContain('http://localhost:8080/api/v1/tickets');
     });
   });
 });

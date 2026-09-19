@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockSingle = vi.fn();
 const mockUpsert = vi.fn();
 const mockFrom = vi.fn();
+// The auth helper also reads the caller's own `users` row (account status, FR-043); "never touched data" means no other table.
+const dataQueries = () => mockFrom.mock.calls.filter(([table]: unknown[]) => table !== 'users');
 const mockGetUser = vi.fn();
 const mockRpc = vi.fn();
 
@@ -49,7 +51,7 @@ describe('POST /api/customer_feedback', () => {
   it('rejects a request with no Authorization header with 401', async () => {
     const res = await POST(jsonRequest({ ticketId: 't1', score: 4 }, { auth: false }));
     expect(res.status).toBe(401);
-    expect(mockFrom).not.toHaveBeenCalled();
+    expect(dataQueries()).toEqual([]);
   });
 
   it('rejects a request whose token fails verification with 401', async () => {
@@ -58,7 +60,7 @@ describe('POST /api/customer_feedback', () => {
     const res = await POST(jsonRequest({ ticketId: 't1', score: 4 }));
 
     expect(res.status).toBe(401);
-    expect(mockFrom).not.toHaveBeenCalled();
+    expect(dataQueries()).toEqual([]);
   });
 
   it('rejects a score outside 1-5 with 400', async () => {

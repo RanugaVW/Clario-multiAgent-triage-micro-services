@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Mail, KeyRound, ArrowRight, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import { GlassPanel, GlassButton, GlassInput } from '../../components/ui';
+import { GlassPanel, GlassButton, GlassInput, PasswordInput } from '../../components/ui';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -89,14 +89,13 @@ export default function Register() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <KeyRound className="h-5 w-5 text-[#8A8F98]" />
                   </div>
-                  <GlassInput
+                  <PasswordInput
                     id="register-password"
-                    type="password"
                     required
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
+                    className="glass-input rounded-2xl px-4 py-3.5 text-sm placeholder-white/40 pl-10"
                     placeholder="••••••••"
                   />
                 </div>

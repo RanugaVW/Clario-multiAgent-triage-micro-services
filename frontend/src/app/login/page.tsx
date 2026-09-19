@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Shield, KeyRound, Mail, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { GlassPanel, GlassButton, GlassInput, PasswordInput } from '../../components/ui';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -23,7 +25,11 @@ export default function Login() {
     });
 
     if (signInError) {
-      setError(signInError.message);
+      // FR-043: a suspended/deactivated account is banned in Supabase Auth, whose message ("User is banned") is
+      // unhelpful and reads like a fault - say what happened and what to do.
+      setError(/banned/i.test(signInError.message)
+        ? 'This account has been suspended or deactivated. Please contact an administrator.'
+        : signInError.message);
     } else if (data?.user) {
       // Fetch the actual role from the DB
       const { data: userData } = await supabase
@@ -57,7 +63,7 @@ export default function Login() {
         tabIndex={-1}
       />
 
-      <div className="relative z-10 w-full max-w-md p-8 sm:p-10 rounded-[2.5rem] bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] animate-fade-in">
+      <GlassPanel tier={1} className="relative z-10 w-full max-w-md p-8 sm:p-10 animate-fade-in overflow-hidden">
         {/* Background elements */}
         <div className="absolute -top-20 -right-20 p-8 opacity-10 pointer-events-none blur-3xl">
           <Shield className="w-64 h-64 text-[#E8A33D]" />
@@ -85,13 +91,13 @@ export default function Login() {
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-white/40 group-focus-within:text-[#E8A33D] transition-colors" />
                 </div>
-                <input
+                <GlassInput
                   id="login-email"
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/40 focus:bg-white/10 focus:border-[#E8A33D]/50 focus:ring-1 focus:ring-[#E8A33D]/50 transition-all outline-none backdrop-blur-sm"
+                  className="pl-12"
                   placeholder="Email address"
                 />
               </div>
@@ -101,27 +107,28 @@ export default function Login() {
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <KeyRound className="h-5 w-5 text-white/40 group-focus-within:text-[#E8A33D] transition-colors" />
                 </div>
-                <input
+                <PasswordInput
                   id="login-password"
-                  type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/40 focus:bg-white/10 focus:border-[#E8A33D]/50 focus:ring-1 focus:ring-[#E8A33D]/50 transition-all outline-none backdrop-blur-sm"
+                  className="glass-input rounded-2xl px-4 py-3.5 text-sm placeholder-white/40 pl-12"
                   placeholder="Password"
                 />
+              </div>
+
+              <div className="text-right -mt-1">
+                <Link href="/forgot-password" className="text-sm text-white/60 hover:text-[#E8A33D] transition-colors underline underline-offset-4 decoration-white/20">
+                  Forgot password?
+                </Link>
               </div>
             </div>
 
             <div className="pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-white text-black hover:bg-gray-100 font-semibold py-3.5 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-70 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
-              >
+              <GlassButton type="submit" variant="primary" disabled={loading} className="w-full">
                 <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
-                {!loading && <ArrowRight className="w-5 h-5 ml-1" />}
-              </button>
+                {!loading && <ArrowRight className="w-4 h-4" />}
+              </GlassButton>
             </div>
           </form>
 
@@ -135,7 +142,7 @@ export default function Login() {
             </p>
           </div>
         </div>
-      </div>
+      </GlassPanel>
     </main>
   );
 }

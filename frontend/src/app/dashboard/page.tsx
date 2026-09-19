@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, LogOut, Star } from 'lucide-react';
+import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, Star } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
 import { priorityColor } from '../../lib/classification';
 import { GlassPanel, GlassButton, GlassTextarea, Modal, ConfirmDialog, StatusBadge } from '../../components/ui';
+import { AppShell, type ShellLink, type ShellNavItem } from '../../components/AppShell';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
 
@@ -23,18 +24,25 @@ function parseCustomerResponse(text: string | null | undefined): string {
 // testing since it's pure request/response -> message logic with no React
 // state involved.
 export async function describeSubmitFailure(res: Response): Promise<string> {
-  const fallback = res.status >= 500
+  let message = res.status >= 500
     ? "The support system is temporarily unavailable. Please try again in a moment."
     : "We couldn't submit your ticket. Please check your details and try again.";
+  let reference = '';
   try {
     const body = await res.json();
     if (typeof body?.error === 'string') {
-      return body.details ? `${body.error}: ${body.details}` : body.error;
+      message = body.details ? `${body.error}: ${body.details}` : body.error;
+    }
+    // SUP-005: the backend tags every error with a reference that also appears
+    // on its log lines - quoting it lets support find the cause without the
+    // response ever exposing internals.
+    if (typeof body?.reference === 'string' && body.reference) {
+      reference = ` (reference: ${body.reference})`;
     }
   } catch {
-    // Response wasn't JSON (or had no body) - fall through to the fallback.
+    // Response wasn't JSON (or had no body) - keep the fallback message.
   }
-  return fallback;
+  return message + reference;
 }
 
 
@@ -239,7 +247,7 @@ export default function Home() {
         const token = sessionData.session?.access_token;
 
         // Send request to Spring Boot API Gateway
-        const res = await fetch(`${GATEWAY_URL}/api/tickets`, {
+        const res = await fetch(`${GATEWAY_URL}/api/v1/tickets`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -307,9 +315,31 @@ export default function Home() {
     { id: 'history', icon: <History className="w-4 h-4" />, label: `My tickets${pastTickets.length > 0 ? ` (${pastTickets.length})` : ''}` },
   ];
 
-  return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+  const navItems: ShellNavItem[] = dashboardNavItems.map((item) => ({
+    key: item.id,
+    label: item.label,
+    icon: item.icon,
+    active: activeTab === item.id,
+    onClick: () => { if (item.id === 'history') fetchHistory(); setActiveTab(item.id); },
+  }));
+  const footerLinks: ShellLink[] = [
+    ...(role === 'admin' ? [{ key: 'admin', label: 'Admin panel', icon: <ShieldAlert className="w-4 h-4" />, href: '/admin', tone: 'amber' as const }] : []),
+    ...(role === 'agent' ? [{ key: 'agent', label: 'Agent workspace', icon: <Bot className="w-4 h-4" />, href: '/agent', tone: 'emerald' as const }] : []),
+  ];
 
+  return (
+    <AppShell
+      brand={{
+        icon: <Cpu className="text-[#E8A33D] w-5 h-5" />,
+        title: <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-[#E8A33D] via-[#2DD4BF] to-[#E8A33D]">Clario Triage</h1>,
+        subtitle: 'Support ticket portal',
+      }}
+      nav={navItems}
+      links={footerLinks}
+      email={user?.email}
+      onSignOut={handleLogout}
+      mainClassName="lg:py-12 flex flex-col items-center"
+    >
       {/* Success Modal */}
       <Modal
         open={successModal.show}
@@ -349,55 +379,6 @@ export default function Home() {
         onCancel={() => setTicketPendingDelete(null)}
       />
 
-      {/* ── Sidebar on desktop, top bar on mobile — one set of nodes, laid out
-           responsively, so nothing (nav, user info) is duplicated in the DOM ── */}
-      <aside className="flex flex-col lg:w-64 lg:shrink-0 lg:h-screen lg:sticky lg:top-0 border-b lg:border-b-0 lg:border-r border-white/10 bg-white/[0.02] backdrop-blur-xl">
-        <div className="p-4 lg:p-6 border-b border-white/10 flex items-center space-x-3">
-          <div className="bg-[#E8A33D]/15 p-2 rounded-xl border border-[#E8A33D]/25 shrink-0">
-            <Cpu className="text-[#E8A33D] w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#E8A33D] via-[#2DD4BF] to-[#E8A33D] leading-tight">Clario Triage</h1>
-            <p className="text-xs text-[#8A8F98] truncate hidden lg:block">Support ticket portal</p>
-          </div>
-        </div>
-
-        <nav className="flex flex-row lg:flex-col gap-1 p-3 lg:p-4 overflow-x-auto lg:overflow-y-auto lg:flex-1">
-          {dashboardNavItems.map(item => (
-            <DashboardNavItem
-              key={item.id}
-              active={activeTab === item.id}
-              onClick={() => { if (item.id === 'history') fetchHistory(); setActiveTab(item.id); }}
-              icon={item.icon}
-              label={item.label}
-            />
-          ))}
-        </nav>
-
-        <div className="p-3 lg:p-4 border-t border-white/10 flex flex-row lg:flex-col items-center lg:items-stretch justify-between lg:justify-start gap-3 lg:gap-1">
-          <p className="text-xs text-[#8A8F98] truncate lg:pb-2" title={user?.email || undefined}>
-            Logged in as <span className="text-[#E8A33D]">{user?.email}</span>
-          </p>
-          <div className="flex items-center lg:flex-col lg:items-stretch gap-2 lg:gap-1 shrink-0 overflow-x-auto">
-            {role === 'admin' && (
-              <button onClick={() => router.push('/admin')} className="flex items-center text-sm text-[#E8A33D] hover:text-[#F4B856] transition-colors px-3 lg:px-3.5 py-2 rounded-lg hover:bg-white/[0.06] whitespace-nowrap">
-                <ShieldAlert className="w-4 h-4 mr-2" /> Admin panel
-              </button>
-            )}
-            {role === 'agent' && (
-              <button onClick={() => router.push('/agent')} className="flex items-center text-sm text-emerald-300 hover:text-emerald-200 transition-colors px-3 lg:px-3.5 py-2 rounded-lg hover:bg-white/[0.06] whitespace-nowrap">
-                <Bot className="w-4 h-4 mr-2" /> Agent workspace
-              </button>
-            )}
-            <button onClick={handleLogout} className="flex items-center text-sm text-[#8A8F98] hover:text-[#FB7185] transition-colors px-3 lg:px-3.5 py-2 rounded-lg hover:bg-white/[0.06] whitespace-nowrap">
-              <LogOut className="w-4 h-4 mr-2" /> Sign out
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main content ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 min-w-0 py-8 lg:py-12 px-4 sm:px-6 lg:px-10 max-w-[1800px] flex flex-col items-center">
 
         {/* Header section */}
         <div className="text-center mb-12 animate-fade-in w-full">
@@ -535,27 +516,7 @@ export default function Home() {
       <footer className="mt-16 w-full flex justify-center items-center border-t border-white/10 pt-6 text-sm text-[#8A8F98] animate-fade-in" style={{ animationDelay: '0.4s' }}>
         <p>© 2026 Clario Support Systems</p>
       </footer>
-      </main>
-    </div>
-  );
-}
-
-/** One nav button in the dashboard's vertical sidebar rail. */
-function DashboardNavItem({ active, onClick, icon, label }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode; label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-200 ${
-        active
-          ? 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shadow-[0_0_15px_rgba(232,163,61,0.15)]'
-          : 'text-[#8A8F98] hover:text-[#ECECEC] border border-transparent hover:bg-white/[0.04]'
-      }`}
-    >
-      <span className="shrink-0">{icon}</span>
-      <span className="truncate">{label}</span>
-    </button>
+    </AppShell>
   );
 }
 

@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { isActive } from './userManagement';
 
 export type AuthedUser = {
   id: string;
@@ -44,6 +45,19 @@ export async function requireUser(request: Request): Promise<AuthedUser | null> 
   // identical rationale to AuthContext.tsx's fetchUserRole().
   const { data: roleData } = await supabase.rpc('get_my_role');
   const role: AuthedUser['role'] = ['user', 'agent', 'admin'].includes(roleData) ? roleData : 'user';
+
+  // FR-043: suspending/deactivating an account bans it in Supabase Auth (no new sign-ins, no refresh), but a token
+  // that was already issued stays cryptographically valid until it expires. Re-check the account status on every
+  // request so a suspension bites immediately. Runs as the caller (their own row is readable under RLS).
+  // Deliberately fail-open on a lookup problem - including the `status` column not existing yet because
+  // supabase_user_management.sql has not been applied: the Auth ban is the primary control, this is defence in depth,
+  // and a schema lag must not lock every user out.
+  try {
+    const { data: account } = await supabase.from('users').select('status').eq('id', userData.user.id).maybeSingle();
+    if (account && !isActive((account as { status?: string | null }).status)) return null;
+  } catch {
+    /* see above */
+  }
 
   return { id: userData.user.id, email: userData.user.email ?? null, role };
 }

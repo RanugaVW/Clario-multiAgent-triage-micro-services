@@ -53,7 +53,7 @@ describe('Dashboard Ticket Submission', () => {
     
     // Mock the fetches
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/api/tickets')) {
+      if (url.includes('/api/v1/tickets')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ id: 'uuid-1234' }),
@@ -73,7 +73,7 @@ describe('Dashboard Ticket Submission', () => {
       // Check fetch was called for api gateway
       const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
-        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
+        (call) => String(call[0]).includes('/api/v1/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
       );
 
       expect(gatewayCall).toBeDefined();
@@ -110,7 +110,7 @@ describe('Dashboard Ticket Submission', () => {
 
     // Mock fetch for API Gateway
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/api/tickets')) {
+      if (url.includes('/api/v1/tickets')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ id: 'uuid-5678' }),
@@ -129,7 +129,7 @@ describe('Dashboard Ticket Submission', () => {
       // Check fetch was called for API Gateway
       const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
-        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
+        (call) => String(call[0]).includes('/api/v1/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
       );
 
       expect(gatewayCall).toBeDefined();

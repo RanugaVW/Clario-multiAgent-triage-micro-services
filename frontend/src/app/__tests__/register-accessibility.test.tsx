@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import Register from '../register/page';
 
@@ -26,5 +27,14 @@ describe('Register form accessibility', () => {
     expect(emailInput).toHaveAttribute('type', 'email');
     expect(passwordInput).toBeInTheDocument();
     expect(passwordInput).toHaveAttribute('type', 'password');
+  });
+
+  it('offers the password visibility toggle', async () => {
+    const user = userEvent.setup();
+    render(<Register />);
+
+    await user.click(screen.getByRole('button', { name: 'Show password' }));
+
+    expect(screen.getByLabelText('Password (min 6 characters)')).toHaveAttribute('type', 'text');
   });
 });

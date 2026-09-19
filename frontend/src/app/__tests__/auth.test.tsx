@@ -57,6 +57,26 @@ describe('Login Authentication', () => {
     expect(passwordInput).toHaveAttribute('type', 'password');
   });
 
+  // SRS 3.9.1 (Authentication Interface): Forgot Password option + visibility toggle.
+  it('links to the forgot-password page', () => {
+    render(<Login />);
+
+    expect(screen.getByRole('link', { name: /forgot password/i })).toHaveAttribute('href', '/forgot-password');
+  });
+
+  it('lets the user reveal the password they are typing, without submitting the form', async () => {
+    const user = userEvent.setup();
+    render(<Login />);
+
+    await user.type(screen.getByPlaceholderText('Password'), 'secret-pw');
+    expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'password');
+
+    await user.click(screen.getByRole('button', { name: 'Show password' }));
+
+    expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'text');
+    expect(supabase.auth.signInWithPassword).not.toHaveBeenCalled();
+  });
+
   it('shows error message on failed login', async () => {
     const user = userEvent.setup();
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
@@ -74,6 +94,23 @@ describe('Login Authentication', () => {
       expect(screen.getByText('Invalid login credentials')).toBeInTheDocument();
     });
     
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('explains a suspended account instead of showing the raw "User is banned" message (FR-043)', async () => {
+    const user = userEvent.setup();
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
+      error: { message: 'User is banned' },
+      data: { user: null },
+    } as unknown as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>);
+
+    render(<Login />);
+    await user.type(screen.getByPlaceholderText('Email address'), 'gone@example.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'whatever');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(await screen.findByText(/suspended or deactivated.*contact an administrator/i)).toBeInTheDocument();
+    expect(screen.queryByText('User is banned')).not.toBeInTheDocument();
     expect(mockPush).not.toHaveBeenCalled();
   });
 

@@ -452,7 +452,7 @@ describe('User Workflow Scenarios', () => {
     let submissionCount = 0;
 
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/api/tickets') && url.includes('http://localhost')) {
+      if (url.includes('/api/v1/tickets') && url.includes('http://localhost')) {
         submissionCount++;
         return Promise.resolve({
           ok: true,

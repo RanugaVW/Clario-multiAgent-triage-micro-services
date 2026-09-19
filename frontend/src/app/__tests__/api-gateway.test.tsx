@@ -70,7 +70,7 @@ describe('Spring Boot API Gateway Integration', () => {
     await waitFor(() => {
       const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
-        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
+        (call) => String(call[0]).includes('/api/v1/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
       );
 
       expect(gatewayCall).toBeDefined();

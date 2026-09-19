@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { requireUser, isStaff } from '../../../lib/apiAuth';
+import { requireUser, isStaff, type AuthedUser } from '../../../lib/apiAuth';
 
 const CACHE_KEY = 'tickets:list:metadata';
 const CACHE_TTL_SECONDS = 60; // 1 minute cache
@@ -49,11 +49,17 @@ async function getRedisClient(): Promise<CacheClient | null> {
   return null;
 }
 
-async function requireStaff(request: Request): Promise<NextResponse | null> {
+type StaffCheck = { error: NextResponse; user?: undefined } | { error?: undefined; user: AuthedUser };
+
+async function authorizeStaff(request: Request): Promise<StaffCheck> {
   const user = await requireUser(request);
-  if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  if (!isStaff(user)) return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
-  return null;
+  if (!user) return { error: NextResponse.json({ error: 'Authentication required' }, { status: 401 }) };
+  if (!isStaff(user)) return { error: NextResponse.json({ error: 'Staff access required' }, { status: 403 }) };
+  return { user };
+}
+
+async function requireStaff(request: Request): Promise<NextResponse | null> {
+  return (await authorizeStaff(request)).error ?? null;
 }
 
 export async function GET(request: Request) {
@@ -83,7 +89,7 @@ export async function GET(request: Request) {
     .from('tickets')
     .select(`
       id, raw_text, subject, customer_email, status, created_at, updated_at, raw_graph_payload,
-      ticket_drafts ( domain, rag_top_score, low_relevance, reflection_attempt ),
+      ticket_drafts ( domain, draft_text, rag_top_score, low_relevance, reflection_attempt ),
       ticket_classifications ( category, priority, sentiment, confidence, source ),
       resolutions ( id, escalated, resolved_at, ticket_id, resolved_by, total_reflection_count, total_llm_calls, total_latency_ms )
     `)
@@ -149,34 +155,67 @@ export async function DELETE(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const authError = await requireStaff(request);
-  if (authError) return authError;
+  const staff = await authorizeStaff(request);
+  if (staff.error) return staff.error;
 
   const supabase = getSupabase();
   if (!supabase) return MISSING_KEY_RESPONSE();
 
-  const body = await request.json();
-  const { id, final_response } = body;
+  let body: { id?: unknown; final_response?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Request body must be valid JSON' }, { status: 400 });
+  }
+  const id = typeof body.id === 'string' ? body.id : '';
+  const finalResponse = typeof body.final_response === 'string' ? body.final_response.trim() : '';
 
-  if (!id || !final_response) {
+  if (!id || !finalResponse) {
     return NextResponse.json({ error: 'Missing id or final_response' }, { status: 400 });
   }
 
-  // First update status
-  const { error: updateError } = await supabase.from('tickets').update({ status: 'resolved' }).eq('id', id);
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  // FR-035/FR-036: a resolution must be attributable and must not silently
+  // overwrite an earlier answer, so look at the ticket before writing anything.
+  const { data: ticket, error: lookupError } = await supabase
+    .from('tickets')
+    .select('id, status, resolutions ( id, escalated )')
+    .eq('id', id)
+    .maybeSingle();
+  if (lookupError) {
+    return NextResponse.json({ error: lookupError.message }, { status: 500 });
+  }
+  if (!ticket) {
+    return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
+  }
+  const alreadyAnswered =
+    ticket.status === 'resolved' ||
+    (ticket.resolutions ?? []).some((r: { escalated: boolean }) => r.escalated === false);
+  if (alreadyAnswered) {
+    return NextResponse.json({ error: 'Ticket is already resolved' }, { status: 409 });
   }
 
-  // Then insert resolution
-  const { error: insertError } = await supabase.from('resolutions').insert({
-    ticket_id: id,
-    final_response,
-    escalated: false,
-    resolved_at: new Date().toISOString()
-  });
-  if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+  // Insert the resolution first, then flip the status: if the second write
+  // fails we can take the resolution back, whereas the old order could leave a
+  // "resolved" ticket with no answer attached to it.
+  const { data: inserted, error: insertError } = await supabase
+    .from('resolutions')
+    .insert({
+      ticket_id: id,
+      final_response: finalResponse,
+      escalated: false,
+      resolved_by: staff.user.id,
+      resolved_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
+  if (insertError || !inserted) {
+    return NextResponse.json({ error: insertError?.message ?? 'Failed to save resolution' }, { status: 500 });
+  }
+
+  const { error: updateError } = await supabase.from('tickets').update({ status: 'resolved' }).eq('id', id);
+  if (updateError) {
+    await supabase.from('resolutions').delete().eq('id', inserted.id);
+    return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
   // Invalidate cache

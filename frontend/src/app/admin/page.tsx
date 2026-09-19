@@ -4,13 +4,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
-  Settings, Database, Server, Cpu, LogOut, Loader2,
+  Database, Server, Cpu, Loader2,
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle,
-  BarChart2, MessageSquare, ShieldAlert, Tag, ArrowLeft, Bot,
+  BarChart2, MessageSquare, ShieldAlert, Tag, Bot,
   CreditCard, Wrench, Brain, GitBranch, Eye, RotateCcw, ArrowRightLeft,
   Shield, Layers, CheckCircle2, Image as ImageIcon, Pencil,
 } from 'lucide-react';
 import { StatusBadge, ConfirmDialog } from '../../components/ui';
+import { AdminShell } from './AdminShell';
+import type { ShellNavItem } from '../../components/AppShell';
 import { supabase } from '../../lib/supabase';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 import ShakeButton from '../../components/ShakeButton';
@@ -319,11 +321,6 @@ export default function AdminDashboard() {
     .filter(t => categoryFilter === 'all' || splitCategories(t.ticket_classifications?.[0]?.category).includes(categoryFilter))
     .filter(t => priorityFilter === 'all' || t.ticket_classifications?.[0]?.priority?.toLowerCase() === priorityFilter);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
-
   const navItems: { id: typeof activeTab; icon: React.ReactNode; label: string; warn?: boolean }[] = [
     { id: 'agents', icon: <Bot className="w-4 h-4" />, label: `AI Agents (${AI_AGENTS.length})` },
     { id: 'pipeline', icon: <Layers className="w-4 h-4" />, label: 'Pipeline Nodes' },
@@ -341,9 +338,17 @@ export default function AdminDashboard() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex">
+  const consoleTabs: ShellNavItem[] = navItems.map((item) => ({
+    key: item.id,
+    label: item.label,
+    icon: item.icon,
+    warn: item.warn,
+    active: activeTab === item.id,
+    onClick: () => setActiveTab(item.id),
+  }));
 
+  return (
+    <AdminShell active="console" consoleTabs={consoleTabs}>
       <ConfirmDialog
         open={ticketPendingDelete !== null}
         title="Delete this ticket?"
@@ -352,66 +357,6 @@ export default function AdminDashboard() {
         onConfirm={confirmTicketDeletion}
         onCancel={() => setTicketPendingDelete(null)}
       />
-
-      {/* ── Sidebar (desktop) ─────────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-white/10 bg-white/[0.02] backdrop-blur-xl">
-        <div className="p-6 border-b border-white/10 flex items-center space-x-3">
-          <div className="bg-[#2DD4BF]/15 p-2 rounded-xl border border-[#2DD4BF]/25 shrink-0">
-            <Settings className="text-[#2DD4BF] w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-[#ECECEC] leading-tight">System administration</h1>
-            <p className="text-xs text-[#8A8F98] truncate">Clario Platform</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map(item => (
-            <SidebarNavItem key={item.id} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} icon={item.icon} label={item.label} warn={item.warn} />
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-white/10 space-y-1">
-          <p className="px-3.5 pb-2 text-xs text-[#8A8F98] truncate" title={user?.email || undefined}>{user?.email}</p>
-          <button onClick={() => router.push('/')} className="w-full flex items-center text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors px-3.5 py-2 rounded-lg hover:bg-white/[0.06]">
-            <ArrowLeft className="w-4 h-4 mr-2.5" /> Back to triage
-          </button>
-          <button onClick={handleLogout} className="w-full flex items-center text-sm text-[#8A8F98] hover:text-[#FB7185] transition-colors px-3.5 py-2 rounded-lg hover:bg-white/[0.06]">
-            <LogOut className="w-4 h-4 mr-2.5" /> Sign out
-          </button>
-        </div>
-      </aside>
-
-      {/* ── Main content ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 min-w-0 py-8 px-4 sm:px-6 lg:px-10 max-w-[1800px]">
-
-        {/* ── Header (mobile/tablet only — sidebar covers this from lg up) ────── */}
-        <header className="lg:hidden flex justify-between items-center mb-8 animate-fade-in">
-          <div className="flex items-center space-x-3">
-            <div className="bg-[#2DD4BF]/15 p-2 rounded-xl border border-[#2DD4BF]/25">
-              <Settings className="text-[#2DD4BF] w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-[#ECECEC]">System administration</h1>
-              <p className="text-sm text-[#8A8F98]">Clario Platform — {user?.email}</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button onClick={() => router.push('/')} className="flex items-center text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors px-3 py-2 rounded-lg hover:bg-white/[0.06]">
-              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to triage
-            </button>
-            <button onClick={handleLogout} className="p-2 hover:bg-white/[0.06] rounded-full transition-colors text-[#8A8F98] hover:text-[#FB7185]" title="Sign Out">
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </header>
-
-        {/* ── Tabs (mobile/tablet only) ─────────────────────────────────────── */}
-        <div className="lg:hidden flex flex-wrap gap-2 mb-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          {navItems.map(item => (
-            <TabBtn key={item.id} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} icon={item.icon} label={item.label} warn={item.warn} />
-          ))}
-        </div>
 
         {/* ── System Status ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -660,8 +605,7 @@ export default function AdminDashboard() {
           </div>
         </section>
       )}
-      </main>
-    </div>
+    </AdminShell>
   );
 }
 
@@ -1261,43 +1205,7 @@ function PriorityPill({ active, onClick, priority }: {
   );
 }
 
-function TabBtn({ active, onClick, icon, label, warn }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; warn?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-        active
-          ? 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shadow-[0_0_15px_rgba(232,163,61,0.2)]'
-          : 'text-[#8A8F98] hover:text-[#ECECEC] border border-transparent hover:border-white/10 hover:bg-white/[0.04]'
-      }`}
-    >
-      <span className={warn && !active ? 'text-[#FB923C]' : ''}>{icon}</span>
-      <span>{label}</span>
-    </button>
-  );
-}
-
 /** Same nav semantics as TabBtn, laid out for the vertical sidebar rail. */
-function SidebarNavItem({ active, onClick, icon, label, warn }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; warn?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-200 ${
-        active
-          ? 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shadow-[0_0_15px_rgba(232,163,61,0.15)]'
-          : 'text-[#8A8F98] hover:text-[#ECECEC] border border-transparent hover:bg-white/[0.04]'
-      }`}
-    >
-      <span className={`shrink-0 ${warn && !active ? 'text-[#FB923C]' : ''}`}>{icon}</span>
-      <span className="truncate">{label}</span>
-    </button>
-  );
-}
-
 function StatBadge({ label, value, color }: { label: string; value: number; color: string }) {
   const colors: Record<string, string> = {
     indigo: 'from-[#E8A33D]/10 to-[#E8A33D]/5 border-[#E8A33D]/20 text-[#E8A33D]',

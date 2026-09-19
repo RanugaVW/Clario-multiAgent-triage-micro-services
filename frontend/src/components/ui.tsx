@@ -1,7 +1,7 @@
 'use client';
 
-import { ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { ReactNode, useState } from 'react';
+import { Eye, EyeOff, X } from 'lucide-react';
 
 type Tier = 1 | 2;
 
@@ -166,5 +166,34 @@ export function ConfirmDialog({
         <GlassButton variant="destructive" onClick={onConfirm}>{confirmLabel}</GlassButton>
       </div>
     </Modal>
+  );
+}
+
+// SRS 3.9.1 (Authentication Interface): a password field needs a visibility
+// toggle. The toggle is a real <button type="button"> - focusable and operable
+// from the keyboard, announced with its current state, and it must never submit
+// the surrounding form. The caller supplies the input's full styling.
+export function PasswordInput({
+  className = '',
+  ...rest
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={visible ? 'text' : 'password'}
+        className={`w-full pr-12 ${className}`}
+        {...rest}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? 'Hide password' : 'Show password'}
+        aria-pressed={visible}
+        className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/40 hover:text-[#ECECEC] focus-visible:text-[#E8A33D] transition-colors outline-none"
+      >
+        {visible ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
+      </button>
+    </div>
   );
 }

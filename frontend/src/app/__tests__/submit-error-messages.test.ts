@@ -29,4 +29,35 @@ describe('describeSubmitFailure', () => {
     const res = { status: 400, json: async () => { throw new Error('not json'); } } as unknown as Response;
     expect(await describeSubmitFailure(res)).toMatch(/check your details/i);
   });
+
+  // SUP-005: the reference lets support find the matching server log lines.
+  it('appends the support reference to the backend message', async () => {
+    const res = {
+      status: 503,
+      json: async () => ({ error: 'Ticket service is temporarily unavailable. Please try again shortly.', reference: 'req-42' }),
+    } as unknown as Response;
+    expect(await describeSubmitFailure(res)).toBe(
+      'Ticket service is temporarily unavailable. Please try again shortly. (reference: req-42)'
+    );
+  });
+
+  it('keeps the reference even when the body has no error field (framework-generated 4xx)', async () => {
+    const res = {
+      status: 400,
+      json: async () => ({ title: 'Bad Request', status: 400, detail: 'Failed to read request', reference: 'req-43' }),
+    } as unknown as Response;
+    expect(await describeSubmitFailure(res)).toBe(
+      "We couldn't submit your ticket. Please check your details and try again. (reference: req-43)"
+    );
+  });
+
+  it('never invents a reference when the backend sent none', async () => {
+    const res = { status: 400, json: async () => ({ error: 'Gateway timeout' }) } as unknown as Response;
+    expect(await describeSubmitFailure(res)).toBe('Gateway timeout');
+  });
+
+  it('ignores a non-string reference rather than printing it', async () => {
+    const res = { status: 400, json: async () => ({ error: 'Nope', reference: { evil: true } }) } as unknown as Response;
+    expect(await describeSubmitFailure(res)).toBe('Nope');
+  });
 });
