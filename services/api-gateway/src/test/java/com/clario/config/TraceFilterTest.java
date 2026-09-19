@@ -61,4 +61,17 @@ class TraceFilterTest {
 
         verifyNoInteractions(publisher);
     }
+
+    @Test
+    void a_post_to_the_versioned_path_publishes_too() throws Exception {
+        TraceEventPublisher publisher = mock(TraceEventPublisher.class);
+        TraceFilter filter = new TraceFilter(publisher);
+
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tickets");
+        request.addHeader("X-Trace-Correlation-Id", "c2");
+
+        filter.doFilter(request, new MockHttpServletResponse(), mock(FilterChain.class));
+
+        verify(publisher).publish(eq("c2"), eq("c2"), eq("received"), eq("done"), anyMap());
+    }
 }

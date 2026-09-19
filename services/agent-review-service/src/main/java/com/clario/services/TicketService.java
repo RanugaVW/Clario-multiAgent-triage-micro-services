@@ -8,13 +8,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +26,7 @@ public class TicketService {
     private final TicketRepository ticketRepository;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final TicketDispatcher dispatcher;
 
     @Transactional
     public Ticket createTicket(String rawText, String subject, UUID userId, String imageBase64) {
@@ -36,10 +38,26 @@ public class TicketService {
         
         Ticket savedTicket = ticketRepository.save(ticket);
         
-        // Dispatch to ML Sidecar asynchronously
-        CompletableFuture.runAsync(() -> dispatchToSidecar(savedTicket.getId(), rawText, imageBase64));
-        
+        // Only enqueue once the ticket is durably committed: enqueueing inside the
+        // transaction could hand the AI worker a ticket that isn't visible yet, or
+        // leave a queued message for a save that then rolled back.
+        afterCommit(() -> dispatcher.submit(
+                () -> dispatchToSidecar(savedTicket.getId(), rawText, imageBase64)));
+
         return savedTicket;
+    }
+
+    private static void afterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
     }
 
     private void dispatchToSidecar(UUID ticketId, String rawText, String imageBase64) {

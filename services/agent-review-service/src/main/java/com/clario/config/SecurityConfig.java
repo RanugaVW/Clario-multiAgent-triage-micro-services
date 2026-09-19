@@ -11,9 +11,13 @@ import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.spec.SecretKeySpec;
+import java.time.Clock;
+import java.time.Duration;
 
 /**
  * This service used to trust a client-supplied X-User-Id header with no
@@ -33,6 +37,17 @@ public class SecurityConfig {
     @Value("${jwt.legacy.secret}")
     private String legacySecret;
 
+    @Value("${clario.security.alert.failed-auth-threshold:10}")
+    private int failedAuthThreshold;
+
+    @Value("${clario.security.alert.window-seconds:60}")
+    private long failedAuthWindowSeconds;
+
+    @Bean
+    public FailedAuthTracker failedAuthTracker() {
+        return new FailedAuthTracker(failedAuthThreshold, Duration.ofSeconds(failedAuthWindowSeconds), Clock.systemUTC());
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -44,6 +59,16 @@ public class SecurityConfig {
             )
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.decoder(jwtDecoder()))
+                // FR-049: same 401/403 responses as the defaults, plus an audit record.
+                .authenticationEntryPoint((request, response, ex) -> {
+                    SecurityAuditLogger.authenticationFailure(request, ex);
+                    failedAuthTracker().recordFailure(request.getRemoteAddr());
+                    new BearerTokenAuthenticationEntryPoint().commence(request, response, ex);
+                })
+                .accessDeniedHandler((request, response, ex) -> {
+                    SecurityAuditLogger.accessDenied(request, ex);
+                    new BearerTokenAccessDeniedHandler().handle(request, response, ex);
+                })
             );
         return http.build();
     }

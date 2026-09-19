@@ -227,7 +227,7 @@ A standalone visualizer, separate from the product, that answers one question in
 
 ```
 [Frontend] generates a correlationId, sends it on
-POST /api/tickets as header: X-Trace-Correlation-Id
+POST /api/v1/tickets as header: X-Trace-Correlation-Id
         │
         ├─► [Frontend]            fires "submit"              (keyed by correlationId)
         ├─► [API Gateway]         fires "received"             (keyed by correlationId)

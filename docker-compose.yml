@@ -10,6 +10,9 @@ services:
     build:
       context: ./services/api-gateway
       dockerfile: Dockerfile
+    # REL-011: must exceed web-drain (20s) + Redis-dispatch drain (20s) or Docker
+    # SIGKILLs the JVM (default grace is 10s) before the graceful shutdown finishes.
+    stop_grace_period: 45s
     ports:
       - "8080:8080"
     env_file:
@@ -24,6 +27,9 @@ services:
     build:
       context: ./services/ticket-core-service
       dockerfile: Dockerfile
+    # REL-011: must exceed web-drain (20s) + Redis-dispatch drain (20s) or Docker
+    # SIGKILLs the JVM (default grace is 10s) before the graceful shutdown finishes.
+    stop_grace_period: 45s
     env_file:
       - ./clario-app/.env
     environment:
@@ -39,6 +45,9 @@ services:
     build:
       context: ./services/agent-review-service
       dockerfile: Dockerfile
+    # REL-011: must exceed web-drain (20s) + Redis-dispatch drain (20s) or Docker
+    # SIGKILLs the JVM (default grace is 10s) before the graceful shutdown finishes.
+    stop_grace_period: 45s
     env_file:
       - ./clario-app/.env
     environment:
