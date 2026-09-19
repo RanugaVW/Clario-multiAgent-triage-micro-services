@@ -2,7 +2,7 @@
 pandas>=2.0
 matplotlib>=3.7
 langdetect>=1.0.9
-spacy>=3.7
+spacy>=3.8.16
 google-genai>=1.0
 python-dotenv>=1.0
 httpx==0.28.1
