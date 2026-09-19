@@ -1,6 +1,6 @@
 # Dependencies for the ML fine-tuning data and inference workflows.
 pandas>=2.0
-matplotlib>=3.7
+matplotlib>=3.11.2
 langdetect>=1.0.9
 spacy>=3.7
 google-genai>=1.0
