@@ -1,5 +1,5 @@
 # Dependencies for the ML fine-tuning data and inference workflows.
-pandas>=2.0
+pandas>=3.0.5
 matplotlib>=3.7
 langdetect>=1.0.9
 spacy>=3.7
