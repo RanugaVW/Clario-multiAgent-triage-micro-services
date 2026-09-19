@@ -43,7 +43,7 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # jsdom 30's own package.json requires
           # "^22.22.2 || ^24.15.0 || >=26.0.0" - Node 20 doesn't have the
