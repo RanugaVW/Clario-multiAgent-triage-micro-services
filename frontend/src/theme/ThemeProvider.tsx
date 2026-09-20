@@ -16,16 +16,26 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 const MEDIA = '(prefers-color-scheme: dark)';
 const LOCAL_EVENT = 'theme-preference-change';
 
+// Holds a choice whose localStorage write failed (blocked storage), so it still applies for this session.
+// It is null whenever storage is working, which keeps localStorage the source of truth.
+let unpersistedPreference: Preference | null = null;
+
 function subscribePreference(notify: () => void) {
-  window.addEventListener('storage', notify);
+  // A storage event means another tab wrote successfully, so storage is authoritative again.
+  const onStorage = () => {
+    unpersistedPreference = null;
+    notify();
+  };
+  window.addEventListener('storage', onStorage);
   window.addEventListener(LOCAL_EVENT, notify);
   return () => {
-    window.removeEventListener('storage', notify);
+    window.removeEventListener('storage', onStorage);
     window.removeEventListener(LOCAL_EVENT, notify);
   };
 }
 
 function readPreference(): Preference {
+  if (unpersistedPreference !== null) return unpersistedPreference;
   try {
     return parsePreference(localStorage.getItem(THEME_STORAGE_KEY));
   } catch {
@@ -65,8 +75,10 @@ export function ThemeProvider({
   const setPreference = useCallback((next: Preference) => {
     try {
       localStorage.setItem(THEME_STORAGE_KEY, next);
+      unpersistedPreference = null;
     } catch {
-      // Storage can be blocked (private windows). The choice then lasts only until reload.
+      // Storage can be blocked (private windows). Keep the choice in memory so it applies until reload.
+      unpersistedPreference = next;
     }
     window.dispatchEvent(new Event(LOCAL_EVENT));
   }, []);

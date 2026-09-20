@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider, useTheme } from './ThemeProvider';
@@ -74,6 +74,25 @@ describe('ThemeProvider', () => {
     renderProvider();
     expect(attr()).toBe('dark');
     expect(screen.getByTestId('pref')).toHaveTextContent('light');
+  });
+
+  it('still applies the choice for the session when storage is blocked', async () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+    try {
+      renderProvider();
+      expect(attr()).toBe('dark');
+      await userEvent.click(screen.getByRole('button', { name: 'set light' }));
+      expect(attr()).toBe('light');
+      expect(screen.getByTestId('pref')).toHaveTextContent('light');
+    } finally {
+      setItem.mockRestore();
+      // Another tab's write arrives as a storage event; it clears the in-memory fallback so it cannot leak into later tests.
+      act(() => {
+        window.dispatchEvent(new Event('storage'));
+      });
+    }
   });
 });
 
