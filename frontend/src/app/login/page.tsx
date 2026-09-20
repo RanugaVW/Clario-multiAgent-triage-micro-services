@@ -57,7 +57,7 @@ export default function Login() {
       <iframe
         src="/landing.html?bgOnly=true"
         className="absolute inset-0 w-full h-full border-none pointer-events-none"
-        style={{ zIndex: 0 }}
+        style={{ zIndex: 0, colorScheme: 'normal' }}
         title="Decorative background animation"
         aria-hidden="true"
         tabIndex={-1}
