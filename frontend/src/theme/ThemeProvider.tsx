@@ -3,11 +3,13 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { MIGRATED_ROUTES } from './migrated-routes';
-import { THEME_STORAGE_KEY, parsePreference, resolveMode, type Mode, type Preference } from './mode';
+import { THEME_STORAGE_KEY, isMigrated, parsePreference, resolveMode, type Mode, type Preference } from './mode';
 
 interface ThemeContextValue {
   preference: Preference;
   mode: Mode;
+  // True while the current route is forced dark (not yet migrated). Removed with the gate in Phase 6.
+  locked: boolean;
   setPreference: (preference: Preference) => void;
 }
 
@@ -85,7 +87,9 @@ export function ThemeProvider({
     window.dispatchEvent(new Event(LOCAL_EVENT));
   }, []);
 
-  const value = useMemo(() => ({ preference, mode, setPreference }), [preference, mode, setPreference]);
+  const locked = !isMigrated(pathname, migratedRoutes);
+
+  const value = useMemo(() => ({ preference, mode, locked, setPreference }), [preference, mode, locked, setPreference]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

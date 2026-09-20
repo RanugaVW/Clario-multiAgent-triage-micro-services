@@ -13,7 +13,7 @@ const OPTIONS: Array<{ value: Preference; label: string; Icon: typeof Sun }> = [
 
 export function ThemeToggle({ className }: { className?: string }) {
   const theme = useOptionalTheme();
-  if (!theme) return null;
+  if (!theme || theme.locked) return null;
   const { preference, setPreference } = theme;
   return (
     <div

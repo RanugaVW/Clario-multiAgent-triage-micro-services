@@ -52,6 +52,15 @@ describe('ThemeToggle', () => {
     expect(tokens).not.toContain('inline-flex');
   });
 
+  it('renders nothing on a route that is still forced dark', () => {
+    const { container } = render(
+      <ThemeProvider migratedRoutes={['/other']}>
+        <ThemeToggle />
+      </ThemeProvider>
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('renders nothing when there is no ThemeProvider above it', () => {
     const { container } = render(<ThemeToggle />);
     expect(container).toBeEmptyDOMElement();

@@ -90,13 +90,13 @@ export function AppShell({
           })}
         </nav>
 
-        <div className="flex flex-row items-center justify-between gap-3 border-t border-border p-3 lg:flex-col lg:items-stretch lg:justify-start lg:gap-1 lg:p-4">
+        <div className="flex flex-row flex-wrap items-center justify-between gap-3 border-t border-border p-3 lg:flex-col lg:flex-nowrap lg:items-stretch lg:justify-start lg:gap-1 lg:p-4">
           {email && (
-            <p className="truncate text-caption text-fg-muted lg:pb-2" title={email}>
+            <p className="min-w-0 max-w-full truncate text-caption text-fg-muted lg:pb-2" title={email}>
               Logged in as <span className="text-brand">{email}</span>
             </p>
           )}
-          <div className="flex shrink-0 items-center gap-2 overflow-x-auto lg:flex-col lg:items-stretch lg:gap-1">
+          <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:flex-nowrap lg:items-stretch lg:gap-1">
             {links.map((l) => (
               <Link key={l.key} href={l.href} className={cx(FOOTER_ITEM, TONES[l.tone ?? 'default'])}>
                 <span className="mr-2 flex" aria-hidden="true">{l.icon}</span>
@@ -106,7 +106,7 @@ export function AppShell({
             <button type="button" onClick={onSignOut} className={cx(FOOTER_ITEM, TONES.default, 'hover:text-danger')}>
               <LogOut className="mr-2 h-4 w-4" aria-hidden="true" /> Sign out
             </button>
-            <ThemeToggle className="shrink-0 self-start lg:mt-2" />
+            <ThemeToggle className="self-start lg:mt-2" />
           </div>
         </div>
       </aside>

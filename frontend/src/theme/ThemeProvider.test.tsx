@@ -163,6 +163,18 @@ describe('ThemeProvider default migratedRoutes', () => {
     expect(attr()).toBe('light');
   });
 
+  it('reports locked only on a route that is not migrated', () => {
+    nav.pathname = '/legacy-only-route';
+    const seen: boolean[] = [];
+    const Spy = () => { seen.push(useTheme().locked); return null; };
+    const { unmount } = render(<ThemeProvider><Spy /></ThemeProvider>);
+    expect(seen.at(-1)).toBe(true);
+    unmount();
+    nav.pathname = '/design';
+    render(<ThemeProvider><Spy /></ThemeProvider>);
+    expect(seen.at(-1)).toBe(false);
+  });
+
   it('forces dark on a route that is not migrated', () => {
     // any path that is not in MIGRATED_ROUTES; deliberately made up so migrating real routes never breaks this test
     nav.pathname = '/legacy-only-route';

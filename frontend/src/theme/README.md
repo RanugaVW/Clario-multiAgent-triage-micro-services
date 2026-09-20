@@ -27,7 +27,7 @@ Colors, type, spacing, radii, layout widths, motion (durations, easing, stagger,
 - `theme.charts` (the chart palette) arrives in Phase 6.
 - The Logo has a fixed 24 x 24 box, stroke width and wordmark styling.
 - Destructive buttons hover by opacity; there is no `danger-hover` token.
-- Agent and admin routes are still forced dark until Phases 5 and 6; `AppShell` now uses tokens, so the `ThemeToggle` shows the token palette in dark.
+- A new route renders dark-only until it is listed in `src/theme/migrated-routes.ts`. Agent and admin routes are still forced dark until Phases 5 and 6; `AppShell` now uses tokens, so the `ThemeToggle` shows the token palette in dark.
 - Badge borders use the tone colour at 40% opacity.
 - The example ticket's cadence and step distance, and the glow's drift, blur and size, are written in `src/app/globals.css` and `src/components/ui/GlowBackdrop.tsx`.
 - The `scroll-mt-20` anchor offset on the landing sections should equal the header height (`--l-header-height`) but is written by hand.

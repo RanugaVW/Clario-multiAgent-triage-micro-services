@@ -546,7 +546,7 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
         <button
           type="button"
           aria-expanded={expanded}
-          aria-controls={detailsId}
+          aria-controls={expanded ? detailsId : undefined}
           onClick={() => setExpanded(!expanded)}
           className="flex min-w-0 flex-1 items-center gap-4 rounded-md text-left"
         >

@@ -370,8 +370,8 @@ describe('User Workflow Scenarios', () => {
     // Wait for tab to be active
     await waitFor(() => {
       const tab = screen.getByRole('button', { name: /My Tickets/i });
-      // The active tab carries the brand-soft wash and border (its text stays fg for AA contrast).
-      expect(tab.className).toContain('bg-brand-soft');
+      // The active nav item is exposed to assistive tech as the current page.
+      expect(tab).toHaveAttribute('aria-current', 'page');
     });
 
     // History content should be visible

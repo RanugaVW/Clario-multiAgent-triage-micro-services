@@ -93,11 +93,16 @@ describe('UserTicketRow - accessible structure', () => {
     render(<UserTicketRow ticket={ticket} onDelete={vi.fn()} userId="u1" />);
     const toggle = screen.getByRole('button', { name: /My invoice is wrong/ });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).not.toHaveAttribute('aria-controls');
     await user.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const controlled = toggle.getAttribute('aria-controls');
+    expect(controlled).toBeTruthy();
+    expect(document.getElementById(controlled as string)).toBeInTheDocument();
     expect(screen.getByText('Ticket details')).toBeInTheDocument();
     await user.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).not.toHaveAttribute('aria-controls');
   });
 
   it('keeps Delete outside the expand button and does not toggle the row', async () => {

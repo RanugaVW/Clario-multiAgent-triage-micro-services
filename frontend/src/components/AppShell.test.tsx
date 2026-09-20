@@ -140,6 +140,20 @@ describe('AppShell theme toggle and token styling', () => {
     expect(screen.getAllByRole('group', { name: 'Color theme' })).toHaveLength(1);
   });
 
+  it('lets the footer wrap below lg instead of clipping the toggle', () => {
+    renderWithTheme(
+      <AppShell brand={{ icon: <svg />, title: 'T', subtitle: 'S' }} nav={[]} email="a@b.co" links={[{ key: 'x', href: '/x', label: 'Back', icon: <svg /> }]} onSignOut={vi.fn()}>x</AppShell>,
+      ['/dashboard']
+    );
+    const actions = screen.getByRole('button', { name: 'Sign out' }).parentElement as HTMLElement;
+    const tokens = actions.className.split(' ');
+    expect(tokens).toContain('flex-wrap');
+    expect(tokens).not.toContain('shrink-0');
+    expect(tokens).not.toContain('overflow-x-auto');
+    expect(actions.parentElement?.className.split(' ')).toContain('flex-wrap');
+    expect(actions.parentElement?.className.split(' ')).toContain('lg:flex-col');
+  });
+
   it('omits the toggle (and does not crash) without a ThemeProvider', () => {
     setup();
     expect(screen.queryByRole('group', { name: 'Color theme' })).not.toBeInTheDocument();
