@@ -20,7 +20,7 @@ export default function Home() {
     <LandingMotion>
       <a
         href="#main"
-        className="sr-only rounded-md bg-surface px-4 py-2 text-app text-fg focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
+        className="sr-only rounded-md bg-surface text-app text-fg focus:not-sr-only focus:fixed focus:px-4 focus:py-2 focus:left-4 focus:top-4 focus:z-50"
       >
         Skip to content
       </a>

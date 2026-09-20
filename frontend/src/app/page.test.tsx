@@ -23,6 +23,15 @@ describe('landing page', () => {
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
   });
 
+  it('keeps the skip link padding on the focus variant, which otherwise resets it', () => {
+    renderWithTheme(<Home />);
+    const tokens = screen.getByRole('link', { name: 'Skip to content' }).className.split(' ');
+    expect(tokens).toContain('focus:px-4');
+    expect(tokens).toContain('focus:py-2');
+    expect(tokens).not.toContain('px-4');
+    expect(tokens).not.toContain('py-2');
+  });
+
   it('every in-page nav link lands on a section that is really on the page', () => {
     renderWithTheme(<Home />);
     for (const link of nav.links) {
