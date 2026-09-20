@@ -5,13 +5,19 @@ import { useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from 
 import { cx } from '../../lib/cx';
 
 const FIELD =
-  'w-full rounded-lg border border-border-strong bg-surface px-3.5 py-2.5 text-app text-fg placeholder:text-fg-subtle transition-colors hover:border-fg-subtle focus-visible:border-brand disabled:opacity-50';
+  'w-full rounded-lg border bg-surface px-3.5 py-2.5 text-app text-fg placeholder:text-fg-subtle transition-colors disabled:opacity-50';
+
+// Border colour is chosen per state, with the hover and focus variants included. A plain `border-danger` is
+// emitted before the hover/focus variants in Tailwind's CSS, so it would lose to them and the error cue
+// would vanish exactly when the user interacts.
+const BORDER_VALID = 'border-border-strong hover:border-fg-subtle focus-visible:border-brand';
+const BORDER_INVALID = 'border-danger hover:border-danger focus-visible:border-danger';;
 
 export function Input({ invalid, className, ...rest }: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
   return (
     <input
       aria-invalid={invalid || undefined}
-      className={cx(FIELD, invalid && 'border-danger', className)}
+      className={cx(FIELD, invalid ? BORDER_INVALID : BORDER_VALID, className)}
       {...rest}
     />
   );
@@ -25,7 +31,7 @@ export function Textarea({
   return (
     <textarea
       aria-invalid={invalid || undefined}
-      className={cx(FIELD, 'min-h-24 resize-y', invalid && 'border-danger', className)}
+      className={cx(FIELD, invalid ? BORDER_INVALID : BORDER_VALID, 'min-h-24 resize-y', className)}
       {...rest}
     />
   );

@@ -24,6 +24,38 @@ describe('Input', () => {
   });
 });
 
+const tokens = (el: HTMLElement) => el.className.split(' ');
+
+describe('invalid state keeps the danger border on hover and focus', () => {
+  it.each([
+    ['Input', <Input key="i" aria-label="f" invalid />],
+    ['Textarea', <Textarea key="t" aria-label="f" invalid />],
+  ])('%s (invalid)', (_name, ui) => {
+    render(ui);
+    const t = tokens(screen.getByLabelText('f'));
+    expect(t).toContain('border-danger');
+    expect(t).toContain('hover:border-danger');
+    expect(t).toContain('focus-visible:border-danger');
+    expect(t).not.toContain('hover:border-fg-subtle');
+    expect(t).not.toContain('focus-visible:border-brand');
+    expect(t).not.toContain('border-border-strong');
+  });
+
+  it.each([
+    ['Input', <Input key="i" aria-label="f" />],
+    ['Textarea', <Textarea key="t" aria-label="f" />],
+  ])('%s (valid) keeps the neutral hover and focus borders', (_name, ui) => {
+    render(ui);
+    const t = tokens(screen.getByLabelText('f'));
+    expect(t).toContain('border-border-strong');
+    expect(t).toContain('hover:border-fg-subtle');
+    expect(t).toContain('focus-visible:border-brand');
+    expect(t).not.toContain('border-danger');
+    expect(t).not.toContain('hover:border-danger');
+    expect(t).not.toContain('focus-visible:border-danger');
+  });
+});
+
 describe('Textarea', () => {
   it('renders a resizable textarea', () => {
     render(<Textarea aria-label="Message" />);
