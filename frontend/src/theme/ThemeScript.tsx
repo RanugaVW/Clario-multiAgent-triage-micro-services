@@ -1,0 +1,24 @@
+import { MIGRATED_ROUTES } from './migrated-routes';
+import { THEME_STORAGE_KEY } from './mode';
+
+/**
+ * Runs before first paint and sets data-theme, so there is no flash of the wrong theme. The logic mirrors
+ * resolveMode() in mode.ts; ThemeScript.test.ts runs this exact string and fails if the two ever disagree.
+ */
+export function buildThemeScript(routes: readonly string[], storageKey: string = THEME_STORAGE_KEY): string {
+  return (
+    '(function(){var d=document.documentElement;try{' +
+    `var routes=${JSON.stringify(routes)};` +
+    'var p=location.pathname;' +
+    "var mig=routes.some(function(r){return r==='/'?p==='/':p===r||p.indexOf(r+'/')===0;});" +
+    `var raw=localStorage.getItem(${JSON.stringify(storageKey)});` +
+    "var pref=raw==='light'||raw==='dark'?raw:'system';" +
+    "var sys=matchMedia('(prefers-color-scheme: dark)').matches;" +
+    "d.setAttribute('data-theme',!mig?'dark':pref==='system'?(sys?'dark':'light'):pref);" +
+    "}catch(e){d.setAttribute('data-theme','dark');}})();"
+  );
+}
+
+export function ThemeScript() {
+  return <script dangerouslySetInnerHTML={{ __html: buildThemeScript(MIGRATED_ROUTES) }} />;
+}
