@@ -35,8 +35,8 @@ Colors, type, spacing, radii, layout widths, motion (durations, easing, stagger,
 
 ## Passing className to a primitive
 
-`cx` only concatenates class names. Which utility wins a conflict is decided by Tailwind's emit order and the specificity of variants such as `focus:`, not by the order in the string, so a `className` you pass does not reliably override a primitive's own utility. Prefer, in this order:
+`cx` merges Tailwind conflicts (tailwind-merge, configured in `src/lib/cx.ts`), so a `className` you pass to a primitive that builds its classes with `cx` overrides that primitive's conflicting utility: `<Card className="p-0">` drops `p-card`, and `hidden sm:inline-flex` replaces `inline-flex` on the theme toggle. Variants stay independent (`hidden` and `sm:block` both survive).
 
-- An explicit prop: `Card flush` removes the card padding instead of passing a padding class.
-- A wrapper element: the landing nav wraps the theme toggle in a `hidden sm:block` element rather than passing display classes to it.
-- Putting the utility on a variant that is emitted later: the skip link uses `focus:px-4 focus:py-2` because `focus:not-sr-only` resets padding at a higher specificity than a plain `px-4`.
+Still fine where they exist: the `Card flush` prop, and wrapper elements such as the `hidden sm:block` wrapper around the landing nav's theme toggle.
+
+Caveat: the merge only knows Tailwind's defaults plus the keys the config registers. Font sizes, spacing, shadow, container and radius keys are derived from `theme.config.ts` automatically. A brand-new utility family added to `globals.css` `@theme inline` is not, and must be registered in `src/lib/cx.ts`, otherwise it can be mis-merged (for example a custom text size mistaken for a text color and dropped).
