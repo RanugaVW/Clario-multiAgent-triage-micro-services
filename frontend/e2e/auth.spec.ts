@@ -25,8 +25,8 @@ test('unauthenticated visitor to /agent is redirected to /login', async ({ page 
 test('login with wrong password shows a real error and does not navigate away', async ({ page }) => {
   const { customer } = loadFixtures();
   await page.goto('/login');
-  await page.getByPlaceholder('Email address').fill(customer.email);
-  await page.getByPlaceholder('Password').fill('definitely-the-wrong-password');
+  await page.getByLabel('Email address').fill(customer.email);
+  await page.getByLabel('Password', { exact: true }).fill('definitely-the-wrong-password');
   await page.getByRole('button', { name: 'Sign In' }).click();
 
   await expect(page.getByText(/invalid/i)).toBeVisible({ timeout: 15_000 });

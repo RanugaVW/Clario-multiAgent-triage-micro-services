@@ -75,7 +75,6 @@ export default function Login() {
           </Notice>
         )}
 
-        {/* The placeholders are kept exactly (e2e/helpers.ts and e2e/auth.spec.ts select the fields by them). */}
         <FormField label="Email address">
           {(field) => (
             <Input
@@ -85,7 +84,7 @@ export default function Login() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
+              placeholder="you@company.com"
             />
           )}
         </FormField>
@@ -98,7 +97,6 @@ export default function Login() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
             />
           )}
         </FormField>

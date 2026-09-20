@@ -17,8 +17,8 @@ export function loadFixtures(): Fixtures {
 /** Real UI login: fills the form and waits for the post-login redirect. */
 export async function loginViaUi(page: Page, email: string, password: string, expectedPath: RegExp) {
   await page.goto('/login');
-  await page.getByPlaceholder('Email address').fill(email);
-  await page.getByPlaceholder('Password').fill(password);
+  await page.getByLabel('Email address').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign In' }).click();
   await expect(page).toHaveURL(expectedPath, { timeout: 20_000 });
 }

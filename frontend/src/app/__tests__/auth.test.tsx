@@ -41,8 +41,8 @@ describe('Login Authentication', () => {
   it('renders login form correctly', () => {
     renderLogin();
 
-    expect(screen.getByPlaceholderText('Email address')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
+    expect(screen.getByLabelText('Email address')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
@@ -72,12 +72,12 @@ describe('Login Authentication', () => {
     const user = userEvent.setup();
     renderLogin();
 
-    await user.type(screen.getByPlaceholderText('Password'), 'secret-pw');
-    expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'password');
+    await user.type(screen.getByLabelText('Password'), 'secret-pw');
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
 
     await user.click(screen.getByRole('button', { name: 'Show password' }));
 
-    expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'text');
     expect(supabase.auth.signInWithPassword).not.toHaveBeenCalled();
   });
 
@@ -90,8 +90,8 @@ describe('Login Authentication', () => {
 
     renderLogin();
 
-    await user.type(screen.getByPlaceholderText('Email address'), 'test@example.com');
-    await user.type(screen.getByPlaceholderText('Password'), 'wrongpassword');
+    await user.type(screen.getByLabelText('Email address'), 'test@example.com');
+    await user.type(screen.getByLabelText('Password'), 'wrongpassword');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
@@ -109,8 +109,8 @@ describe('Login Authentication', () => {
     } as unknown as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>);
 
     renderLogin();
-    await user.type(screen.getByPlaceholderText('Email address'), 'gone@example.com');
-    await user.type(screen.getByPlaceholderText('Password'), 'whatever');
+    await user.type(screen.getByLabelText('Email address'), 'gone@example.com');
+    await user.type(screen.getByLabelText('Password'), 'whatever');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
     expect(await screen.findByText(/suspended or deactivated.*contact an administrator/i)).toBeInTheDocument();
@@ -133,8 +133,8 @@ describe('Login Authentication', () => {
 
     renderLogin();
 
-    await user.type(screen.getByPlaceholderText('Email address'), 'admin@example.com');
-    await user.type(screen.getByPlaceholderText('Password'), 'password');
+    await user.type(screen.getByLabelText('Email address'), 'admin@example.com');
+    await user.type(screen.getByLabelText('Password'), 'password');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
@@ -158,8 +158,8 @@ describe('Login Authentication', () => {
 
     renderLogin();
 
-    await user.type(screen.getByPlaceholderText('Email address'), 'user@example.com');
-    await user.type(screen.getByPlaceholderText('Password'), 'password');
+    await user.type(screen.getByLabelText('Email address'), 'user@example.com');
+    await user.type(screen.getByLabelText('Password'), 'password');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
@@ -184,8 +184,8 @@ describe('Login Authentication', () => {
     } as never);
     renderLogin();
 
-    await user.type(screen.getByPlaceholderText('Email address'), 'test@example.com');
-    await user.type(screen.getByPlaceholderText('Password'), 'wrongpassword');
+    await user.type(screen.getByLabelText('Email address'), 'test@example.com');
+    await user.type(screen.getByLabelText('Password'), 'wrongpassword');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid login credentials');
