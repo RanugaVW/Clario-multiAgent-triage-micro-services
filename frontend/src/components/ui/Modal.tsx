@@ -1,11 +1,11 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { Button } from './Button';
 
 const FOCUSABLE =
-  'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 export function Modal({
   open,
@@ -21,39 +21,59 @@ export function Modal({
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Move focus into the dialog on open and hand it back to whatever opened it on close.
+  // Keep the latest onClose without re-running the focus-capture effect below on every render.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // Move focus into the dialog on open and hand it back to whatever opened it on close. Keyboard
+  // handling lives on the document so Escape and the Tab trap still work when focus has left the
+  // panel (for example a focused button was disabled or unmounted and focus fell to <body>).
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
     panelRef.current?.focus();
-    return () => previous?.focus();
+
+    function onKeyDown(e: globalThis.KeyboardEvent) {
+      const panel = panelRef.current;
+      if (!panel) return;
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (items.length === 0) {
+        e.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (!active || !panel.contains(active)) {
+        // Focus is outside the dialog: pull it back in rather than letting Tab walk the page behind.
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey && (active === first || active === panel)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previous?.focus();
+    };
   }, [open]);
 
   if (!open) return null;
-
-  function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      onClose();
-      return;
-    }
-    if (e.key !== 'Tab') return;
-    const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []);
-    if (items.length === 0) {
-      e.preventDefault();
-      return;
-    }
-    const first = items[0];
-    const last = items[items.length - 1];
-    const active = document.activeElement;
-    if (e.shiftKey && (active === first || active === panelRef.current)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && active === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  }
 
   return (
     <div
@@ -68,7 +88,6 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        onKeyDown={onKeyDown}
         className="relative w-full max-w-md rounded-xl border border-border bg-surface-raised p-8 shadow-raised outline-none"
       >
         <button

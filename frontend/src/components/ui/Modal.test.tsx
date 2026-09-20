@@ -79,6 +79,64 @@ describe('Modal', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
   });
 
+  it('still closes on Escape when focus has left the dialog for the body', async () => {
+    const onClose = vi.fn();
+    render(
+      <Modal open onClose={onClose} title="T">
+        <button>Inside</button>
+      </Modal>
+    );
+    (document.activeElement as HTMLElement).blur();
+    expect(document.body).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('pulls focus back into the dialog when Tab is pressed from the body', async () => {
+    render(
+      <>
+        <button>Outside</button>
+        <Modal open onClose={() => {}} title="T">
+          <button>First</button>
+        </Modal>
+      </>
+    );
+    (document.activeElement as HTMLElement).blur();
+    expect(document.body).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+  });
+
+  it('pulls focus to the last item on Shift+Tab from the body', async () => {
+    render(
+      <>
+        <button>Outside</button>
+        <Modal open onClose={() => {}} title="T">
+          <button>First</button>
+          <button>Last</button>
+        </Modal>
+      </>
+    );
+    (document.activeElement as HTMLElement).blur();
+    await userEvent.tab({ shift: true });
+    expect(screen.getByRole('button', { name: 'Last' })).toHaveFocus();
+  });
+
+  it('wraps Tab from the last button even when a hidden input trails it', async () => {
+    render(
+      <>
+        <button>Outside</button>
+        <Modal open onClose={() => {}} title="T">
+          <button>Last</button>
+          <input type="hidden" name="csrf" />
+        </Modal>
+      </>
+    );
+    screen.getByRole('button', { name: 'Last' }).focus();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+  });
+
   it('returns focus to the element that opened it', () => {
     const opener = document.createElement('button');
     document.body.appendChild(opener);
