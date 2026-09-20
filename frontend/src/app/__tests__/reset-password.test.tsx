@@ -1,8 +1,9 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ResetPassword from '../reset-password/page';
 import { supabase } from '../../lib/supabase';
+import { renderWithTheme } from '../../test/renderWithTheme';
 
 type AuthCallback = (event: string, session: unknown) => void;
 let authCallback: AuthCallback;
@@ -18,12 +19,16 @@ vi.mock('../../lib/supabase', () => ({
   },
 }));
 
+vi.mock('next/navigation', () => ({ usePathname: () => '/reset-password' }));
+
+const renderReset = () => renderWithTheme(<ResetPassword />, ['/reset-password']);
+
 function fire(event: string, session: unknown = null) {
   act(() => authCallback(event, session));
 }
 
 async function openRecoveryForm() {
-  render(<ResetPassword />);
+  renderReset();
   fire('PASSWORD_RECOVERY', { user: { id: 'u1' } });
   return screen.findByLabelText(/new password \(min/i);
 }
@@ -40,7 +45,7 @@ describe('Reset password page', () => {
   });
 
   it('says the link is unusable when there is no recovery session, instead of showing a form that cannot work', () => {
-    render(<ResetPassword />);
+    renderReset();
     fire('INITIAL_SESSION', null);
 
     expect(screen.getByRole('alert')).toHaveTextContent(/invalid or has expired/i);
@@ -49,7 +54,7 @@ describe('Reset password page', () => {
   });
 
   it('shows a neutral state while the link is being verified', () => {
-    render(<ResetPassword />);
+    renderReset();
 
     expect(screen.getByRole('status')).toHaveTextContent(/verifying/i);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -62,7 +67,7 @@ describe('Reset password page', () => {
   });
 
   it('is not knocked back to "invalid" by the initial-session event that follows a recovery event', async () => {
-    render(<ResetPassword />);
+    renderReset();
     fire('PASSWORD_RECOVERY', { user: { id: 'u1' } });
     fire('INITIAL_SESSION', null);
 
@@ -132,9 +137,42 @@ describe('Reset password page', () => {
   });
 
   it('stops listening for auth events when it goes away', () => {
-    const { unmount } = render(<ResetPassword />);
+    const { unmount } = renderReset();
     unmount();
 
     expect(unsubscribe).toHaveBeenCalled();
+  });
+
+  it('is the auth layout with one h1 in every state', async () => {
+    renderReset();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Choose a new password');
+    expect(screen.getByRole('main')).toBeInTheDocument();
+  });
+
+  it('attaches a too-short password error to the password field', async () => {
+    const user = userEvent.setup();
+    await openRecoveryForm();
+    await user.type(screen.getByLabelText(/new password \(min/i), 'abc');
+    await user.type(screen.getByLabelText(/confirm new password/i), 'abc');
+    await user.click(screen.getByRole('button', { name: /update password/i }));
+
+    const field = screen.getByLabelText(/new password \(min/i);
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(field).toHaveAccessibleDescription(/at least 6 characters/i);
+    expect(screen.getByLabelText(/confirm new password/i)).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('attaches a mismatch error to the confirmation field', async () => {
+    const user = userEvent.setup();
+    await openRecoveryForm();
+    await user.type(screen.getByLabelText(/new password \(min/i), 'longenough1');
+    await user.type(screen.getByLabelText(/confirm new password/i), 'different22');
+    await user.click(screen.getByRole('button', { name: /update password/i }));
+
+    const confirm = screen.getByLabelText(/confirm new password/i);
+    expect(confirm).toHaveAttribute('aria-invalid', 'true');
+    expect(confirm).toHaveAccessibleDescription(/do not match/i);
+    expect(screen.getByLabelText(/new password \(min/i)).not.toHaveAttribute('aria-invalid');
   });
 });

@@ -22,6 +22,11 @@ describe('MIGRATED_ROUTES', () => {
     expect(MIGRATED_ROUTES).toContain('/register');
   });
 
+  it('includes the password recovery pages', () => {
+    expect(MIGRATED_ROUTES).toContain('/forgot-password');
+    expect(MIGRATED_ROUTES).toContain('/reset-password');
+  });
+
   it('is what the rendered ThemeScript embeds', () => {
     const html = renderToStaticMarkup(<ThemeScript />);
     expect(html).toContain(JSON.stringify(MIGRATED_ROUTES));
