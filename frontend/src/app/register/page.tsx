@@ -11,7 +11,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import Link from "next/link";
-import { GlassPanel, GlassButton, GlassInput, PasswordInput } from "../../components/ui";
+import { GlassPanel, GlassButton, GlassInput, PasswordInput } from '../../components/ui';
 
 export default function Register() {
   const [email, setEmail] = useState("");

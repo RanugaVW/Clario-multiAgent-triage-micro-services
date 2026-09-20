@@ -122,18 +122,6 @@ export default function Login() {
                   className="glass-input rounded-2xl px-4 py-3.5 text-sm placeholder-white/40 pl-12"
                   placeholder="Password"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((visible) => !visible)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/40 hover:text-white/70 transition-colors"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
               </div>
 
               <div className="text-right -mt-1">
