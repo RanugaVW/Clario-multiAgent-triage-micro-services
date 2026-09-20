@@ -18,6 +18,10 @@ describe('MIGRATED_ROUTES', () => {
     expect(MIGRATED_ROUTES).toContain('/login');
   });
 
+  it('includes the register page', () => {
+    expect(MIGRATED_ROUTES).toContain('/register');
+  });
+
   it('is what the rendered ThemeScript embeds', () => {
     const html = renderToStaticMarkup(<ThemeScript />);
     expect(html).toContain(JSON.stringify(MIGRATED_ROUTES));

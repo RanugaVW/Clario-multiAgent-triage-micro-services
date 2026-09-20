@@ -1,10 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { Mail, KeyRound, ArrowRight, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import { GlassPanel, GlassButton, GlassInput, PasswordInput } from '../../components/ui';
+import { supabase } from '../../lib/supabase';
+import { AUTH_LINK, AuthLayout } from '../../components/auth/AuthLayout';
+import { Button } from '../../components/ui/Button';
+import { FormField } from '../../components/ui/FormField';
+import { Input, PasswordInput } from '../../components/ui/Input';
+import { Notice } from '../../components/ui/Notice';
+import { theme } from '../../theme/theme.config';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -35,86 +39,67 @@ export default function Register() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      <GlassPanel tier={1} className="p-8 sm:p-12 w-full max-w-md animate-fade-in relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-          <UserPlus className="w-48 h-48" />
-        </div>
-
-        <div className="relative z-10">
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="bg-[#2DD4BF]/15 p-3 rounded-2xl border border-[#2DD4BF]/25">
-              <UserPlus className="text-[#2DD4BF] w-6 h-6" />
-            </div>
-            <h1 className="text-3xl font-bold text-[#ECECEC]">Create an account</h1>
+    <AuthLayout
+      title="Create an account"
+      description={`Start using ${theme.brand.name}. We will email you a link to confirm your address.`}
+      footer={
+        <>
+          Already have an account?{' '}
+          <Link href="/login" className={AUTH_LINK}>
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      {success ? (
+        <Notice tone="success" role="status" title="Check your email">
+          We sent you a confirmation link. Confirm your address, then sign in.
+          <div className="mt-4">
+            <Link href="/login" className={AUTH_LINK}>
+              Return to sign in
+            </Link>
           </div>
-
-          {success ? (
-            <div className="bg-[#2DD4BF]/10 border border-[#2DD4BF]/30 text-[#2DD4BF] p-6 rounded-2xl text-center">
-              <h2 className="text-lg font-semibold mb-2">Check your email</h2>
-              <p className="text-sm mb-6">We sent you a confirmation link. Confirm your address, then sign in.</p>
-              <Link href="/login" className="text-[#2DD4BF] hover:text-[#5eead4] font-medium underline">
-                Return to sign in
-              </Link>
-            </div>
-          ) : (
-            <form onSubmit={handleRegister} className="space-y-6">
-              {error && (
-                <div className="bg-[#FB7185]/10 border border-[#FB7185]/30 text-[#FB7185] text-sm p-3 rounded-xl">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="register-email" className="block text-sm font-medium text-[#8A8F98] mb-2">Email address</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-[#8A8F98]" />
-                  </div>
-                  <GlassInput
-                    id="register-email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    placeholder="agent@clario.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="register-password" className="block text-sm font-medium text-[#8A8F98] mb-2">Password (min 6 characters)</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <KeyRound className="h-5 w-5 text-[#8A8F98]" />
-                  </div>
-                  <PasswordInput
-                    id="register-password"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="glass-input rounded-2xl px-4 py-3.5 text-sm placeholder-white/40 pl-10"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <GlassButton type="submit" variant="primary" disabled={loading} className="w-full">
-                <span>{loading ? 'Creating account…' : 'Create account'}</span>
-                {!loading && <ArrowRight className="w-4 h-4" />}
-              </GlassButton>
-
-              <div className="text-center mt-4">
-                <Link href="/login" className="text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors">
-                  Already have an account? Sign in
-                </Link>
-              </div>
-            </form>
+        </Notice>
+      ) : (
+        <form onSubmit={handleRegister} className="flex flex-col gap-5">
+          {error && (
+            <Notice tone="danger" role="alert">
+              {error}
+            </Notice>
           )}
-        </div>
-      </GlassPanel>
-    </main>
+
+          <FormField label="Email address">
+            {(field) => (
+              <Input
+                {...field}
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+              />
+            )}
+          </FormField>
+
+          <FormField label="Password (min 6 characters)">
+            {(field) => (
+              <PasswordInput
+                {...field}
+                required
+                minLength={6}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            )}
+          </FormField>
+
+          <Button type="submit" size="lg" disabled={loading} className="w-full">
+            {loading ? 'Creating account…' : 'Create account'}
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
   );
 }
