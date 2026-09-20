@@ -63,18 +63,6 @@ export function GlassButton({
   );
 }
 
-export function GlassTextarea({
-  className = '',
-  ...rest
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { className?: string }) {
-  return (
-    <textarea
-      className={`glass-input w-full rounded-2xl px-4 py-3.5 text-sm placeholder-white/40 resize-y ${className}`}
-      {...rest}
-    />
-  );
-}
-
 type StatusTone = 'success' | 'warning' | 'danger' | 'neutral' | 'info';
 
 const STATUS_STYLES: Record<StatusTone, string> = {

@@ -51,4 +51,25 @@ describe('UR-001 - shared design system usage', () => {
   it.each(['agent/AgentShell.tsx', 'admin/AdminShell.tsx'])('%s is itself built on AppShell', (file) => {
     expect(src(file)).toContain('<AppShell');
   });
+
+  const HEX = /(?<![\w&])#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})(?![\w-])/;
+  it.each([
+    'dashboard/page.tsx',
+    '../components/AppShell.tsx',
+    '../components/MorphButton.tsx',
+    '../components/ShakeButton.tsx',
+    '../components/RotateButton.tsx',
+    '../components/VoiceRecorder.tsx',
+    '../components/AudioWaveform.tsx',
+    '../components/WavePhysicsLoader.tsx',
+  ])('%s uses theme tokens only (no hex, rgb(), white/NN or glass classes)', (file) => {
+    const code = src(file);
+    expect(code).not.toMatch(HEX);
+    expect(code).not.toMatch(/rgba?\(/);
+    expect(code).not.toMatch(/glass-|white\/|text-\[#/);
+  });
+
+  it('the dashboard imports primitives by file path, never the legacy ui.tsx barrel', () => {
+    expect(src('dashboard/page.tsx')).not.toMatch(/from '\.\.\/\.\.\/components\/ui'/);
+  });
 });

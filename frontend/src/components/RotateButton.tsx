@@ -19,7 +19,7 @@ export default function RotateButton({ onClick, isLoading }: RotateButtonProps) 
       onMouseLeave={() => setIsHovered(false)}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.96 }}
-      className="relative flex h-9 cursor-pointer items-center justify-center rounded-pill border border-border bg-surface px-6 text-fg transition-colors duration-150 hover:bg-surface-raised disabled:opacity-50 disabled:opacity-50"
+      className="relative flex h-9 cursor-pointer items-center justify-center rounded-pill border border-border bg-surface px-6 text-fg transition-colors duration-150 hover:bg-surface-raised disabled:opacity-50"
     >
       <div className="relative w-[16px] h-[16px] flex items-center justify-center shrink-0">
         <motion.div

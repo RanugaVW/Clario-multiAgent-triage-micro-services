@@ -27,6 +27,10 @@ describe('MIGRATED_ROUTES', () => {
     expect(MIGRATED_ROUTES).toContain('/reset-password');
   });
 
+  it('includes /dashboard (the customer dashboard is on the theme tokens)', () => {
+    expect(MIGRATED_ROUTES).toContain('/dashboard');
+  });
+
   it('is what the rendered ThemeScript embeds', () => {
     const html = renderToStaticMarkup(<ThemeScript />);
     expect(html).toContain(JSON.stringify(MIGRATED_ROUTES));
