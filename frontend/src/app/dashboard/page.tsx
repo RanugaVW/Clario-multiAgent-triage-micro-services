@@ -1,12 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, Star } from 'lucide-react';
+import { Bot, Send, Ticket, CheckCircle2, ShieldAlert, Cpu, History, Star } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
 import { priorityColor } from '../../lib/classification';
-import { GlassPanel, GlassButton, GlassTextarea, Modal, ConfirmDialog, StatusBadge } from '../../components/ui';
+import { StatusBadge } from '../../components/ui';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { FormField } from '../../components/ui/FormField';
+import { Textarea, Input } from '../../components/ui/Input';
+import { ConfirmDialog, Modal } from '../../components/ui/Modal';
+import { Notice } from '../../components/ui/Notice';
 import { AppShell, type ShellLink, type ShellNavItem } from '../../components/AppShell';
+import { theme } from '../../theme/theme.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
 
@@ -193,8 +200,8 @@ export default function Home() {
 
   if (loading || roleLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-[#E8A33D]/20 border-t-[#E8A33D] rounded-full animate-spin"></div>
+      <div className="flex min-h-dvh items-center justify-center bg-canvas">
+        <div role="status" aria-label="Loading" className="h-12 w-12 animate-spin rounded-full border-4 border-border border-t-brand" />
       </div>
     );
   }
@@ -323,50 +330,47 @@ export default function Home() {
     onClick: () => { if (item.id === 'history') fetchHistory(); setActiveTab(item.id); },
   }));
   const footerLinks: ShellLink[] = [
-    ...(role === 'admin' ? [{ key: 'admin', label: 'Admin panel', icon: <ShieldAlert className="w-4 h-4" />, href: '/admin', tone: 'amber' as const }] : []),
-    ...(role === 'agent' ? [{ key: 'agent', label: 'Agent workspace', icon: <Bot className="w-4 h-4" />, href: '/agent', tone: 'emerald' as const }] : []),
+    ...(role === 'admin' ? [{ key: 'admin', label: 'Admin panel', icon: <ShieldAlert className="w-4 h-4" />, href: '/admin', tone: 'brand' as const }] : []),
+    ...(role === 'agent' ? [{ key: 'agent', label: 'Agent workspace', icon: <Bot className="w-4 h-4" />, href: '/agent', tone: 'success' as const }] : []),
   ];
+
+  const closeSuccess = () => {
+    setSuccessModal({ show: false, trackingId: '' });
+    setActiveTab('history');
+    if (user) fetchHistory();
+  };
 
   return (
     <AppShell
       brand={{
-        icon: <Cpu className="text-[#E8A33D] w-5 h-5" />,
-        title: <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-[#E8A33D] via-[#2DD4BF] to-[#E8A33D]">Clario Triage</h1>,
+        icon: <Cpu className="h-5 w-5" aria-hidden="true" />,
+        title: <h1 className="text-fg">{`${theme.brand.name} Triage`}</h1>,
         subtitle: 'Support ticket portal',
       }}
       nav={navItems}
       links={footerLinks}
       email={user?.email}
       onSignOut={handleLogout}
-      mainClassName="lg:py-12 flex flex-col items-center"
+      mainClassName="flex flex-col items-center lg:py-12"
     >
-      {/* Success Modal */}
-      <Modal
-        open={successModal.show}
-        onClose={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
-      >
-        <div className="flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-emerald-500/15 rounded-full flex items-center justify-center mb-4 border border-emerald-500/25">
-            <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+      <Modal open={successModal.show} onClose={closeSuccess} title="Ticket submitted successfully!">
+        <div className="flex flex-col">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-pill border border-success/40 bg-surface text-success">
+            <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
           </div>
-          <h3 className="text-xl font-bold text-[#ECECEC] mb-2">Ticket submitted successfully!</h3>
-          <p className="text-[#8A8F98] text-sm mb-6">Your issue has been securely logged and is being routed by our LangGraph orchestration.</p>
+          <p className="mb-6 text-app text-fg-muted">Your issue has been securely logged and is being routed by our LangGraph orchestration.</p>
 
-          <div className="w-full rounded-2xl bg-white/[0.03] p-4 border border-white/10 flex flex-col items-center">
-            <span className="text-xs text-[#8A8F98] font-semibold mb-2">Tracking ID</span>
-            <div className="flex items-center space-x-3 w-full justify-center">
-              <span className="font-mono text-[#2DD4BF] text-sm">{successModal.trackingId}</span>
+          <div className="flex w-full flex-col items-center rounded-lg border border-border bg-surface p-4">
+            <span className="mb-2 text-caption font-semibold text-fg-muted">Tracking ID</span>
+            <div className="flex w-full flex-wrap items-center justify-center gap-3">
+              <span className="break-all font-mono text-mono text-accent">{successModal.trackingId}</span>
               <MorphButton textToCopy={successModal.trackingId} label="Copy ID" />
             </div>
           </div>
 
-          <GlassButton
-            variant="primary"
-            className="mt-6 w-full"
-            onClick={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
-          >
+          <Button className="mt-6 w-full" onClick={closeSuccess}>
             View my tickets
-          </GlassButton>
+          </Button>
         </div>
       </Modal>
 
@@ -379,132 +383,109 @@ export default function Home() {
         onCancel={() => setTicketPendingDelete(null)}
       />
 
-
-        {/* Header section */}
-        <div className="text-center mb-12 animate-fade-in w-full">
-          <p className="text-[#8A8F98] max-w-2xl mx-auto text-lg font-light">
-            Submit a support ticket and watch our LangGraph orchestration securely classify, route, and resolve issues in real-time.
-          </p>
-        </div>
+      <p className="mx-auto mb-10 w-full max-w-2xl text-center text-body-lg text-fg-muted">
+        Submit a support ticket and watch our LangGraph orchestration securely classify, route, and resolve issues in real-time.
+      </p>
 
       {activeTab === 'new' && (
-      <div className="w-full max-w-2xl mx-auto items-start">
-
-        {/* Form */}
-        <GlassPanel tier={1} className="p-8 w-full animate-fade-in relative overflow-hidden" style={{ animationDelay: '0.1s' }}>
-
-          <h2 className="text-xl font-semibold mb-8 flex items-center text-[#ECECEC] border-b border-white/10 pb-4">
-            <Ticket className="w-5 h-5 mr-3 text-[#2DD4BF]" />
+        <Card raised className="w-full max-w-2xl p-8">
+          <h2 className="mb-8 flex items-center gap-3 border-b border-border pb-4 text-h3 text-fg">
+            <Ticket className="h-5 w-5 text-accent" aria-hidden="true" />
             Submit a ticket
           </h2>
 
           {error && (
-            <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/20 text-[#FB7185] px-4 py-3 rounded-xl flex items-start text-sm">
-              <AlertCircle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
+            <Notice tone="danger" role="alert" className="mb-6">
+              {error}
+            </Notice>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            <div>
-              <label htmlFor="ticket-text" className="block text-sm font-medium text-[#8A8F98] mb-2">
-                Describe the issue
-              </label>
-              <GlassTextarea
-                id="ticket-text"
-                required
-                value={ticketText}
-                onChange={(e) => setTicketText(e.target.value)}
-                placeholder="Describe the issue, or dictate it with the microphone below..."
-                className="h-40"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#8A8F98] mb-2">
-                Or use voice input
-              </label>
-              <VoiceRecorder
-                value={ticketText}
-                onValueChange={setTicketText}
-                disabled={isProcessing}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="ticket-image" className="block text-sm font-medium text-[#8A8F98] mb-2">
-                Attach a screenshot (optional)
-              </label>
-              <input
-                id="ticket-image"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setImageFile(e.target.files[0]);
-                  }
-                }}
-                className="w-full py-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-white/10 file:bg-white/[0.06] file:text-xs file:text-[#ECECEC] hover:file:bg-white/[0.12] transition-all text-[#8A8F98] text-sm"
-              />
-              {imageFile && (
-                <p className="mt-2 text-xs font-mono text-[#2DD4BF]">Attached: {imageFile.name}</p>
+            <FormField label="Describe the issue">
+              {(field) => (
+                <Textarea
+                  {...field}
+                  required
+                  value={ticketText}
+                  onChange={(e) => setTicketText(e.target.value)}
+                  placeholder="Describe the issue, or dictate it with the microphone below..."
+                  className="h-40"
+                />
               )}
+            </FormField>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-app font-medium text-fg">Or use voice input</p>
+              <VoiceRecorder value={ticketText} onValueChange={setTicketText} disabled={isProcessing} />
             </div>
 
-            <GlassButton type="submit" variant="primary" disabled={isProcessing} className="w-full">
+            <FormField label="Attach a screenshot (optional)">
+              {({ id }) => (
+                <>
+                  <input
+                    id={id}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setImageFile(e.target.files[0]);
+                      }
+                    }}
+                    className="w-full rounded-lg border border-border-strong bg-surface p-2 text-app text-fg-muted file:mr-4 file:rounded-md file:border file:border-border-strong file:bg-surface-raised file:px-3 file:py-1.5 file:text-small file:text-fg hover:file:bg-brand-soft"
+                  />
+                  {imageFile && <p className="font-mono text-caption text-accent">Attached: {imageFile.name}</p>}
+                </>
+              )}
+            </FormField>
+
+            <Button type="submit" size="lg" disabled={isProcessing} className="w-full">
               <span>{isProcessing ? 'Submitting…' : 'Submit ticket'}</span>
-              {!isProcessing && <Send className="w-4 h-4" />}
-            </GlassButton>
+              {!isProcessing && <Send className="h-4 w-4" aria-hidden="true" />}
+            </Button>
           </form>
-        </GlassPanel>
-      </div>
+        </Card>
       )}
 
-      {/* ─── Ticket History Full View ─── */}
       {activeTab === 'history' && (
-        <div className="w-full max-w-6xl mx-auto animate-fade-in pb-12">
-          <div className="flex justify-between items-center mb-6 max-w-6xl mx-auto px-2">
-            <h2 className="text-lg font-semibold text-[#ECECEC] flex items-center">
-              <History className="w-5 h-5 mr-3 text-[#2DD4BF]" /> Ticket history
+        <div className="mx-auto w-full max-w-6xl pb-12">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="flex items-center gap-3 text-h3 text-fg">
+              <History className="h-5 w-5 text-accent" aria-hidden="true" /> Ticket history
             </h2>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-3">
               {pastTickets.length > 0 && (
-                <input
+                <Input
                   type="text"
                   placeholder="Search your tickets…"
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
                   aria-label="Search your tickets"
-                  className="glass-input rounded-xl text-[#ECECEC] text-xs px-3 py-1.5 w-56"
+                  className="w-full sm:w-64"
                 />
               )}
               <RotateButton onClick={fetchHistory} isLoading={dataLoading} />
             </div>
           </div>
           {historyError && (
-            <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/20 text-[#FB7185] px-4 py-3 rounded-xl flex items-start text-sm">
-              <AlertCircle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
-              <span>{historyError}</span>
-            </div>
+            <Notice tone="danger" role="alert" className="mb-6">
+              {historyError}
+            </Notice>
           )}
           {pastTickets.length === 0 ? (
-            <div className="text-center py-24 glass-panel rounded-[28px]">
-              <Ticket className="w-16 h-16 mx-auto mb-4 opacity-20 text-[#E8A33D]" />
-              <p className="text-[#8A8F98] text-lg">You haven&apos;t submitted any tickets yet.</p>
-              <button
-                onClick={() => setActiveTab('new')}
-                className="mt-6 text-[#E8A33D] hover:text-[#F4B856] font-medium underline-offset-4 hover:underline"
-              >
+            <Card className="py-16 text-center">
+              <Ticket className="mx-auto mb-4 h-12 w-12 text-fg-subtle" aria-hidden="true" />
+              <p className="text-body-lg text-fg-muted">You haven&apos;t submitted any tickets yet.</p>
+              <Button variant="secondary" className="mt-6" onClick={() => setActiveTab('new')}>
                 Submit your first ticket
-              </button>
-            </div>
+              </Button>
+            </Card>
           ) : filteredPastTickets.length === 0 ? (
-            <div className="text-center py-24 glass-panel rounded-[28px]">
-              <p className="text-[#8A8F98] text-lg">No tickets match &quot;{historySearch}&quot;.</p>
-            </div>
+            <Card className="py-16 text-center">
+              <p className="text-body-lg text-fg-muted">No tickets match &quot;{historySearch}&quot;.</p>
+            </Card>
           ) : (
-            <div className="flex flex-col w-full max-w-6xl mx-auto">
-              {filteredPastTickets.map(t => (
+            <div className="flex w-full flex-col gap-2">
+              {filteredPastTickets.map((t) => (
                 <UserTicketRow key={t.id} ticket={t} onDelete={handleDeleteTicket} userId={user?.id || ''} />
               ))}
             </div>
@@ -512,9 +493,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="mt-16 w-full flex justify-center items-center border-t border-white/10 pt-6 text-sm text-[#8A8F98] animate-fade-in" style={{ animationDelay: '0.4s' }}>
-        <p>© 2026 Clario Support Systems</p>
+      <footer className="mt-16 w-full border-t border-border pt-6 text-center text-app text-fg-muted">
+        <p>{`© ${new Date().getFullYear()} ${theme.brand.name}`}</p>
       </footer>
     </AppShell>
   );
