@@ -38,4 +38,11 @@ describe('Card', () => {
     const element = container.querySelector('[data-testid="c"]');
     expect(element).not.toHaveAttribute('flush');
   });
+
+  it('lets a passed p-0 override the default card padding', () => {
+    render(<Card data-testid="c" className="p-0">X</Card>);
+    const tokens = screen.getByTestId('c').className.split(' ');
+    expect(tokens).toContain('p-0');
+    expect(tokens).not.toContain('p-card');
+  });
 });

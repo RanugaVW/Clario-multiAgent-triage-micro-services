@@ -39,4 +39,16 @@ describe('ThemeToggle', () => {
     expect(screen.getByRole('button', { name: 'System' })).toHaveAttribute('aria-pressed', 'false');
     expect(localStorage.getItem('theme-preference')).toBe('light');
   });
+
+  it('lets a passed className override its own display utility', () => {
+    render(
+      <ThemeProvider migratedRoutes={['/design']}>
+        <ThemeToggle className="hidden sm:inline-flex" />
+      </ThemeProvider>
+    );
+    const tokens = screen.getByRole('group', { name: 'Color theme' }).className.split(' ');
+    expect(tokens).toContain('hidden');
+    expect(tokens).toContain('sm:inline-flex');
+    expect(tokens).not.toContain('inline-flex');
+  });
 });
