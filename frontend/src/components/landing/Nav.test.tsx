@@ -33,4 +33,13 @@ describe('Nav', () => {
     renderWithTheme(<Nav />);
     expect(screen.getByRole('group', { name: 'Color theme' })).toBeInTheDocument();
   });
+
+  it('hides the theme toggle on phones by wrapping it, not by className', () => {
+    renderWithTheme(<Nav />);
+    const toggle = screen.getByRole('group', { name: 'Color theme' });
+    const parent = toggle.parentElement;
+    expect(parent?.className.split(' ')).toContain('hidden');
+    expect(parent?.className.split(' ')).toContain('sm:block');
+    expect(toggle.className.split(' ')).not.toContain('hidden');
+  });
 });

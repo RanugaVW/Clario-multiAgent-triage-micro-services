@@ -23,7 +23,10 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <ThemeToggle className="hidden sm:inline-flex" />
+          {/* ThemeToggle has its own inline-flex class; cx does not resolve conflicts, so wrap it to control visibility */}
+          <div className="hidden sm:block">
+            <ThemeToggle />
+          </div>
           <ButtonLink href={nav.signIn.href} variant="ghost" size="sm">
             {nav.signIn.label}
           </ButtonLink>
