@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contrastRatio } from './contrast';
+import { contrastRatio, mixOver } from './contrast';
 import { theme } from './theme.config';
 import { COLOR_TOKENS, type ColorSet } from './types';
 
@@ -34,8 +34,29 @@ describe.each(MODES)('%s mode contrast', (mode) => {
 
   it('brand-fg on brand is at least 4.5:1', () => check(colors, 'brand-fg', 'brand', 4.5));
   it('brand-fg on brand-hover is at least 4.5:1', () => check(colors, 'brand-fg', 'brand-hover', 4.5));
-  it('focus ring is at least 3:1 on canvas and surface', () => {
+  it('brand-fg on danger is at least 4.5:1 (destructive button text)', () => check(colors, 'brand-fg', 'danger', 4.5));
+  it('focus ring is at least 3:1 on canvas, surface and surface-raised', () => {
     check(colors, 'focus', 'canvas', 3);
     check(colors, 'focus', 'surface', 3);
+    check(colors, 'focus', 'surface-raised', 3);
   });
+
+  // WCAG 1.4.11 non-text contrast (3:1). border-strong is the only thing that outlines Inputs and
+  // secondary Buttons, so it must be visible on every surface. The hairline `border` token is decorative
+  // (card and divider edges) and deliberately exempt.
+  for (const bg of SURFACES) {
+    it(`border-strong on ${bg} is at least 3:1`, () => check(colors, 'border-strong', bg, 3));
+  }
+
+  // brand-soft is a translucent brand wash. Its effective color is brand at the token's alpha over the
+  // surface. Icons and other non-text marks may sit on it (3:1); TEXT must never sit on brand-soft.
+  for (const bg of SURFACES) {
+    it(`brand over the brand-soft wash on ${bg} is at least 3:1 (icons only, never text)`, () => {
+      const match = /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*([0-9.]+)\s*\)$/.exec(colors['brand-soft']);
+      expect(match, `brand-soft "${colors['brand-soft']}" must be rgba(r, g, b, a)`).not.toBeNull();
+      const wash = mixOver(colors.brand, Number(match![1]), colors[bg]);
+      const ratio = contrastRatio(colors.brand, wash);
+      expect(ratio, `brand ${colors.brand} on soft wash ${wash} over ${bg} is ${ratio.toFixed(2)}:1, needs 3:1`).toBeGreaterThanOrEqual(3);
+    });
+  }
 });

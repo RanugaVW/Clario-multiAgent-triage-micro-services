@@ -24,4 +24,15 @@ describe('Badge', () => {
     render(<Badge tone={tone}>x</Badge>);
     expect(screen.getByText('x').className).toContain(cls);
   });
+
+  it.each(['brand', 'accent', 'success', 'warning', 'danger', 'info'] as const)(
+    '%s tone sits on a solid surface, never a tinted fill',
+    (tone) => {
+      render(<Badge tone={tone}>x</Badge>);
+      const tokens = screen.getByText('x').className.split(' ');
+      expect(tokens).toContain('bg-surface');
+      expect(tokens).toContain(`border-${tone}/40`);
+      expect(tokens.some((t) => t.includes('/15') || t.startsWith('bg-brand-soft'))).toBe(false);
+    }
+  );
 });
