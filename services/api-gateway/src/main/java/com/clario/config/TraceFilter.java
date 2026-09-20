@@ -39,9 +39,14 @@ public class TraceFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String correlationId = request.getHeader("X-Trace-Correlation-Id");
-        if (correlationId != null && "POST".equals(request.getMethod()) && "/api/tickets".equals(request.getRequestURI())) {
+        if (correlationId != null && "POST".equals(request.getMethod()) && isTicketSubmissionPath(request.getRequestURI())) {
             tracePublisher.publish(correlationId, correlationId, "received", "done", Map.of());
         }
         filterChain.doFilter(request, response);
+    }
+
+    // Both the versioned path and the deprecated unversioned alias submit tickets.
+    private static boolean isTicketSubmissionPath(String path) {
+        return "/api/v1/tickets".equals(path) || "/api/tickets".equals(path);
     }
 }

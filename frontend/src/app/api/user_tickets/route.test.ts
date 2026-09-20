@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockFrom = vi.fn();
+// The auth helper also reads the caller's own `users` row (account status, FR-043); "never touched data" means no other table.
+const dataQueries = () => mockFrom.mock.calls.filter(([table]: unknown[]) => table !== 'users');
 const mockGetUser = vi.fn();
 const mockRpc = vi.fn();
 
@@ -43,14 +45,14 @@ describe('GET /api/user_tickets - IDOR protection', () => {
   it('rejects an unauthenticated request with 401 and never queries Supabase', async () => {
     const res = await GET(req('http://localhost/api/user_tickets?userId=victim-id', false));
     expect(res.status).toBe(401);
-    expect(mockFrom).not.toHaveBeenCalled();
+    expect(dataQueries()).toEqual([]);
   });
 
   it('rejects a request whose token fails verification with 401', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: 'bad token' } });
     const res = await GET(req('http://localhost/api/user_tickets?userId=victim-id'));
     expect(res.status).toBe(401);
-    expect(mockFrom).not.toHaveBeenCalled();
+    expect(dataQueries()).toEqual([]);
   });
 
   it('rejects a plain customer requesting a DIFFERENT userId with 403 (IDOR blocked)', async () => {
@@ -60,7 +62,7 @@ describe('GET /api/user_tickets - IDOR protection', () => {
     const res = await GET(req('http://localhost/api/user_tickets?userId=victim-id'));
 
     expect(res.status).toBe(403);
-    expect(mockFrom).not.toHaveBeenCalled();
+    expect(dataQueries()).toEqual([]);
   });
 
   it('allows a plain customer requesting their OWN userId (positive control)', async () => {

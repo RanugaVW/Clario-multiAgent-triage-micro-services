@@ -24,9 +24,12 @@ def decide_escalation(
 ) -> tuple[bool, list[str]]:
     """Return whether review is mandatory and every specific reason that applies."""
     reasons: list[str] = []
-    # The local classifier (Llama-3.2 adapter, see app/tools/local_llm.py)
-    # was empirically confirmed to top out at "Critical" priority - it does
-    # not produce "Urgent" (a previous, differently-trained adapter's tier).
+    # The local classifier (Llama-3.2 v2 adapter, see app/tools/local_llm.py)
+    # tops out at "Critical" priority - it does not produce "Urgent" (a
+    # previous, differently-trained adapter's tier). The previous Llama adapter
+    # never emitted Critical at all, so this trigger never fired; v2 does emit
+    # it (recall 0.53 / precision 0.64 on its synthetic test set), though on
+    # 127 human-labelled real tickets it predicted Critical for none.
     if priority == "Critical":
         reasons.append("critical_priority")
     # `sentiment` is intentionally not a trigger here (it was, until Track
@@ -38,6 +41,10 @@ def decide_escalation(
     # answer). Removing it as a standalone trigger measured precision
     # 0.439->0.741 and F1 0.588->0.727 for a recall cost of 0.893->0.714, a
     # net win; the triggers below already cover genuine severity.
+    # Re-checked against the Llama-3.2 v2 classifier's own Frustrated/Negative
+    # labels on the same 127 tickets: adding "Frustrated" (or Frustrated+High,
+    # or any High priority) as a trigger dropped escalation F1 from ~0.71 to
+    # 0.55-0.63, so it stays out.
     # routing_node's own fallback for "no usable technical/billing signal at
     # all" (see decide_routing's final `return "escalation"`) sends the
     # ticket straight to this node, skipping every specialist agent - so

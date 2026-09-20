@@ -1,0 +1,286 @@
+{
+  "n_total": 40,
+  "n_above_threshold": 39,
+  "per_query": [
+    {
+      "query_id": "Q001",
+      "domain": "technical",
+      "top_doc": "technical/enrollment_issues.md",
+      "top_score": 0.843,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q005",
+      "domain": "technical",
+      "top_doc": "technical/enrollment_issues.md",
+      "top_score": 0.87,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q006",
+      "domain": "billing",
+      "top_doc": "billing/webxpay_checkout_issues.md",
+      "top_score": 0.816,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q017",
+      "domain": "billing",
+      "top_doc": "billing/refund_eligibility.md",
+      "top_score": 0.799,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q018",
+      "domain": "billing",
+      "top_doc": "billing/refund_eligibility.md",
+      "top_score": 0.738,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q019",
+      "domain": "billing",
+      "top_doc": "billing/refund_eligibility.md",
+      "top_score": 0.854,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q022",
+      "domain": "billing",
+      "top_doc": "billing/webxpay_checkout_issues.md",
+      "top_score": 0.778,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q023",
+      "domain": "billing",
+      "top_doc": "billing/payment_status.md",
+      "top_score": 0.818,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q027",
+      "domain": "billing",
+      "top_doc": "billing/payment_status.md",
+      "top_score": 0.714,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q029",
+      "domain": "billing",
+      "top_doc": "billing/payment_status.md",
+      "top_score": 0.886,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q032",
+      "domain": "technical",
+      "top_doc": "technical/account_issues.md",
+      "top_score": 0.804,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q036",
+      "domain": "technical",
+      "top_doc": "technical/enrollment_issues.md",
+      "top_score": 0.713,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q040",
+      "domain": "technical",
+      "top_doc": "technical/login_reset.md",
+      "top_score": 0.693,
+      "above_threshold": false
+    },
+    {
+      "query_id": "Q041",
+      "domain": "billing",
+      "top_doc": "billing/payment_status.md",
+      "top_score": 0.753,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q042",
+      "domain": "billing",
+      "top_doc": "billing/webxpay_checkout_issues.md",
+      "top_score": 0.773,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q043",
+      "domain": "billing",
+      "top_doc": "billing/payment_method.md",
+      "top_score": 0.736,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q045",
+      "domain": "billing",
+      "top_doc": "billing/payment_failed.md",
+      "top_score": 0.748,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q047",
+      "domain": "billing",
+      "top_doc": "billing/misclassification_billing.md",
+      "top_score": 0.787,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q049",
+      "domain": "billing",
+      "top_doc": "billing/webxpay_checkout_issues.md",
+      "top_score": 0.762,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q051",
+      "domain": "billing",
+      "top_doc": "billing/webxpay_checkout_issues.md",
+      "top_score": 0.85,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q052",
+      "domain": "billing",
+      "top_doc": "billing/webxpay_checkout_issues.md",
+      "top_score": 0.804,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q053",
+      "domain": "technical",
+      "top_doc": "technical/enrollment_issues.md",
+      "top_score": 0.841,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q057",
+      "domain": "hr",
+      "top_doc": "hr/course_issues.md",
+      "top_score": 0.845,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q058",
+      "domain": "hr",
+      "top_doc": "hr/course_cancellation.md",
+      "top_score": 0.807,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q059",
+      "domain": "hr",
+      "top_doc": "hr/course_cancellation.md",
+      "top_score": 0.858,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q064",
+      "domain": "billing",
+      "top_doc": "billing/misclassification_billing.md",
+      "top_score": 0.744,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q068",
+      "domain": "hr",
+      "top_doc": "hr/course_cancellation.md",
+      "top_score": 0.788,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q070",
+      "domain": "hr",
+      "top_doc": "hr/course_cancellation.md",
+      "top_score": 0.807,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q074",
+      "domain": "hr",
+      "top_doc": "hr/payment_linkage_escalation.md",
+      "top_score": 0.762,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q076",
+      "domain": "hr",
+      "top_doc": "hr/payment_linkage_escalation.md",
+      "top_score": 0.766,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q078",
+      "domain": "hr",
+      "top_doc": "hr/payment_linkage_escalation.md",
+      "top_score": 0.798,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q081",
+      "domain": "hr",
+      "top_doc": "hr/payment_linkage_escalation.md",
+      "top_score": 0.765,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q082",
+      "domain": "billing",
+      "top_doc": "billing/payment_status.md",
+      "top_score": 0.813,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q084",
+      "domain": "billing",
+      "top_doc": "billing/webxpay_checkout_issues.md",
+      "top_score": 0.799,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q085",
+      "domain": "billing",
+      "top_doc": "billing/payment_status.md",
+      "top_score": 0.835,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q086",
+      "domain": "technical",
+      "top_doc": "technical/account_issues.md",
+      "top_score": 0.808,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q091",
+      "domain": "technical",
+      "top_doc": "technical/account_issues.md",
+      "top_score": 0.856,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q094",
+      "domain": "technical",
+      "top_doc": "technical/login_reset.md",
+      "top_score": 0.71,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q096",
+      "domain": "technical",
+      "top_doc": "technical/account_issues.md",
+      "top_score": 0.891,
+      "above_threshold": true
+    },
+    {
+      "query_id": "Q098",
+      "domain": "technical",
+      "top_doc": "technical/account_issues.md",
+      "top_score": 0.832,
+      "above_threshold": true
+    }
+  ]
+}

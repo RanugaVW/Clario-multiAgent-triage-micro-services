@@ -1,0 +1,374 @@
+{
+  "old": {
+    "live_routing": {
+      "labels": [
+        "technical",
+        "billing",
+        "both",
+        "hr",
+        "escalation"
+      ],
+      "confusion_matrix": [
+        [
+          17,
+          0,
+          0,
+          0,
+          6
+        ],
+        [
+          0,
+          16,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          13,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "per_class": {
+        "technical": {
+          "precision": 1.0,
+          "recall": 0.7391304347826086,
+          "f1": 0.85,
+          "support": 23
+        },
+        "billing": {
+          "precision": 0.9411764705882353,
+          "recall": 0.8888888888888888,
+          "f1": 0.9142857142857143,
+          "support": 18
+        },
+        "both": {
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6666666666666666,
+          "support": 1
+        },
+        "hr": {
+          "precision": 1.0,
+          "recall": 0.9285714285714286,
+          "f1": 0.9629629629629629,
+          "support": 14
+        },
+        "escalation": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        }
+      },
+      "accuracy": 0.8392857142857143
+    },
+    "live_escalation": {
+      "precision": 0.65,
+      "recall": 0.6842105263157895,
+      "f1": 0.6666666666666666,
+      "confusion_matrix": {
+        "tp": 13,
+        "fp": 7,
+        "fn": 6,
+        "tn": 30
+      },
+      "missed_escalations_fn": 6,
+      "unnecessary_escalations_fp": 7
+    },
+    "logic_routing": {
+      "labels": [
+        "technical",
+        "billing",
+        "both",
+        "hr",
+        "escalation"
+      ],
+      "confusion_matrix": [
+        [
+          23,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          17,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          13,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "per_class": {
+        "technical": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 23
+        },
+        "billing": {
+          "precision": 0.9444444444444444,
+          "recall": 0.9444444444444444,
+          "f1": 0.9444444444444444,
+          "support": 18
+        },
+        "both": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        "hr": {
+          "precision": 1.0,
+          "recall": 0.9285714285714286,
+          "f1": 0.9629629629629629,
+          "support": 14
+        },
+        "escalation": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        }
+      },
+      "accuracy": 0.9636363636363636
+    },
+    "logic_escalation": {
+      "precision": 1.0,
+      "recall": 0.7222222222222222,
+      "f1": 0.8387096774193549,
+      "confusion_matrix": {
+        "tp": 13,
+        "fp": 0,
+        "fn": 5,
+        "tn": 37
+      },
+      "missed_escalations_fn": 5,
+      "unnecessary_escalations_fp": 0
+    }
+  },
+  "new": {
+    "live_routing": {
+      "labels": [
+        "technical",
+        "billing",
+        "both",
+        "hr",
+        "escalation"
+      ],
+      "confusion_matrix": [
+        [
+          23,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          15,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          13,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "per_class": {
+        "technical": {
+          "precision": 0.8846153846153846,
+          "recall": 1.0,
+          "f1": 0.9387755102040817,
+          "support": 23
+        },
+        "billing": {
+          "precision": 1.0,
+          "recall": 0.8333333333333334,
+          "f1": 0.9090909090909091,
+          "support": 18
+        },
+        "both": {
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6666666666666666,
+          "support": 1
+        },
+        "hr": {
+          "precision": 1.0,
+          "recall": 0.9285714285714286,
+          "f1": 0.9629629629629629,
+          "support": 14
+        },
+        "escalation": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        }
+      },
+      "accuracy": 0.9285714285714286
+    },
+    "live_escalation": {
+      "precision": 1.0,
+      "recall": 0.6842105263157895,
+      "f1": 0.8125,
+      "confusion_matrix": {
+        "tp": 13,
+        "fp": 0,
+        "fn": 6,
+        "tn": 37
+      },
+      "missed_escalations_fn": 6,
+      "unnecessary_escalations_fp": 0
+    },
+    "logic_routing": {
+      "labels": [
+        "technical",
+        "billing",
+        "both",
+        "hr",
+        "escalation"
+      ],
+      "confusion_matrix": [
+        [
+          23,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          17,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          13,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "per_class": {
+        "technical": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 23
+        },
+        "billing": {
+          "precision": 0.9444444444444444,
+          "recall": 0.9444444444444444,
+          "f1": 0.9444444444444444,
+          "support": 18
+        },
+        "both": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        },
+        "hr": {
+          "precision": 1.0,
+          "recall": 0.9285714285714286,
+          "f1": 0.9629629629629629,
+          "support": 14
+        },
+        "escalation": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 0
+        }
+      },
+      "accuracy": 0.9636363636363636
+    },
+    "logic_escalation": {
+      "precision": 1.0,
+      "recall": 0.7222222222222222,
+      "f1": 0.8387096774193549,
+      "confusion_matrix": {
+        "tp": 13,
+        "fp": 0,
+        "fn": 5,
+        "tn": 37
+      },
+      "missed_escalations_fn": 5,
+      "unnecessary_escalations_fp": 0
+    }
+  }
+}

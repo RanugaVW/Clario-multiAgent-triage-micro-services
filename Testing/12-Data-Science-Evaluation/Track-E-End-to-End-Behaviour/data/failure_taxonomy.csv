@@ -1,0 +1,11 @@
+track,bucket,description,fix_status
+Track A,wrong_retrieval,"After the gate threshold fix, the 99-query set still lets 37 wrong top-picks through the gate - a real retrieval miss the fix does not reach.",open
+Track A,wrong_retrieval,"After the same fix, the 70-ticket set now wrongly rejects 15 correct top-picks - the higher bar catches good results along with bad ones.",open
+Track A,genuinely_hard_case,"40 of the 99 pilot queries have no correct document in the knowledge base at all - structurally unanswerable from retrieval alone, not a retrieval bug.",not a bug - by design of the test set
+Track B,genuinely_hard_case,"One HR cancellation ticket has no strong distinguishing phrase and is misrouted even with the correct category handed to the rules directly.",open - flagged rather than force a brittle keyword rule
+Track B,prompt_gap,"The keyword-fallback list did not match real customer wording (e.g. how a login problem actually gets described versus the word the rules were looking for).",fixed - real phrasing patterns added
+Track C,fabricated_content,"Drafts claimed an action was already completed when it had not been (e.g. saying an account was verified before it was).",fixed - added as a hard rule in the drafting prompt
+Track C,fabricated_content,"Drafts guessed at a cause before confirming it (e.g. blaming a fee before asking for the specific detail).",fixed - added as a hard rule in the drafting prompt
+Track C,prompt_gap,"The drafting prompt never received the ticket's priority or sentiment, so tone could not match urgency no matter how the model wrote - the root cause of the pilot's weak tone scores.",fixed - priority/sentiment wired into every specialist's prompt
+Track C,prompt_gap,"HR's no-promises rule banned even a rough response-time estimate, not just a specific outcome - overly strict, not a hard case.",fixed - narrowed to allow a rough timeframe
+Track D,prompt_gap,"The automatic judge never gives an accuracy score below 4 or a groundedness score below 3, even when two humans agree a real problem exists.",open - the most important open finding from Track D

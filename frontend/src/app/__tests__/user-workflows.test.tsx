@@ -254,9 +254,9 @@ describe('User Workflow Scenarios', () => {
     let submitBtn = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitBtn);
 
-    // See error
+    // See error - the actual message the backend sent, not a generic string.
     await waitFor(() => {
-      expect(screen.getByText(/Failed to submit/i)).toBeInTheDocument();
+      expect(screen.getByText(/Server error/i)).toBeInTheDocument();
     });
 
     // Retry
@@ -452,7 +452,7 @@ describe('User Workflow Scenarios', () => {
     let submissionCount = 0;
 
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/api/tickets') && url.includes('http://localhost')) {
+      if (url.includes('/api/v1/tickets') && url.includes('http://localhost')) {
         submissionCount++;
         return Promise.resolve({
           ok: true,
@@ -593,7 +593,7 @@ describe('Error Recovery Workflows', () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to submit/i)).toBeInTheDocument();
+      expect(screen.getByText(/Service Unavailable/i)).toBeInTheDocument();
     });
 
     // User can retry
@@ -626,7 +626,7 @@ describe('Error Recovery Workflows', () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to submit/i)).toBeInTheDocument();
+      expect(screen.getByText(/Unauthorized/i)).toBeInTheDocument();
     });
   });
 });

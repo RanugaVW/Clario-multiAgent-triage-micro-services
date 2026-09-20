@@ -23,7 +23,12 @@ class TicketState(TypedDict):
     # resolve_node reads to restore real values into the final draft.
     pii_shadow_map: dict[str, str]
     # classification_node writes; routing_node, escalation_node, and handoff_node read.
+    # Comma-joined category labels ("Billing & Invoicing, Refunds") - the form
+    # stored in the database and shown in the UI.
     category: str | None
+    # classification_node writes; routing_node reads. The same labels as `category`,
+    # as a list: a ticket can span several categories (and several domains).
+    categories: list[str]
     # classification_node writes; escalation_node and handoff_node read.
     priority: str | None
     # classification_node writes; escalation_node and handoff_node read.
@@ -31,7 +36,7 @@ class TicketState(TypedDict):
     # classification_node writes; routing_node, escalation_node, and handoff_node read.
     classification_confidence: float | None
     # classification_node writes; handoff_node reads the model/fallback provenance.
-    classification_source: Literal["gemini_stand_in", "gemini_stand_in_fallback", "fine_tuned_model"]
+    classification_source: Literal["llama32_lora_v2", "gemini_fallback", "classification_failed"]
     # routing_node writes; specialist, validation, escalation, and handoff nodes read.
     # "escalation" (routing_node's no-signal fallback) was already a real
     # runtime value returned by decide_routing() before this change - the
@@ -61,6 +66,10 @@ class TicketState(TypedDict):
     reflection_count: int
     # reflection_node writes; specialist nodes and handoff_node read.
     reflection_critiques: list[str]
+    # reflection_node writes once per domain (first draft only, never overwritten
+    # on a later retry); response_judge_node reads to fall back to the original
+    # draft when a reflection rewrite doesn't actually score better.
+    pre_reflection_drafts: dict[str, str]
     # cache_check_node writes; graph_builder and handoff_node read.
     cache_hit: bool
     # cache_check_node writes; handoff_node reads for cache provenance.

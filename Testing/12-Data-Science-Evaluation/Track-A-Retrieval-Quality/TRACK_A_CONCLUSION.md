@@ -6,6 +6,8 @@ This page is a short summary for a presentation. It only shows the two evaluatio
 
 *(2026-09-08: the "70 real tickets" numbers below were corrected after the original annotator files turned out to be the wrong version — see `TEST_REPORT_V2.md` §0 for the full explanation. The 99-query baseline numbers are unaffected.)*
 
+*(Update: the classifier feeding routing was since replaced with a new Gemini-distilled, multi-label Llama 3.2 adapter — see Section 7, "After the Gemini-Distilled Llama 3.2 Adapter," in `TRACK_A_FINAL_CONCLUSION_REPORT.md` for that re-test.)*
+
 ---
 
 ## What we were checking
@@ -52,6 +54,19 @@ Both numbers went up a lot from where we started. We got there by fixing two rea
 - **A dead end we didn't use:** an earlier scraped dataset from a developer forum (Open edX's community forum) was checked first and rejected — reading it showed it was written by software engineers about server configs, not by customers, so none of it went into the knowledge base. That file (`real_responses_unrelated.csv`) is exactly why its name says "unrelated."
 
 That second scraping round also caught a real software bug: one document grew just past a chunking-size boundary in the search index and quietly got split into two entries, and the indexing script had no way to clean up an old entry when a document later shrank back down. The first sign was a Recall score reported at 111% — a number that isn't mathematically possible — which is exactly why it was caught before being written down anywhere, not published and only found later. It's fixed at the root now (the indexing script prunes old entries properly), and every number in this document reflects the system after that fix.
+
+---
+
+## Challenges found in the 99-query pilot, and how we fixed them
+
+1. **Old, unused content was clogging up search.** The vector index still held outdated documents nobody had cleaned up, so every search competed against noise. Fixed by removing them.
+2. **The confidence check never said no.** It approved every retrieved document regardless of how weak the match was. Fixed by retuning the threshold so a bad match actually gets rejected.
+3. **A silent indexing bug, caught by an impossible number.** A document grew past a chunking-size boundary and quietly split into two index entries, and the indexer had no cleanup step for a document that later shrank. First sign: a Recall score of 111% — mathematically impossible, which is exactly why it got caught before being reported anywhere. Fixed at the root (the indexer now prunes stale entries).
+4. **Knowledge base wording didn't match how real customers actually write.** The original KB used formal/technical phrasing; real tickets said things like "the recording isn't available," not "error." Fixed by rewriting KB phrasing using real customer wording, including real Trustpilot reviews for comparable platforms (see below).
+
+## Confusion matrix? Only for one part of this track
+
+Track A's headline numbers (Precision@k, Recall@k) measure retrieval ranking, not classification — there's no fixed set of predicted-vs-actual labels to build a confusion matrix from there, and the two before/after bar charts above are the right diagram for that part. But the relevance gate *is* a genuine yes/no decision ("should this result be trusted?"), and that part does get a real 2×2 confusion matrix — see `figures/16_gate_confusion_matrix.png` (before the fix) and `figures/17_gate_confusion_matrix_after.png` (after), and `TRACK_A_FINAL_CONCLUSION_REPORT.md` §2–4, where each is shown next to the TP/FP/FN/TN numbers it's built from.
 
 ---
 

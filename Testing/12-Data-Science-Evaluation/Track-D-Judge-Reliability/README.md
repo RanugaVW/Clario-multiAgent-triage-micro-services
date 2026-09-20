@@ -1,6 +1,6 @@
 # Track D — Judge Reliability
 
-**Status: draft generation complete (final, corrected run), human scoring not yet started.** This track checks whether `ResponseJudge` (the automatic scorer Track C leans on) actually agrees with what a real person would say about the same reply. Methodology: `DATA_SCIENCE_EVALUATION_PROPOSAL.md` §7.4.
+**Status: complete.** Both humans scored all 82 rows, agreement computed, and a real rubric fix was made and validated against this round's data. See `TRACK_D_CONCLUSION.md` for the full story: the formulas, what was found, what was fixed, and what's proven vs. still recommended. This track checks whether `ResponseJudge` (the automatic scorer Track C leans on) actually agrees with what a real person would say about the same reply. Methodology: `DATA_SCIENCE_EVALUATION_PROPOSAL.md` §7.4.
 
 Doing this now, ahead of Tracks B and C, since a teammate is handling those separately — Track D only needs a real drafted reply and a real judge score to exist, not a correct routing decision or a finished response-quality comparison.
 

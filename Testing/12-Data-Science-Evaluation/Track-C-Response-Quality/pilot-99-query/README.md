@@ -25,7 +25,7 @@ python3 scripts/summarize_track_c_results_99.py
 
 ## Human notes on the actual generated replies
 
-Checks 1 (pairwise) and 3 (semantic similarity) can't run on this dataset at all - there's no real human reply to compare against. `prepare_response_annotation_99.py` fills that gap a different way: it writes `data/response_annotation_99.csv`, one row per ticket with the ticket text and Clario's actual customer-facing draft side by side, and two humans independently read each row and fill in:
+Checks 1 (pairwise) and 3 (semantic similarity) can't run on this dataset at all - there's no real human reply to compare against. `prepare_response_annotation_99.py` fills that gap a different way: it writes `data/response_annotation_99.csv`, one row per ticket with the ticket text and Clario's actual customer-facing draft side by side, and two humans (Ranuga, Vinma) independently read each row and fill in:
 
 - `human1_flag` / `human2_flag` - one of `good` / `needs_improvement` / `wrong_or_inaccurate` / `too_generic` / `tone_issue` / `missing_info`
 - `human1_notes` / `human2_notes` - free text: what specifically should be enhanced

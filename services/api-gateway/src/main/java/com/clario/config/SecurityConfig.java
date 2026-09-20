@@ -7,16 +7,21 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.crypto.spec.SecretKeySpec;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.Arrays;
 
 @Configuration
@@ -34,6 +39,16 @@ public class SecurityConfig {
             )
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.decoder(jwtDecoder()))
+                // FR-049: same 401/403 responses as the defaults, plus an audit record.
+                .authenticationEntryPoint((request, response, ex) -> {
+                    SecurityAuditLogger.authenticationFailure(request, ex);
+                    failedAuthTracker().recordFailure(request.getRemoteAddr());
+                    new BearerTokenAuthenticationEntryPoint().commence(request, response, ex);
+                })
+                .accessDeniedHandler((request, response, ex) -> {
+                    SecurityAuditLogger.accessDenied(request, ex);
+                    new BearerTokenAccessDeniedHandler().handle(request, response, ex);
+                })
             );
         return http.build();
     }
@@ -43,6 +58,17 @@ public class SecurityConfig {
 
     @Value("${jwt.legacy.secret}")
     private String legacySecret;
+
+    @Value("${clario.security.alert.failed-auth-threshold:10}")
+    private int failedAuthThreshold;
+
+    @Value("${clario.security.alert.window-seconds:60}")
+    private long failedAuthWindowSeconds;
+
+    @Bean
+    public FailedAuthTracker failedAuthTracker() {
+        return new FailedAuthTracker(failedAuthThreshold, Duration.ofSeconds(failedAuthWindowSeconds), Clock.systemUTC());
+    }
 
     @Value("${clario.cors.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
@@ -68,7 +94,11 @@ public class SecurityConfig {
                 try {
                     return es256Decoder.decode(token);
                 } catch (JwtException e2) {
-                    throw new JwtException("JWT validation failed with both HS256 and ES256: " + e2.getMessage());
+                    // Must be BadJwtException specifically: JwtAuthenticationProvider maps
+                    // BadJwtException to a 401 InvalidBearerTokenException, but treats any
+                    // other JwtException as an AuthenticationServiceException (500-class
+                    // "the auth system is broken", not "the client sent a bad token").
+                    throw new BadJwtException("JWT validation failed with both HS256 and ES256: " + e2.getMessage());
                 }
             }
         };

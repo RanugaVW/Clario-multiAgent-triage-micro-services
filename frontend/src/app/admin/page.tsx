@@ -4,18 +4,21 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
-  Settings, Database, Server, Cpu, LogOut, Loader2,
+  Database, Server, Cpu, Loader2,
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle,
-  BarChart2, MessageSquare, ShieldAlert, Tag, ArrowLeft, Bot,
+  BarChart2, MessageSquare, ShieldAlert, Tag, Bot,
   CreditCard, Wrench, Brain, GitBranch, Eye, RotateCcw, ArrowRightLeft,
   Shield, Layers, CheckCircle2, Image as ImageIcon, Pencil, Download,
 } from 'lucide-react';
-import { GlassButton, StatusBadge } from '../../components/ui';
+import { GlassButton, StatusBadge, ConfirmDialog } from '../../components/ui';
+import { AdminShell } from './AdminShell';
+import type { ShellNavItem } from '../../components/AppShell';
 import { supabase } from '../../lib/supabase';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 import ShakeButton from '../../components/ShakeButton';
 import { formatDate, formatDateTime, formatElapsed, formatDuration, formatRelative, formatTime } from '../../lib/datetime';
 import { fetchJson } from '../../lib/fetchJson';
+import { categoryDomain, priorityColor, sentimentColor, splitCategories } from '../../lib/classification';
 import RotateButton from '../../components/RotateButton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
@@ -184,7 +187,7 @@ const AI_AGENTS = [
 const PIPELINE_NODES = [
   { id: 'surrogate_node', name: 'SurrogateShield', description: 'PII anonymization & redaction', icon: Shield },
   { id: 'analyzer_node', name: 'Semantic Distiller', description: 'Extracts key concepts', icon: Brain },
-  { id: 'classification_node', name: 'Classifier (Gemini)', description: 'LLM-based category, priority, sentiment', icon: Tag },
+  { id: 'classification_node', name: 'Classifier (Llama-3.2 LoRA)', description: 'Fine-tuned LLM: categories, priority, sentiment (Gemini fallback)', icon: Tag },
   { id: 'routing_node', name: 'Router', description: 'Routes to billing, technical, or both agents', icon: GitBranch },
   { id: 'validation_node', name: 'EGC Validator', description: 'Evidence Graph Consistency + LLM Judge', icon: Eye },
   { id: 'reflection_node', name: 'Reflection Node', description: 'Bounded retry on quality/policy failures', icon: RotateCcw },
@@ -204,8 +207,9 @@ export default function AdminDashboard() {
   const [dataLoading, setDataLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [ticketPendingDelete, setTicketPendingDelete] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
+  const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high' | 'critical'>('all');
 
   const isFullyLoaded = !loading && !roleLoading;
 
@@ -253,8 +257,16 @@ export default function AdminDashboard() {
     queueMicrotask(fetchData);
   }, [isFullyLoaded, user, role, fetchData, router]);
 
-  const handleDeleteTicket = async (ticketId: string) => {
-    if (!confirm("Are you sure you want to permanently delete this ticket from the system?")) return;
+  // UR-006: replaces a blocking native confirm()/alert() with the app's own
+  // ConfirmDialog (rendered further down) and the existing debugInfo banner.
+  const handleDeleteTicket = (ticketId: string) => {
+    setTicketPendingDelete(ticketId);
+  };
+
+  const confirmTicketDeletion = async () => {
+    const ticketId = ticketPendingDelete;
+    if (!ticketId) return;
+    setTicketPendingDelete(null);
     try {
       // Bypass gateway/sidecar and delete directly via our Next.js API
       const res = await fetch(`/api/tickets?id=${ticketId}`, {
@@ -266,11 +278,11 @@ export default function AdminDashboard() {
         sessionStorage.removeItem('tickets:list:metadata');
         fetchData();
       } else {
-        alert("Failed to delete ticket.");
+        setDebugInfo("Failed to delete ticket.");
       }
     } catch (e) {
       console.error(e);
-      alert("Error deleting ticket.");
+      setDebugInfo("Error deleting ticket.");
     }
   };
 
@@ -283,8 +295,7 @@ export default function AdminDashboard() {
       const draft = t.ticket_drafts?.find(d => d.domain === agentDomain);
       if (draft) return true;
       // Fallback: match by classification category
-      if (agentDomain === 'billing') return ['billing', 'account', 'Billing', 'Account'].includes(cls?.category || '');
-      if (agentDomain === 'technical') return ['technical', 'Technical'].includes(cls?.category || '');
+      if (agentDomain === 'billing' || agentDomain === 'technical') return categoryDomain(cls?.category) === agentDomain;
       return false;
     });
   };
@@ -302,15 +313,17 @@ export default function AdminDashboard() {
   // Distinct categories actually present in the data, most common first —
   // derived rather than hardcoded so it stays in sync with the taxonomy.
   const categoryCounts = allTickets.reduce<Record<string, number>>((acc, t) => {
-    const category = t.ticket_classifications?.[0]?.category;
-    if (category) acc[category] = (acc[category] || 0) + 1;
+    // A ticket can carry several categories; count it under each one.
+    for (const category of splitCategories(t.ticket_classifications?.[0]?.category)) {
+      acc[category] = (acc[category] || 0) + 1;
+    }
     return acc;
   }, {});
   const ticketCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
 
   const filteredAllTickets = allTickets
     .filter(t => !searchQuery || t.id.toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter(t => categoryFilter === 'all' || t.ticket_classifications?.[0]?.category === categoryFilter)
+    .filter(t => categoryFilter === 'all' || splitCategories(t.ticket_classifications?.[0]?.category).includes(categoryFilter))
     .filter(t => priorityFilter === 'all' || t.ticket_classifications?.[0]?.priority?.toLowerCase() === priorityFilter);
 
   const handleDownloadCsv = () => {
@@ -358,11 +371,6 @@ export default function AdminDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
-
   const navItems: { id: typeof activeTab; icon: React.ReactNode; label: string; warn?: boolean }[] = [
     { id: 'agents', icon: <Bot className="w-4 h-4" />, label: `AI Agents (${AI_AGENTS.length})` },
     { id: 'pipeline', icon: <Layers className="w-4 h-4" />, label: 'Pipeline Nodes' },
@@ -380,68 +388,25 @@ export default function AdminDashboard() {
     );
   }
 
+  const consoleTabs: ShellNavItem[] = navItems.map((item) => ({
+    key: item.id,
+    label: item.label,
+    icon: item.icon,
+    warn: item.warn,
+    active: activeTab === item.id,
+    onClick: () => setActiveTab(item.id),
+  }));
+
   return (
-    <div className="min-h-screen flex">
-
-      {/* ── Sidebar (desktop) ─────────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-white/10 bg-white/[0.02] backdrop-blur-xl">
-        <div className="p-6 border-b border-white/10 flex items-center space-x-3">
-          <div className="bg-[#2DD4BF]/15 p-2 rounded-xl border border-[#2DD4BF]/25 shrink-0">
-            <Settings className="text-[#2DD4BF] w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-[#ECECEC] leading-tight">System administration</h1>
-            <p className="text-xs text-[#8A8F98] truncate">Clario Platform</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map(item => (
-            <SidebarNavItem key={item.id} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} icon={item.icon} label={item.label} warn={item.warn} />
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-white/10 space-y-1">
-          <p className="px-3.5 pb-2 text-xs text-[#8A8F98] truncate" title={user?.email || undefined}>{user?.email}</p>
-          <button onClick={() => router.push('/')} className="w-full flex items-center text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors px-3.5 py-2 rounded-lg hover:bg-white/[0.06]">
-            <ArrowLeft className="w-4 h-4 mr-2.5" /> Back to triage
-          </button>
-          <button onClick={handleLogout} className="w-full flex items-center text-sm text-[#8A8F98] hover:text-[#FB7185] transition-colors px-3.5 py-2 rounded-lg hover:bg-white/[0.06]">
-            <LogOut className="w-4 h-4 mr-2.5" /> Sign out
-          </button>
-        </div>
-      </aside>
-
-      {/* ── Main content ──────────────────────────────────────────────────────── */}
-      <main className="flex-1 min-w-0 py-8 px-4 sm:px-6 lg:px-10 max-w-[1800px]">
-
-        {/* ── Header (mobile/tablet only — sidebar covers this from lg up) ────── */}
-        <header className="lg:hidden flex justify-between items-center mb-8 animate-fade-in">
-          <div className="flex items-center space-x-3">
-            <div className="bg-[#2DD4BF]/15 p-2 rounded-xl border border-[#2DD4BF]/25">
-              <Settings className="text-[#2DD4BF] w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-[#ECECEC]">System administration</h1>
-              <p className="text-sm text-[#8A8F98]">Clario Platform — {user?.email}</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button onClick={() => router.push('/')} className="flex items-center text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors px-3 py-2 rounded-lg hover:bg-white/[0.06]">
-              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to triage
-            </button>
-            <button onClick={handleLogout} className="p-2 hover:bg-white/[0.06] rounded-full transition-colors text-[#8A8F98] hover:text-[#FB7185]" title="Sign Out">
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </header>
-
-        {/* ── Tabs (mobile/tablet only) ─────────────────────────────────────── */}
-        <div className="lg:hidden flex flex-wrap gap-2 mb-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          {navItems.map(item => (
-            <TabBtn key={item.id} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} icon={item.icon} label={item.label} warn={item.warn} />
-          ))}
-        </div>
+    <AdminShell active="console" consoleTabs={consoleTabs}>
+      <ConfirmDialog
+        open={ticketPendingDelete !== null}
+        title="Delete this ticket?"
+        message="This will permanently delete the ticket from the system and cannot be undone."
+        confirmLabel="Delete ticket"
+        onConfirm={confirmTicketDeletion}
+        onCancel={() => setTicketPendingDelete(null)}
+      />
 
         {/* ── System Status ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -670,7 +635,7 @@ export default function AdminDashboard() {
             {/* Priority filter */}
             <div className="px-6 pt-4 flex items-center gap-2">
               <span className="text-xs text-[#8A8F98] mr-1">Priority:</span>
-              {(['all', 'high', 'medium', 'low'] as const).map(p => (
+              {(['all', 'critical', 'high', 'medium', 'low'] as const).map(p => (
                 <PriorityPill key={p} active={priorityFilter === p} onClick={() => setPriorityFilter(p)} priority={p} />
               ))}
             </div>
@@ -699,8 +664,7 @@ export default function AdminDashboard() {
           </div>
         </section>
       )}
-      </main>
-    </div>
+    </AdminShell>
   );
 }
 
@@ -709,9 +673,9 @@ export default function AdminDashboard() {
 function HumanReviewTabs({ humanReviewTickets, onDelete }: { humanReviewTickets: Ticket[], onDelete?: (id: string) => void }) {
   const [activeSubTab, setActiveSubTab] = useState<'billing' | 'technical' | 'other'>('other');
 
-  const billingTickets = humanReviewTickets.filter(t => ['billing', 'account', 'Billing', 'Account'].includes(t.ticket_classifications?.[0]?.category || ''));
-  const technicalTickets = humanReviewTickets.filter(t => ['technical', 'Technical'].includes(t.ticket_classifications?.[0]?.category || ''));
-  const otherTickets = humanReviewTickets.filter(t => !['billing', 'account', 'Billing', 'Account', 'technical', 'Technical'].includes(t.ticket_classifications?.[0]?.category || ''));
+  const billingTickets = humanReviewTickets.filter(t => categoryDomain(t.ticket_classifications?.[0]?.category) === 'billing');
+  const technicalTickets = humanReviewTickets.filter(t => categoryDomain(t.ticket_classifications?.[0]?.category) === 'technical');
+  const otherTickets = humanReviewTickets.filter(t => categoryDomain(t.ticket_classifications?.[0]?.category) === 'other');
 
   let activeTickets = otherTickets;
   if (activeSubTab === 'billing') activeTickets = billingTickets;
@@ -1069,9 +1033,9 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                 <span className="text-xs text-[#8A8F98] block mb-2">Pipeline telemetry</span>
                 <div className="flex flex-wrap gap-2">
                   <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#ECECEC]">Category: {classification.category || 'unknown'}</span>
-                  <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: classification.priority?.toLowerCase() === 'high' ? '#FB923C' : '#8A8F98' }}>Priority: {classification.priority}</span>
+                  <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: priorityColor(classification.priority) ?? '#8A8F98' }}>Priority: {classification.priority}</span>
                   {classification.sentiment && (
-                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: classification.sentiment.toLowerCase() === 'negative' ? '#FB7185' : '#8A8F98' }}>Sentiment: {classification.sentiment}</span>
+                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: sentimentColor(classification.sentiment) ?? '#8A8F98' }}>Sentiment: {classification.sentiment}</span>
                   )}
                   {classification.confidence != null && (
                     <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#2DD4BF]">Confidence: {(classification.confidence * 100).toFixed(0)}%</span>
@@ -1274,6 +1238,7 @@ function CategoryPill({ active, onClick, label, count }: {
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
+  critical: '#F43F5E',
   high: '#FB7185',
   medium: '#FB923C',
   low: '#8A8F98',
@@ -1281,7 +1246,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 /** One priority pill in the All Tickets filter row. */
 function PriorityPill({ active, onClick, priority }: {
-  active: boolean; onClick: () => void; priority: 'all' | 'low' | 'medium' | 'high';
+  active: boolean; onClick: () => void; priority: 'all' | 'low' | 'medium' | 'high' | 'critical';
 }) {
   const color = PRIORITY_COLORS[priority];
   return (
@@ -1299,43 +1264,7 @@ function PriorityPill({ active, onClick, priority }: {
   );
 }
 
-function TabBtn({ active, onClick, icon, label, warn }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; warn?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-        active
-          ? 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shadow-[0_0_15px_rgba(232,163,61,0.2)]'
-          : 'text-[#8A8F98] hover:text-[#ECECEC] border border-transparent hover:border-white/10 hover:bg-white/[0.04]'
-      }`}
-    >
-      <span className={warn && !active ? 'text-[#FB923C]' : ''}>{icon}</span>
-      <span>{label}</span>
-    </button>
-  );
-}
-
 /** Same nav semantics as TabBtn, laid out for the vertical sidebar rail. */
-function SidebarNavItem({ active, onClick, icon, label, warn }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; warn?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-200 ${
-        active
-          ? 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shadow-[0_0_15px_rgba(232,163,61,0.15)]'
-          : 'text-[#8A8F98] hover:text-[#ECECEC] border border-transparent hover:bg-white/[0.04]'
-      }`}
-    >
-      <span className={`shrink-0 ${warn && !active ? 'text-[#FB923C]' : ''}`}>{icon}</span>
-      <span className="truncate">{label}</span>
-    </button>
-  );
-}
-
 function StatBadge({ label, value, color }: { label: string; value: number; color: string }) {
   const colors: Record<string, string> = {
     indigo: 'from-[#E8A33D]/10 to-[#E8A33D]/5 border-[#E8A33D]/20 text-[#E8A33D]',

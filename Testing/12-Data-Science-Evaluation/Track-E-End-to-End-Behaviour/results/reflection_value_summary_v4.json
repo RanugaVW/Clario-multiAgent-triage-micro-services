@@ -1,0 +1,88 @@
+{
+  "n_reflected_with_paired_scores": 13,
+  "n_targeted": 15,
+  "n_did_not_reflect_this_run": 2,
+  "pre_reflection_score": {
+    "mean": 3.885,
+    "median": 4.0
+  },
+  "final_score": {
+    "mean": 4.231,
+    "median": 4.0
+  },
+  "mean_delta": 0.346,
+  "tickets_improved": 5,
+  "tickets_unchanged": 8,
+  "tickets_worsened": 0,
+  "per_ticket": [
+    {
+      "query_id": "Q001",
+      "pre": 5.0,
+      "final": 5.0
+    },
+    {
+      "query_id": "Q004",
+      "pre": 3.0,
+      "final": 4.0
+    },
+    {
+      "query_id": "Q006",
+      "pre": 3.0,
+      "final": 4.0
+    },
+    {
+      "query_id": "Q009",
+      "pre": 4.0,
+      "final": 4.0
+    },
+    {
+      "query_id": "Q010",
+      "pre": 3.0,
+      "final": 4.0
+    },
+    {
+      "query_id": "Q013",
+      "pre": 3.0,
+      "final": 3.0
+    },
+    {
+      "query_id": "Q016",
+      "pre": 4.0,
+      "final": 4.0
+    },
+    {
+      "query_id": "Q018",
+      "pre": 3.0,
+      "final": 4.0
+    },
+    {
+      "query_id": "Q022",
+      "pre": 5.0,
+      "final": 5.0
+    },
+    {
+      "query_id": "Q034",
+      "pre": 5.0,
+      "final": 5.0
+    },
+    {
+      "query_id": "Q036",
+      "pre": 3.5,
+      "final": 4.0
+    },
+    {
+      "query_id": "Q038",
+      "pre": 4.0,
+      "final": 4.0
+    },
+    {
+      "query_id": "Q040",
+      "pre": 5.0,
+      "final": 5.0
+    }
+  ],
+  "wilcoxon_signed_rank": {
+    "statistic": 0.0,
+    "p_value": 0.0625
+  }
+}

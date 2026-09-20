@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockFrom = vi.fn();
+// The auth helper also reads the caller's own `users` row (account status, FR-043); "never touched data" means no other table.
+const dataQueries = () => mockFrom.mock.calls.filter(([table]: unknown[]) => table !== 'users');
 const mockGetUser = vi.fn();
 const mockRpc = vi.fn();
 
@@ -36,14 +38,14 @@ describe('/api/tickets - staff-only authorization', () => {
     it('GET with no Authorization header returns 401 and never queries Supabase', async () => {
       const res = await GET(req('http://localhost/api/tickets', { auth: false }));
       expect(res.status).toBe(401);
-      expect(mockFrom).not.toHaveBeenCalled();
+      expect(dataQueries()).toEqual([]);
     });
 
     it('GET with a token that fails verification returns 401', async () => {
       mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: 'bad token' } });
       const res = await GET(req('http://localhost/api/tickets'));
       expect(res.status).toBe(401);
-      expect(mockFrom).not.toHaveBeenCalled();
+      expect(dataQueries()).toEqual([]);
     });
 
     it('GET with a valid token but role=user returns 403 and never queries Supabase', async () => {
@@ -51,13 +53,13 @@ describe('/api/tickets - staff-only authorization', () => {
       mockRpc.mockResolvedValue({ data: 'user', error: null });
       const res = await GET(req('http://localhost/api/tickets'));
       expect(res.status).toBe(403);
-      expect(mockFrom).not.toHaveBeenCalled();
+      expect(dataQueries()).toEqual([]);
     });
 
     it('DELETE with no Authorization header returns 401 and never deletes anything', async () => {
       const res = await DELETE(req('http://localhost/api/tickets?id=t1', { auth: false }));
       expect(res.status).toBe(401);
-      expect(mockFrom).not.toHaveBeenCalled();
+      expect(dataQueries()).toEqual([]);
     });
 
     it('PUT with no Authorization header returns 401 and never writes a resolution', async () => {
@@ -67,7 +69,7 @@ describe('/api/tickets - staff-only authorization', () => {
         body: JSON.stringify({ id: 't1', final_response: 'forged' }),
       }));
       expect(res.status).toBe(401);
-      expect(mockFrom).not.toHaveBeenCalled();
+      expect(dataQueries()).toEqual([]);
     });
   });
 
@@ -98,6 +100,170 @@ describe('/api/tickets - staff-only authorization', () => {
 
       const res = await GET(req('http://localhost/api/tickets'));
       expect(res.status).toBe(200);
+    });
+  });
+  describe('PUT - resolving a ticket (FR-035/FR-036)', () => {
+    let calls: string[];
+    let insertedRow: Record<string, unknown> | undefined;
+    let deletedResolutionId: string | undefined;
+
+    // Builds a `from()` fake for the three writes PUT performs and records the
+    // order they happen in, so the tests can assert ordering and compensation.
+    function stubTables(opts: {
+      ticket?: { id: string; status: string; resolutions: { id: string; escalated: boolean }[] } | null;
+      lookupError?: string;
+      insertError?: string;
+      updateError?: string;
+    }) {
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'tickets') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => {
+                  calls.push('lookup');
+                  return opts.lookupError
+                    ? { data: null, error: { message: opts.lookupError } }
+                    : { data: opts.ticket === undefined ? { id: 't1', status: 'escalated', resolutions: [] } : opts.ticket, error: null };
+                },
+              }),
+            }),
+            update: () => ({
+              eq: async () => {
+                calls.push('update-status');
+                return { error: opts.updateError ? { message: opts.updateError } : null };
+              },
+            }),
+          };
+        }
+        if (table === 'resolutions') {
+          return {
+            insert: (row: Record<string, unknown>) => {
+              calls.push('insert-resolution');
+              insertedRow = row;
+              return {
+                select: () => ({
+                  single: async () =>
+                    opts.insertError
+                      ? { data: null, error: { message: opts.insertError } }
+                      : { data: { id: 'res-1' }, error: null },
+                }),
+              };
+            },
+            delete: () => ({
+              eq: async (_col: string, value: string) => {
+                calls.push('delete-resolution');
+                deletedResolutionId = value;
+                return { error: null };
+              },
+            }),
+          };
+        }
+        throw new Error(`unexpected table ${table}`);
+      });
+    }
+
+    const put = (body: unknown) =>
+      PUT(req('http://localhost/api/tickets', { method: 'PUT', body: typeof body === 'string' ? body : JSON.stringify(body) }));
+
+    beforeEach(() => {
+      calls = [];
+      insertedRow = undefined;
+      deletedResolutionId = undefined;
+      mockGetUser.mockResolvedValue({ data: { user: { id: 'agent-7', email: 'a@example.com' } }, error: null });
+      mockRpc.mockResolvedValue({ data: 'agent', error: null });
+    });
+
+    it('records the verified caller as resolved_by and trims the response', async () => {
+      stubTables({});
+      const res = await put({ id: 't1', final_response: '  Try resetting your password.  ' });
+
+      expect(res.status).toBe(200);
+      expect(insertedRow).toMatchObject({
+        ticket_id: 't1',
+        final_response: 'Try resetting your password.',
+        escalated: false,
+        resolved_by: 'agent-7',
+      });
+    });
+
+    it('does not let the request body choose who resolved the ticket', async () => {
+      stubTables({});
+      await put({ id: 't1', final_response: 'ok', resolved_by: 'someone-else' });
+      expect(insertedRow?.resolved_by).toBe('agent-7');
+    });
+
+    it('writes the resolution before flipping the ticket status', async () => {
+      stubTables({});
+      await put({ id: 't1', final_response: 'ok' });
+      expect(calls).toEqual(['lookup', 'insert-resolution', 'update-status']);
+    });
+
+    it('takes the resolution back when the status update fails', async () => {
+      stubTables({ updateError: 'db down' });
+      const res = await put({ id: 't1', final_response: 'ok' });
+
+      expect(res.status).toBe(500);
+      expect(calls).toEqual(['lookup', 'insert-resolution', 'update-status', 'delete-resolution']);
+      expect(deletedResolutionId).toBe('res-1');
+    });
+
+    it('does not touch the status when the resolution insert fails', async () => {
+      stubTables({ insertError: 'insert failed' });
+      const res = await put({ id: 't1', final_response: 'ok' });
+
+      expect(res.status).toBe(500);
+      expect(calls).toEqual(['lookup', 'insert-resolution']);
+    });
+
+    it('returns 404 for an unknown ticket and writes nothing', async () => {
+      stubTables({ ticket: null });
+      const res = await put({ id: 'missing', final_response: 'ok' });
+
+      expect(res.status).toBe(404);
+      expect(calls).toEqual(['lookup']);
+    });
+
+    it('returns 409 when the ticket is already resolved', async () => {
+      stubTables({ ticket: { id: 't1', status: 'resolved', resolutions: [] } });
+      const res = await put({ id: 't1', final_response: 'second answer' });
+
+      expect(res.status).toBe(409);
+      expect(calls).toEqual(['lookup']);
+    });
+
+    it('returns 409 when a non-escalated resolution already exists', async () => {
+      stubTables({ ticket: { id: 't1', status: 'escalated', resolutions: [{ id: 'r0', escalated: false }] } });
+      const res = await put({ id: 't1', final_response: 'second answer' });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('still allows resolving a ticket whose only resolution row is the escalation marker', async () => {
+      stubTables({ ticket: { id: 't1', status: 'escalated', resolutions: [{ id: 'r0', escalated: true }] } });
+      const res = await put({ id: 't1', final_response: 'human answer' });
+
+      expect(res.status).toBe(200);
+    });
+
+    it.each([
+      ['missing id', { final_response: 'x' }],
+      ['blank response', { id: 't1', final_response: '   ' }],
+      ['non-string id', { id: 42, final_response: 'x' }],
+    ])('rejects %s with 400 before any database call', async (_name, body) => {
+      stubTables({});
+      const res = await put(body);
+
+      expect(res.status).toBe(400);
+      expect(dataQueries()).toEqual([]);
+    });
+
+    it('rejects a malformed JSON body with 400 instead of crashing', async () => {
+      stubTables({});
+      const res = await put('{not json');
+
+      expect(res.status).toBe(400);
+      expect(dataQueries()).toEqual([]);
     });
   });
 });

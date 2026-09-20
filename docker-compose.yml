@@ -10,6 +10,9 @@ services:
     build:
       context: ./services/api-gateway
       dockerfile: Dockerfile
+    # REL-011: must exceed web-drain (20s) + Redis-dispatch drain (20s) or Docker
+    # SIGKILLs the JVM (default grace is 10s) before the graceful shutdown finishes.
+    stop_grace_period: 45s
     ports:
       - "8080:8080"
     env_file:
@@ -24,6 +27,9 @@ services:
     build:
       context: ./services/ticket-core-service
       dockerfile: Dockerfile
+    # REL-011: must exceed web-drain (20s) + Redis-dispatch drain (20s) or Docker
+    # SIGKILLs the JVM (default grace is 10s) before the graceful shutdown finishes.
+    stop_grace_period: 45s
     env_file:
       - ./clario-app/.env
     environment:
@@ -39,11 +45,24 @@ services:
     build:
       context: ./services/agent-review-service
       dockerfile: Dockerfile
+    # REL-011: must exceed web-drain (20s) + Redis-dispatch drain (20s) or Docker
+    # SIGKILLs the JVM (default grace is 10s) before the graceful shutdown finishes.
+    stop_grace_period: 45s
     env_file:
       - ./clario-app/.env
     environment:
       - JAVA_TOOL_OPTIONS=-Xmx256m -Xms256m
       - SPRING_PROFILES_ACTIVE=docker
+      # Was missing entirely: without this, the service's Redis client defaults
+      # to localhost:6379 inside its own container, where nothing listens (the
+      # broker is the separate redis-broker container). Every ticket created
+      # through this service silently never reached the AI pipeline in the
+      # real deployment - REL-002's new logging surfaces exactly this failure
+      # (see NFR Testing/REL-002-Fault-Tolerance/), which is what caught it.
+      - SPRING_DATA_REDIS_HOST=redis-broker
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      - redis-broker
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "db.mdvfvtpbwqhccmaarpli.supabase.co:host-gateway"
@@ -100,7 +119,7 @@ services:
       # The fine-tuned LoRA adapter isn't in git (it's local-only weights);
       # mounted read-only instead of COPY-ing it into the image, matching
       # how whisper-models is handled for voice-to-text-service.
-      - "./Fine Tuned LLama-3.2 (3B):/models/llama3-adapter:ro"
+      - "./Fine Tuned Llama-3.2 v2 (3B):/models/llama3-adapter:ro"
     depends_on:
       - redis-broker
       - nlp-classifier-service

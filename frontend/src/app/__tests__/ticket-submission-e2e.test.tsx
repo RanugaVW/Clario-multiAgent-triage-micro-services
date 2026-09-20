@@ -111,7 +111,7 @@ describe('E2E Ticket Submission Pipeline', () => {
       if (url.includes('/api/user_tickets')) {
         return Promise.resolve(mockTicketHistoryResponse());
       }
-      if (url.includes('/api/tickets')) {
+      if (url.includes('/api/v1/tickets')) {
         return Promise.resolve(mockTicketSubmissionResponse('ticket-uuid-001'));
       }
       return Promise.resolve({
@@ -148,7 +148,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     await waitFor(() => {
       const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
-        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
+        (call) => String(call[0]).includes('/api/v1/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
       );
 
       expect(gatewayCall).toBeDefined();
@@ -247,7 +247,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     await waitFor(() => {
       const fetchCalls = vi.mocked(global.fetch).mock.calls;
       const gatewayCall = fetchCalls.find(
-        (call) => String(call[0]).includes('/api/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
+        (call) => String(call[0]).includes('/api/v1/tickets') && (call[1] as RequestInit | undefined)?.method === 'POST'
       );
 
       if (gatewayCall) {
@@ -276,7 +276,7 @@ describe('E2E Ticket Submission Pipeline', () => {
       if (url.includes('/api/user_tickets')) {
         return Promise.resolve(mockTicketHistoryResponse(mockTickets));
       }
-      if (url.includes('/api/tickets')) {
+      if (url.includes('/api/v1/tickets')) {
         return Promise.resolve(mockTicketSubmissionResponse('ticket-uuid-001'));
       }
       return Promise.resolve({
@@ -356,7 +356,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     const user = userEvent.setup();
 
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/api/tickets')) {
+      if (url.includes('/api/v1/tickets')) {
         return Promise.resolve(mockFailedResponse('Gateway timeout'));
       }
       return Promise.resolve(mockTicketHistoryResponse());
@@ -375,9 +375,12 @@ describe('E2E Ticket Submission Pipeline', () => {
     const submitButton = screen.getByRole('button', { name: /submit ticket/i });
     await user.click(submitButton);
 
-    // Verify error message appears
+    // Verify the error message appears - and that it's the actual message the
+    // backend sent ("Gateway timeout"), not a generic string that discarded it.
+    // See NFR Testing/UR-002-Ease-of-Learning/ for why this is the fix, not a
+    // test-only adjustment.
     await waitFor(() => {
-      expect(screen.getByText(/Failed to submit ticket/i)).toBeInTheDocument();
+      expect(screen.getByText(/Gateway timeout/i)).toBeInTheDocument();
     });
 
     // Verify success modal does NOT appear
@@ -419,7 +422,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     });
 
     // Admin should see admin panel button
-    expect(screen.getByRole('button', { name: /Admin Panel/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Admin Panel/i })).toHaveAttribute('href', '/admin');
   });
 
   // ==================== TEST 9: Agent User Navigation ====================
@@ -440,7 +443,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     });
 
     // Agent should see agent workspace button
-    expect(screen.getByRole('button', { name: /Agent Workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Agent Workspace/i })).toHaveAttribute('href', '/agent');
   });
 
   // ==================== TEST 10: Delete Ticket ====================
@@ -603,13 +606,13 @@ describe('E2E Ticket Submission Pipeline', () => {
     const mockTickets = [createMockTicket('ticket-uuid-001', 0)];
 
     global.fetch = vi.fn().mockImplementation((url) => {
-      if (url.includes('/api/tickets') && url !== 'http://localhost:8080/api/tickets') {
+      if (url.includes('/api/v1/tickets') && url !== 'http://localhost:8080/api/v1/tickets') {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve([]),
         });
       }
-      if (url === 'http://localhost:8080/api/tickets') {
+      if (url === 'http://localhost:8080/api/v1/tickets') {
         return Promise.resolve(mockTicketSubmissionResponse('ticket-uuid-001'));
       }
       if (url.includes('/api/user_tickets')) {

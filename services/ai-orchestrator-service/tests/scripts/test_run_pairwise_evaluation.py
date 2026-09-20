@@ -201,6 +201,7 @@ def test_run_continues_past_a_failing_row(monkeypatch, tmp_path):
     monkeypatch.setattr(rpe, "get_judge", lambda: object())
     monkeypatch.setattr(rpe, "_get_supabase", lambda: object())
     monkeypatch.setattr(rpe, "_evaluate_one_ticket", _fake_evaluate)
+    monkeypatch.setattr(rpe.time, "sleep", lambda *_: None)
 
     summary = asyncio.run(rpe.run(_args(csv=str(csv_path))))
 
@@ -230,6 +231,7 @@ def test_run_reports_skipped_not_processed_when_no_draft_produced(monkeypatch, t
     monkeypatch.setattr(rpe, "get_judge", lambda: judge)
     monkeypatch.setattr(rpe, "_get_supabase", lambda: supabase)
     monkeypatch.setattr(rpe, "mask_pii", lambda text: (text, []))
+    monkeypatch.setattr(rpe.time, "sleep", lambda *_: None)
 
     summary = asyncio.run(rpe.run(_args(csv=str(csv_path))))
 
@@ -254,6 +256,7 @@ def test_run_counts_mixed_skip_and_processed_rows(monkeypatch, tmp_path):
     monkeypatch.setattr(rpe, "get_judge", lambda: object())
     monkeypatch.setattr(rpe, "_get_supabase", lambda: object())
     monkeypatch.setattr(rpe, "_evaluate_one_ticket", _fake_evaluate)
+    monkeypatch.setattr(rpe.time, "sleep", lambda *_: None)
 
     summary = asyncio.run(rpe.run(_args(csv=str(csv_path))))
 

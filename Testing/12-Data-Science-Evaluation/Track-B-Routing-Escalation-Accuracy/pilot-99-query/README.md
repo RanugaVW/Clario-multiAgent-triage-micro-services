@@ -30,4 +30,4 @@ Track A already produced an independently-verified domain label for every one of
 
 ## Next step
 
-Two people (Ranuga, Sineth) annotate `data/routing_annotation_sample_99.csv` independently per `HOW_TO_ANNOTATE_99.md`, then run the merge and evaluation scripts in order. A weak result is a signal to fix `routing_node.py`/`escalation_node.py` before moving to the 70-ticket final round — that's the whole point of running this pilot first.
+Two people (Vinma, Sineth) annotate `data/routing_annotation_sample_99.csv` independently per `HOW_TO_ANNOTATE_99.md`, then run the merge and evaluation scripts in order. A weak result is a signal to fix `routing_node.py`/`escalation_node.py` before moving to the 70-ticket final round — that's the whole point of running this pilot first.

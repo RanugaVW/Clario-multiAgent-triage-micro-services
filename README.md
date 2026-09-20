@@ -1,7 +1,7 @@
 # Clario — Multi-Agent Customer Support Triage System
 ### CS3501 Data Science and Engineering Project | Group 23
 
-> **Clario** is an end-to-end AI-powered support triage platform. It classifies, routes, drafts, validates, and escalates customer support tickets using a **LangGraph multi-agent pipeline**, **ChromaDB RAG**, **SurrogateShield PII redaction**, **Gemma-3 1B LoRA fine-tuned models**, **Gemini-powered OCR**, a **Spring Boot API Gateway**, and a **Next.js + Supabase** frontend.
+> **Clario** is an end-to-end AI-powered support triage platform. It classifies, routes, drafts, validates, and escalates customer support tickets using a **LangGraph multi-agent pipeline**, **ChromaDB RAG**, **SurrogateShield PII redaction**, **a fine-tuned Llama-3.2 3B LoRA ticket classifier**, **Gemini-powered OCR**, a **Spring Boot API Gateway**, and a **Next.js + Supabase** frontend.
 
 ---
 
@@ -137,7 +137,7 @@ kill -9 $(lsof -t -i:5433) 2>/dev/null; nohup python3 -u supabase_proxy.py > pro
 docker compose up --build
 ```
 
-*(Note: The AI models gracefully fall back to the Gemini API if they detect a lack of GPU VRAM on your system.)*
+*(Note: The AI models gracefully fall back to the Gemini API if they detect a lack of GPU VRAM on your system. The Docker image is CPU-only, so under Docker the classifier always runs on that Gemini fallback; to use the local Llama-3.2 adapter, run the orchestrator/sidecar on a CUDA host — see `start-all.sh` and `LLAMA_ADAPTER_PATH`.)*
 
 ---
 
@@ -178,7 +178,7 @@ Customer submits ticket (Text + Optional Image)
         ↓
 [surrogate_node] — spaCy NLP masks all PII locally
         ↓
-[classification_node] — Calls http://nlp-classifier-service:8000 to predict Category/Priority
+[classification_node] — Fine-tuned Llama-3.2 3B LoRA adapter (Gemini fallback) predicts categories, priority, sentiment
         ↓
 [routing_node] — Routes to technical_agent, billing_agent, or both
         ↓
@@ -227,7 +227,7 @@ A standalone visualizer, separate from the product, that answers one question in
 
 ```
 [Frontend] generates a correlationId, sends it on
-POST /api/tickets as header: X-Trace-Correlation-Id
+POST /api/v1/tickets as header: X-Trace-Correlation-Id
         │
         ├─► [Frontend]            fires "submit"              (keyed by correlationId)
         ├─► [API Gateway]         fires "received"             (keyed by correlationId)
@@ -328,7 +328,7 @@ xdg-open Visualizer/viewer/index.html    # Linux
 | **Queue Broker** | Redis Alpine (Port 6380) |
 | **Python Microservices**| FastAPI + Uvicorn (NLP Classifier: 8000) |
 | **AI Orchestrator** | Python 3.12 Background Worker consuming Redis via `app.worker` |
-| **Local Models** | `Gemma-3-1b-it` (Classification), `spaCy` (Redaction) |
+| **Local Models** | `Llama-3.2-3B-Instruct` + LoRA (Classification), `spaCy` (Redaction) |
 | **Cloud Fallback** | Gemini API (`gemini-3.1-flash`) |
 | **Database** | Supabase (PostgreSQL + Auth) |
 

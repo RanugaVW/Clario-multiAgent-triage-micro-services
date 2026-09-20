@@ -1,0 +1,306 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "Clario Ticket Core Service API",
+    "description" : "Ticket submission and retrieval. Every endpoint requires a Supabase-issued JWT; identity is taken from the token's subject, never from a request header.",
+    "version" : "1.0.0"
+  },
+  "security" : [ {
+    "bearerAuth" : [ ]
+  } ],
+  "tags" : [ {
+    "name" : "Tickets",
+    "description" : "Submit and retrieve the caller's own support tickets."
+  } ],
+  "paths" : {
+    "/api/tickets" : {
+      "get" : {
+        "tags" : [ "Tickets" ],
+        "summary" : "List the caller's tickets",
+        "description" : "Deprecated: use /api/v1/tickets. Returns only tickets owned by the authenticated user (JWT subject).",
+        "operationId" : "getUserTickets",
+        "responses" : {
+          "503" : {
+            "description" : "Database temporarily unavailable.",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, malformed, expired or forged token."
+          },
+          "200" : {
+            "description" : "The caller's tickets (possibly empty).",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Ticket"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated" : true
+      },
+      "post" : {
+        "tags" : [ "Tickets" ],
+        "summary" : "Submit a support ticket",
+        "description" : "Deprecated: use /api/v1/tickets. Persists the ticket and queues it for AI triage asynchronously - 202 means accepted, not resolved.",
+        "operationId" : "createTicket",
+        "parameters" : [ {
+          "name" : "X-Trace-Correlation-Id",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateTicketRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "Validation failed (e.g. blank rawText).",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "202" : {
+            "description" : "Ticket accepted for processing.",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Ticket"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Database temporarily unavailable.",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, malformed, expired or forged token."
+          }
+        },
+        "deprecated" : true
+      }
+    },
+    "/api/v1/tickets" : {
+      "get" : {
+        "tags" : [ "Tickets" ],
+        "summary" : "List the caller's tickets",
+        "description" : "Returns only tickets owned by the authenticated user (JWT subject).",
+        "operationId" : "getUserTickets_1",
+        "responses" : {
+          "503" : {
+            "description" : "Database temporarily unavailable.",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, malformed, expired or forged token."
+          },
+          "200" : {
+            "description" : "The caller's tickets (possibly empty).",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Ticket"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Tickets" ],
+        "summary" : "Submit a support ticket",
+        "description" : "Persists the ticket and queues it for AI triage asynchronously - 202 means accepted, not resolved.",
+        "operationId" : "createTicket_1",
+        "parameters" : [ {
+          "name" : "X-Trace-Correlation-Id",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateTicketRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "Validation failed (e.g. blank rawText).",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "202" : {
+            "description" : "Ticket accepted for processing.",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Ticket"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Database temporarily unavailable.",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, malformed, expired or forged token."
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "CreateTicketRequest" : {
+        "required" : [ "rawText" ],
+        "type" : "object",
+        "properties" : {
+          "rawText" : {
+            "maxLength" : 20000,
+            "minLength" : 0,
+            "type" : "string",
+            "description" : "The customer's message. Must contain at least one non-whitespace character."
+          },
+          "subject" : {
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string",
+            "description" : "Optional short subject line."
+          },
+          "imageBase64" : {
+            "type" : "string",
+            "description" : "Optional base64-encoded image attachment (no data: prefix); processed by OCR."
+          }
+        }
+      },
+      "ApiError" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string",
+            "description" : "Human-readable summary. Never contains internal detail.",
+            "example" : "Validation failed"
+          },
+          "reference" : {
+            "type" : "string",
+            "description" : "Identifier that also appears on the server's log lines for this request. Quote it to support.",
+            "example" : "7d1c2f0e-5b3a-4c39-9a52-0f1f0c8f6c11"
+          },
+          "details" : {
+            "type" : "string",
+            "description" : "Field-level explanation; present for validation failures only.",
+            "example" : "rawText: rawText is required and cannot be blank"
+          }
+        },
+        "description" : "Error body returned for every failed request."
+      },
+      "Ticket" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "customerName" : {
+            "type" : "string"
+          },
+          "customerEmail" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "rawText" : {
+            "type" : "string"
+          },
+          "redactedText" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "type" : "http",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}

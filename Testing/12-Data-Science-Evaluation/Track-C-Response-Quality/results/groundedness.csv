@@ -1,0 +1,74 @@
+query_id,domain_drafted,sentence,max_similarity,supported
+Q001,technical,"Additionally, please let me know if you see any specific error messages when you try to view these items, or if the sections simply appear empty.",0.43,True
+Q005,technical,"Additionally, if you could provide the names or identifiers of the specific sessions where the recordings or notes are missing, and let me know the last time you were able to see them successfully, it will help our team track down the cause of this sync error.",0.5514,True
+Q006,technical,"Additionally, please try refreshing your page to see if the content appears.",0.2784,False
+Q006,technical,This will help me investigate what might be causing the delay in loading your materials.,0.2421,False
+Q009,technical,"Once I have that information, I will check the status of the recording for that session and let you know where you can access it within your course dashboard.",0.3924,True
+Q010,technical,"Additionally, it would be helpful to know if you experience the same issue when using a different web browser or an 'incognito'/'private' window.",0.4794,True
+Q011,hr,I understand you are concerned about your bank slip payment status for the AI course.,0.5395,True
+Q011,hr,"When payments are made via bank slip, they sometimes require a manual review to ensure they are correctly linked to your account, which can cause a delay in the status update.",0.6156,True
+Q013,technical,"It sounds like there is a disconnect between your account and the course materials, and I want to get this resolved for you as quickly as possible.",0.3992,True
+Q013,technical,"Additionally, please let me know which browser and version you are currently using.",0.3416,False
+Q016,technical,"In the meantime, please try reconnecting your Zoom integration within your account settings, and let me know if the issue persists or if you notice any error codes displayed during that process.",0.4062,True
+Q018,technical,"In the meantime, please try opening the course link in a private or incognito browser window to see if that allows you to connect.",0.3311,False
+Q021,technical,"Additionally, please confirm the file type and the total size of the project you are trying to submit.",0.5538,True
+Q022,hr,I have forwarded your account details to our billing team for manual review to ensure your subscription is stopped before your next payment date.,0.4537,True
+Q023,hr,"Because this involves a change in your enrollment status, I have forwarded your details to our review team.",0.3873,True
+Q023,hr,They will look into your specific circumstances and reach out to you directly with the next steps regarding your enrollment.,0.337,False
+Q025,billing,"To ensure your subscription does not renew, please navigate to the 'Billing' section within your account settings, where you can manage your auto-renewal preferences.",0.6268,True
+Q025,billing,"Once you have initiated the cancellation through your dashboard, please let me know, and I will be happy to verify the status of your account and provide you with the written confirmation you requested.",0.6074,True
+Q027,billing,I have escalated this to our billing team to investigate why the cancellation did not take effect as expected.,0.5929,True
+Q028,billing,I would like to get this sorted out for you right away.,0.125,False
+Q028,billing,Please do not share your full card number or any bank login credentials.,0.4007,True
+Q030,billing,I have escalated this to our billing team to investigate the transaction history immediately.,0.4708,True
+Q030,billing,Please do not share your full card number or bank credentials.,0.3845,True
+Q031,billing,Please do not share your full card number or any bank login credentials.,0.4007,True
+Q032,billing,I would like to get this sorted out for you as quickly as possible.,0.1405,False
+Q034,technical,I am going to look into this for you immediately to see why your access is restricted.,0.3852,True
+Q034,technical,"If that does not work, please let me know which web browser you are using and if you see a specific error message on the screen.",0.3632,True
+Q035,technical,I am escalating this to our security team immediately to investigate why your account access is restricted.,0.5062,True
+Q036,technical,I understand you are concerned about your account access following your recent refund request.,0.4615,True
+Q036,billing,I understand you are concerned about your account access following your refund request.,0.4565,True
+Q036,billing,Please be assured that requesting a refund does not automatically result in an account being blocked.,0.5064,True
+Q037,technical,I am escalating this to our security team immediately to investigate why your account is being flagged.,0.4801,True
+Q037,technical,This information will help us pinpoint the cause of the block.,0.2019,False
+Q038,technical,"Hi there, I understand how concerning it is to see a message about suspicious activity on your account, especially when you haven't logged in from any unusual locations.",0.4128,True
+Q038,technical,"Once I have that, I will be able to review the status of your account and guide you through the necessary steps to regain access safely.",0.5471,True
+Q039,technical,"Hi there, I am glad to hear that you have regained access to your account.",0.4877,True
+Q039,technical,"While I don't have the specific details regarding the cause of the block in front of me, these situations are often triggered by automated security measures designed to protect your account.",0.3967,True
+Q039,technical,"Once I have that, I can investigate the history of your account status and provide you with more information.",0.4411,True
+Q040,hr,"I have forwarded your request to our support team, who will review your enrollment details and get back to you regarding the next steps for your account.",0.4098,True
+Q041,hr,"I have forwarded your request to our review team, who will take a look at your feedback and the specific circumstances of your enrollment to determine the next steps regarding your refund.",0.6462,True
+Q042,billing,"While I cannot guarantee a refund at this time, I have initiated a billing review to look into your request.",0.537,True
+Q043,hr,I completely understand that you've changed your mind about the course and would like to move forward with a cancellation.,0.5021,True
+Q043,hr,"Because your request requires a manual review of your account and enrollment details, it is currently waiting to be processed by our team.",0.428,True
+Q044,hr,I have forwarded your request to our support team for a manual review of your account and circumstances.,0.4205,True
+Q044,hr,Please keep an eye on your email for further updates.,0.1815,False
+Q046,hr,"I have forwarded your request to our review team, who will assess the situation regarding the instructor change and determine the appropriate next steps for your account.",0.5985,True
+Q047,hr,"Because requests involving instructor changes require a closer look at the specific course details and our enrollment policies, I have escalated your inquiry to our review team.",0.6668,True
+Q048,hr,"I have escalated your request to our review team, who will manually assess the changes made to your course and compare them against the original enrollment promises.",0.6157,True
+Q049,hr,"When an instructor changes mid-course, we take these concerns seriously.",0.6343,True
+Q049,hr,"I have forwarded your feedback to our review team, who will assess the situation to see how this change aligns with the course structure you signed up for.",0.5874,True
+Q050,hr,"Hi, I am truly sorry that your previous messages went unanswered and for the frustration this has caused you.",0.1066,False
+Q050,hr,"Because your request involves a change in course instruction, it requires a manual review by our team to assess the situation against our course promises.",0.5868,True
+Q051,billing,I am going to personally escalate your request to our billing team to conduct a thorough review of your account and the specific reasons behind this decision.,0.5166,True
+Q051,billing,I will have an update for you regarding the status of this review within the next 24 hours.,0.2787,False
+Q051,billing,This will ensure I have everything needed to provide you with a definitive answer.,0.1126,False
+Q052,billing,"It is completely understandable that you would feel upset about receiving a 'denied' status without any explanation, and I apologize that we haven't provided the clarity you deserve.",0.3696,True
+Q052,billing,I am going to personally look into your account and the specific details of your refund request to find out exactly why this happened.,0.5464,True
+Q052,billing,I will have an update for you regarding the status of your request and the reason behind the decision within the next 24 hours.,0.3006,False
+Q053,billing,I have escalated your ticket to our billing specialists to conduct a thorough review of your account and the specific policy that applied to your request.,0.5665,True
+Q054,billing,I have escalated your case to our billing team for a manual review of your account activity.,0.5124,True
+Q054,billing,They will take a closer look at your usage logs to see if an exception can be made in your case.,0.267,False
+Q055,billing,I am escalating this to our billing team right now to review your account history.,0.4188,True
+Q057,billing,I understand you've enrolled in the wrong course by mistake and would like to switch to a different program.,0.3559,True
+Q058,billing,I have initiated a review of your account to look into your options for switching to the correct course.,0.4167,True
+Q058,billing,I will need to have our billing team verify your transaction details to ensure we handle this without any unnecessary charges.,0.5089,True
+Q061,billing,I have initiated a review of your transaction with our billing team to investigate why the discount was not reflected in your final total.,0.4572,True
+Q063,billing,I have initiated a billing review to look into the promotion details and your specific transaction record.,0.4667,True
+Q063,billing,I will personally check the status of the discount window for that course and will follow up with you via email within 24 hours to let you know what options might be available.,0.4198,True
+Q064,billing,"I completely understand how frustrating it is to wait for a specific offer only to be charged the full amount, and I would like to help you get this sorted out.",0.4391,True
+Q065,billing,I understand you intended to use a discount code for your course purchase but were unable to apply it successfully.,0.4298,True
+Q067,technical,"Once I have that, I will check your account status and investigate why the certificate has not been generated so we can get this resolved for you.",0.3527,True
+Q071,technical,"Additionally, if you could share a screenshot of the error message you're seeing, that would be very helpful.",0.4448,True
+Q071,technical,"In the meantime, please ensure your app is updated to the latest version and try restarting your device to see if that resolves the issue.",0.387,True

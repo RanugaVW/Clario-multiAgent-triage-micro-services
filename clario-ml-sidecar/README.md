@@ -6,7 +6,7 @@ This service manages the core AI brain of the Clario platform. It handles the La
 
 Built with Python and **FastAPI**, orchestrating **LangGraph**. The workflow includes:
 - **SurrogateShield:** Masks incoming PII (using regex + spaCy NER).
-- **Classifier:** Identifies category, sentiment, and priority.
+- **Classifier:** Fine-tuned Llama-3.2 3B LoRA adapter (Gemini fallback) that assigns one or more categories, a sentiment, and a priority.
 - **Router:** Routes to the Technical Agent, Billing Agent, or both.
 - **RAG & Agents:** Fetches context from **ChromaDB** and generates a response.
 - **Judge (Validation):** Evaluates the response for quality and tone.
@@ -40,5 +40,5 @@ Uses `pytest` to run tests across nodes, tools, and cross-team contracts. Automa
 
 ## Troubleshooting
 
-- **API Rate Limits:** If Gemini API fails, check quotas or use the fallback heuristic classifier.
+- **API Rate Limits:** If Gemini API fails, check quotas. Classification uses the local Llama-3.2 adapter when a CUDA GPU is available and falls back to Gemini otherwise.
 - **Empty RAG Results:** Ensure the ChromaDB index is built (`python vector_store/build_index.py`).

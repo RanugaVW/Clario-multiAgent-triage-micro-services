@@ -24,8 +24,18 @@ import csv
 import logging
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Same Gemini free-tier pacing already used by
+# Track-C-Response-Quality/scripts/run_full_graph_generation.py and its
+# pilot-99-query counterpart: classification is local, but retrieval,
+# drafting, and the pairwise judge comparison each cost several Gemini
+# calls per ticket, unpaced hits 429 RESOURCE_EXHAUSTED almost
+# immediately (confirmed live - a run with no pacing skipped 58/70
+# tickets to "no draft produced"/"empty draft", starting from row 1).
+PACING_SECONDS = 8
 
 _SIDECAR_ROOT = Path(__file__).resolve().parents[1]
 if str(_SIDECAR_ROOT) not in sys.path:
@@ -206,6 +216,7 @@ async def run(args) -> dict:
             except Exception as e:
                 logger.error(f"Row {i} failed: {e}")
                 summary["failed"] += 1
+            time.sleep(PACING_SECONDS)
 
     logger.info(f"Pairwise evaluation run {eval_run_id}: {summary}")
 

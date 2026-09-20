@@ -1,0 +1,61 @@
+%%{init: {'theme': 'neutral', 'flowchart': {'curve': 'basis'}} }%%
+flowchart TD
+    Title["<b>Clario — Cloud Hosting Cost Comparison</b><br/>Scope: real performance/load testing on a live server + one-time presentation demo only.<br/>Not a persistent production deployment.<br/>Prices are on-demand list rates, checked 2026-09-16 — verify at signup, rates change."]
+
+    Title --> AWS
+    Title --> ORACLE
+    Title --> DO
+
+    %% ============ AWS ============
+    subgraph AWS["AWS (EC2, us-east-1)"]
+        direction TB
+        AWS_CPU["<b>CPU-only — t3.large</b><br/>2 vCPU / 8GB RAM<br/>$0.0832/hr on-demand<br/>Covers all 6 services (~2.25GB idle, measured)<br/>Classification auto-falls back to Gemini (no GPU)"]
+        AWS_GPU["<b>GPU — g4dn.xlarge</b><br/>1x NVIDIA T4, 16GB VRAM<br/>4 vCPU / 16GB RAM<br/>$0.526/hr on-demand<br/>Real local Llama-3.2/Qwen2-VL inference works"]
+        AWS_STORE["30GB gp3 EBS: ~$0.08/GB-month<br/>(~$0.80 for a 10-day window)"]
+        AWS_CREDIT["Funding: existing AWS Educate / student credits<br/>(already have these per prior conversation)"]
+        AWS_TOTAL["<b>Est. cost, ~15hrs use:</b><br/>CPU-only: ~$1.25 + storage ≈ <b>$2</b><br/>With GPU: ~$7.89 + storage ≈ <b>$9</b>"]
+        AWS_CPU --> AWS_TOTAL
+        AWS_GPU --> AWS_TOTAL
+        AWS_STORE --> AWS_TOTAL
+        AWS_CREDIT --> AWS_TOTAL
+    end
+
+    %% ============ ORACLE ============
+    subgraph ORACLE["Oracle Cloud Infrastructure (OCI)"]
+        direction TB
+        OCI_FREE["<b>Always Free — Ampere A1</b><br/>Up to 4 OCPU / 24GB RAM, Arm64, forever free<br/>Never touches any credit balance<br/>⚠ Arm64 risk: bitsandbytes (used by local_llm.py<br/>on the classification path) may lack an arm64<br/>wheel — build could fail; needs a real test<br/>⚠ Always-Free Ampere capacity errors are<br/>common in busy regions ('out of host capacity')"]
+        OCI_CPU["<b>CPU-only (paid) — VM.Standard.E4.Flex</b><br/>x86, 1 OCPU + 8GB, no Arm risk<br/>$0.0255/OCPU-hr + $0.0015/GB-hr ≈ $0.0375/hr<br/>Cheaper per-hour than AWS, same architecture as tested"]
+        OCI_GPU["<b>GPU — VM.GPU.A10.1</b><br/>1x NVIDIA A10, 24GB VRAM<br/>~$1.27-2.00/hr on-demand (sources vary)<br/>NOT included in Always Free tier at all"]
+        OCI_TRIAL["<b>$300 / 30-day Free Trial credit</b><br/>(one-time, if not already used on this account)<br/>Covers ~150-235 GPU-hours — effectively free<br/>GPU testing + demo if trial is unused"]
+        OCI_TOTAL["<b>Est. out-of-pocket, ~15hrs use:</b><br/>Always Free CPU (Arm, if it builds): <b>$0</b><br/>x86 CPU paid: ~$0.56 ≈ <b>$1</b><br/>GPU on Free Trial credit (if available): <b>$0</b><br/>GPU paid (no trial left): ~$19-30"]
+        OCI_FREE --> OCI_TOTAL
+        OCI_CPU --> OCI_TOTAL
+        OCI_GPU --> OCI_TOTAL
+        OCI_TRIAL --> OCI_TOTAL
+    end
+
+    %% ============ DIGITALOCEAN ============
+    subgraph DO["DigitalOcean"]
+        direction TB
+        DO_CPU["<b>CPU-only — Basic Droplet</b><br/>4 vCPU / 8GB RAM<br/>$48/mo cap, per-second billed<br/>≈ $0.0714/hr effective for short use<br/>Simple, no free-tier games needed"]
+        DO_GPU["<b>GPU — RTX 4000 Ada Droplet</b><br/>20GB VRAM, 8 vCPU / 32GB RAM<br/>$0.76/hr on-demand<br/>Comfortable headroom for the 3B/2B local models"]
+        DO_CREDIT["New-account trial credit exists<br/>(varies by promo, typically ~$200,<br/>separate from any AWS/Oracle credits)"]
+        DO_TOTAL["<b>Est. cost, ~15hrs use:</b><br/>CPU-only: ~$1.07 ≈ <b>$1</b><br/>With GPU: ~$11.40 ≈ <b>$11-12</b>"]
+        DO_CPU --> DO_TOTAL
+        DO_GPU --> DO_TOTAL
+        DO_CREDIT --> DO_TOTAL
+    end
+
+    AWS_TOTAL --> VERDICT
+    OCI_TOTAL --> VERDICT
+    DO_TOTAL --> VERDICT
+
+    VERDICT["<b>Bottom line for this use case</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>• CPU-only demo (Gemini fallback everywhere): all three cost pennies-to-a-few-dollars for ~15hrs.<br/>  AWS is the safe default since it's already tested x86 with existing credits.<br/>• Want the REAL local Llama/Qwen model working in the demo: needs a GPU box.<br/>  Cheapest guaranteed-cash cost is AWS g4dn.xlarge (~$8 total).<br/>  Oracle A10 costs more per-hour BUT an unused $300/30-day trial<br/>  could make it $0 out-of-pocket — worth checking before deciding.<br/>• Do not rely on Oracle's Always-Free Arm tier for the GPU-classification<br/>  path without first test-building bitsandbytes on arm64 — unverified risk.<br/>• Whichever provider: stop/terminate the instance between sessions —<br/>  compute is billed by the second/hour, only storage bills while stopped."]
+
+    classDef recommended fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#000
+    classDef caution fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#000
+    classDef verdict fill:#cce5ff,stroke:#004085,stroke-width:3px,color:#000
+
+    class AWS_CPU,AWS_GPU recommended
+    class OCI_FREE caution
+    class VERDICT verdict
