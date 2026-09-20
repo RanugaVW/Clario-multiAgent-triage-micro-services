@@ -24,19 +24,19 @@ const setup = () =>
   );
 
 describe('ThemeToggle', () => {
-  it('is a labelled radio group with System, Light and Dark, and System selected by default', () => {
+  it('is a labelled group of toggle buttons with System, Light and Dark, and System selected by default', () => {
     setup();
-    expect(screen.getByRole('radiogroup', { name: 'Color theme' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'System' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('radio', { name: 'Light' })).toHaveAttribute('aria-checked', 'false');
-    expect(screen.getByRole('radio', { name: 'Dark' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('group', { name: 'Color theme' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'System' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Light' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('selects and persists the chosen theme', async () => {
     setup();
-    await userEvent.click(screen.getByRole('radio', { name: 'Light' }));
-    expect(screen.getByRole('radio', { name: 'Light' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('radio', { name: 'System' })).toHaveAttribute('aria-checked', 'false');
+    await userEvent.click(screen.getByRole('button', { name: 'Light' }));
+    expect(screen.getByRole('button', { name: 'Light' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'System' })).toHaveAttribute('aria-pressed', 'false');
     expect(localStorage.getItem('theme-preference')).toBe('light');
   });
 });

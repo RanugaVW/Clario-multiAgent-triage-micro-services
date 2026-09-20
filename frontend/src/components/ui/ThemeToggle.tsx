@@ -15,7 +15,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   const { preference, setPreference } = useTheme();
   return (
     <div
-      role="radiogroup"
+      role="group"
       aria-label="Color theme"
       className={cx('inline-flex items-center gap-0.5 rounded-pill border border-border bg-surface p-0.5', className)}
     >
@@ -25,8 +25,7 @@ export function ThemeToggle({ className }: { className?: string }) {
           <button
             key={value}
             type="button"
-            role="radio"
-            aria-checked={selected}
+            aria-pressed={selected}
             aria-label={label}
             title={label}
             onClick={() => setPreference(value)}

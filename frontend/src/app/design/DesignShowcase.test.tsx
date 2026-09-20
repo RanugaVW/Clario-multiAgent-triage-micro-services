@@ -33,7 +33,8 @@ describe('DesignShowcase', () => {
 
   it('includes the theme toggle', () => {
     setup();
-    expect(screen.getByRole('radiogroup', { name: 'Color theme' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Color theme' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'System' })).toHaveAttribute('aria-pressed');
   });
 
   it('opens and closes the modal example', async () => {
