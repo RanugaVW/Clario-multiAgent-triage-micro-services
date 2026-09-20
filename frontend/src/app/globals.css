@@ -1,12 +1,102 @@
 @import "tailwindcss";
 
-@theme {
-  --color-background: #08090D;
-  --color-foreground: #ECECEC;
-  --color-foreground-muted: #8A8F98;
+/*
+ * Theme tokens. The values are not written here: src/theme/theme.config.ts is turned into CSS variables
+ * (--c-*, --t-*, --r-*, --sp-*, --l-*, --m-*, --sh-*, --f-*) by src/theme/css.ts and injected in <head>.
+ * `@theme inline` points Tailwind utilities at those variables, so `bg-surface` and `text-h2` follow the
+ * current theme and mode. Do not put colors or sizes in this file.
+ */
+@theme inline {
+  /* Colors */
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-surface-raised: var(--c-surface-raised);
+  --color-border: var(--c-border);
+  --color-border-strong: var(--c-border-strong);
+  --color-fg: var(--c-fg);
+  --color-fg-muted: var(--c-fg-muted);
+  --color-fg-subtle: var(--c-fg-subtle);
+  --color-brand: var(--c-brand);
+  --color-brand-hover: var(--c-brand-hover);
+  --color-brand-fg: var(--c-brand-fg);
+  --color-brand-soft: var(--c-brand-soft);
+  --color-accent: var(--c-accent);
+  --color-success: var(--c-success);
+  --color-warning: var(--c-warning);
+  --color-danger: var(--c-danger);
+  --color-info: var(--c-info);
+  --color-focus: var(--c-focus);
+  --color-glow: var(--c-glow);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-space-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* Names the legacy pages still use, until Phase 6 removes them */
+  --color-background: var(--c-canvas);
+  --color-foreground: var(--c-fg);
+  --color-foreground-muted: var(--c-fg-muted);
+
+  /* Fonts */
+  --font-sans: var(--f-sans);
+  --font-mono: var(--f-mono);
+
+  /* Type scale: text-display, text-h1 ... text-mono */
+  --text-display: var(--t-display-size);
+  --text-display--line-height: var(--t-display-lh);
+  --text-display--font-weight: var(--t-display-weight);
+  --text-display--letter-spacing: var(--t-display-tracking);
+  --text-h1: var(--t-h1-size);
+  --text-h1--line-height: var(--t-h1-lh);
+  --text-h1--font-weight: var(--t-h1-weight);
+  --text-h1--letter-spacing: var(--t-h1-tracking);
+  --text-h2: var(--t-h2-size);
+  --text-h2--line-height: var(--t-h2-lh);
+  --text-h2--font-weight: var(--t-h2-weight);
+  --text-h2--letter-spacing: var(--t-h2-tracking);
+  --text-h3: var(--t-h3-size);
+  --text-h3--line-height: var(--t-h3-lh);
+  --text-h3--font-weight: var(--t-h3-weight);
+  --text-h3--letter-spacing: var(--t-h3-tracking);
+  --text-body-lg: var(--t-body-lg-size);
+  --text-body-lg--line-height: var(--t-body-lg-lh);
+  --text-body-lg--font-weight: var(--t-body-lg-weight);
+  --text-body-lg--letter-spacing: var(--t-body-lg-tracking);
+  --text-body: var(--t-body-size);
+  --text-body--line-height: var(--t-body-lh);
+  --text-body--font-weight: var(--t-body-weight);
+  --text-body--letter-spacing: var(--t-body-tracking);
+  --text-app: var(--t-app-size);
+  --text-app--line-height: var(--t-app-lh);
+  --text-app--font-weight: var(--t-app-weight);
+  --text-app--letter-spacing: var(--t-app-tracking);
+  --text-small: var(--t-small-size);
+  --text-small--line-height: var(--t-small-lh);
+  --text-small--font-weight: var(--t-small-weight);
+  --text-small--letter-spacing: var(--t-small-tracking);
+  --text-caption: var(--t-caption-size);
+  --text-caption--line-height: var(--t-caption-lh);
+  --text-caption--font-weight: var(--t-caption-weight);
+  --text-caption--letter-spacing: var(--t-caption-tracking);
+  --text-mono: var(--t-mono-size);
+  --text-mono--line-height: var(--t-mono-lh);
+  --text-mono--font-weight: var(--t-mono-weight);
+  --text-mono--letter-spacing: var(--t-mono-tracking);
+
+  /* Radius, spacing, layout, shadow */
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-pill: var(--r-pill);
+  --spacing-section: var(--sp-section);
+  --spacing-page: var(--sp-page);
+  --spacing-card: var(--sp-card);
+  --spacing-stack: var(--sp-stack);
+  --container-marketing: var(--l-container-marketing);
+  --container-app: var(--l-container-app);
+  --shadow-card: var(--sh-card);
+  --shadow-raised: var(--sh-raised);
+
+  /* Transitions follow the theme's motion settings */
+  --default-transition-duration: var(--m-duration-fast);
+  --default-transition-timing-function: var(--m-ease-out);
 }
 
 @layer utilities {
@@ -39,92 +129,60 @@
   }
 }
 
-body {
-  color: var(--color-foreground);
-  background-color: var(--color-background);
-  min-height: 100vh;
-  position: relative;
-  overflow-x: hidden;
-  font-family: var(--font-sans);
-  z-index: 0;
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--c-border);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-focus);
+    outline-offset: 2px;
+  }
 }
 
-/* Fix for browser autofill ruining glassmorphism */
+body {
+  color: var(--c-fg);
+  background-color: var(--c-canvas);
+  font-family: var(--f-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Browser autofill paints its own background; keep the text readable in both modes */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-    transition: background-color 9999s ease-in-out 0s;
-    -webkit-text-fill-color: white !important;
+  transition: background-color 9999s ease-in-out 0s;
+  -webkit-text-fill-color: var(--c-fg) !important;
 }
 
-/* Premium Animated Gradient Background */
-body::before,
-body::after {
-  content: '';
-  position: fixed;
-  width: 65vmax;
-  height: 65vmax;
-  filter: blur(160px);
-  opacity: 0.08;
-  z-index: -1;
-  pointer-events: none;
-  animation: liquid-blob 25s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-body::before {
-  background: linear-gradient(135deg, #E8A33D, #F4B856); /* Signal gold */
-  top: -15%;
-  left: -15%;
-  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-}
-
-body::after {
-  background: linear-gradient(135deg, #2DD4BF, #14B8A6); /* Current teal */
-  bottom: -15%;
-  right: -15%;
-  animation-delay: -12s;
-  animation-duration: 30s;
-  animation-direction: alternate-reverse;
-  border-radius: 60% 40% 30% 70% / 50% 60% 50% 40%;
-}
-
-@keyframes liquid-blob {
-  0% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-  }
-  33% {
-    transform: translate(15vw, 15vh) rotate(120deg) scale(1.1);
-    border-radius: 60% 40% 30% 70% / 50% 60% 50% 40%;
-  }
-  66% {
-    transform: translate(-10vw, 20vh) rotate(240deg) scale(0.9);
-    border-radius: 50% 50% 70% 30% / 30% 50% 70% 40%;
-  }
-  100% {
-    transform: translate(5vw, -5vh) rotate(360deg) scale(1.05);
-    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-  }
-}
-
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #08090D;
+  background: var(--c-canvas);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--c-border-strong);
   border-radius: 8px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--c-fg-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Animations */
