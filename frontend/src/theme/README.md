@@ -20,3 +20,12 @@ Everything visual comes from two files:
 
 - Do not put colors or sizes in components or in `globals.css`. Add or change a token in `theme.config.ts` instead.
 - Do not add `dark:` variants. Dark and light are both defined in the theme file and switch through CSS variables.
+
+## What is not themeable yet
+
+- The radius scale stops at `xl`; `2xl` to `4xl` alias it.
+- `theme.charts` (the chart palette) arrives in Phase 6.
+- The Logo has a fixed 24 x 24 box, stroke width and wordmark styling.
+- Destructive buttons hover by opacity; there is no `danger-hover` token.
+- `MIGRATED_ROUTES` (`src/theme/migrated-routes.ts`): a new route renders dark-only until it is listed there.
+- Badge borders use the tone colour at 40% opacity.
