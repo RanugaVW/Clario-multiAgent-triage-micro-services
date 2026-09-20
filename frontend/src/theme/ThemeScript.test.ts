@@ -41,7 +41,14 @@ describe('buildThemeScript', () => {
     }
   });
 
-  it('falls back to dark when storage is blocked', () => {
-    expect(run(script, { pathname: '/design', stored: 'light', systemDark: false, storageThrows: true })).toBe('dark');
+  // A throwing localStorage.getItem must behave like ThemeProvider.readPreference: preference 'system', so the
+  // system setting still decides. Landing on dark here would flash the wrong theme before hydration.
+  it.each([true, false])('treats blocked storage as the system preference (systemDark=%s)', (systemDark) => {
+    const expected = resolveMode({ pathname: '/design', preference: 'system', systemDark, migratedRoutes: ROUTES });
+    expect(run(script, { pathname: '/design', stored: 'light', systemDark, storageThrows: true })).toBe(expected);
+  });
+
+  it('still forces dark on a non-migrated route when storage is blocked', () => {
+    expect(run(script, { pathname: '/login', stored: null, systemDark: false, storageThrows: true })).toBe('dark');
   });
 });

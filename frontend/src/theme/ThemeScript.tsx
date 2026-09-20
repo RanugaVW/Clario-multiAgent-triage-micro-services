@@ -11,7 +11,8 @@ export function buildThemeScript(routes: readonly string[], storageKey: string =
     `var routes=${JSON.stringify(routes)};` +
     'var p=location.pathname;' +
     "var mig=routes.some(function(r){return r==='/'?p==='/':p===r||p.indexOf(r+'/')===0;});" +
-    `var raw=localStorage.getItem(${JSON.stringify(storageKey)});` +
+    // Only the read is guarded: blocked storage means "no stored preference" (as in ThemeProvider), not dark.
+    `var raw=null;try{raw=localStorage.getItem(${JSON.stringify(storageKey)})}catch(e){}` +
     "var pref=raw==='light'||raw==='dark'?raw:'system';" +
     "var sys=matchMedia('(prefers-color-scheme: dark)').matches;" +
     "d.setAttribute('data-theme',!mig?'dark':pref==='system'?(sys?'dark':'light'):pref);" +
