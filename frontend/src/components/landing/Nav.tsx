@@ -14,9 +14,9 @@ export function Nav() {
           <Logo />
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
+        <nav aria-label="Primary" className="hidden items-center gap-4 md:flex lg:gap-6">
           {nav.links.map((link) => (
-            <a key={link.href} href={link.href} className="text-app text-fg-muted transition-colors hover:text-fg">
+            <a key={link.href} href={link.href} className="whitespace-nowrap text-app text-fg-muted transition-colors hover:text-fg">
               {link.label}
             </a>
           ))}
