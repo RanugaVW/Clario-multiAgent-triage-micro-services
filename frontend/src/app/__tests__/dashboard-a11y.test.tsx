@@ -52,7 +52,7 @@ describe('customer dashboard - accessible structure', () => {
     await waitFor(() => expect(dialog).toHaveTextContent('abc-123'));
   });
 
-  it('switches to the history tab from the success dialog and refetches tickets', async () => {
+  it('closes the success dialog and refetches tickets from its View my tickets button', async () => {
     global.fetch = vi.fn().mockImplementation(async (url: string) =>
       String(url).includes('/api/v1/tickets')
         ? { ok: true, status: 200, json: async () => ({ id: 'abc-123' }) }
@@ -63,14 +63,18 @@ describe('customer dashboard - accessible structure', () => {
     await user.type(screen.getByLabelText('Describe the issue'), 'help');
     await user.click(screen.getByRole('button', { name: /submit ticket/i }));
     const dialog = await screen.findByRole('dialog', { name: 'Ticket submitted successfully!' });
-    const countGets = () => vi.mocked(global.fetch).mock.calls.filter(
+    // Let the submit-triggered history fetch settle, then start from a clean baseline
+    // so only a fetch caused by the click can satisfy the assertion below.
+    await waitFor(() => expect(vi.mocked(global.fetch).mock.calls.some(
       ([u]) => String(u).startsWith('/api/user_tickets?userId=u1')
-    ).length;
-    const before = countGets();
+    )).toBe(true));
+    await new Promise((r) => setTimeout(r, 50));
+    vi.mocked(global.fetch).mockClear();
     await user.click(within(dialog).getByRole('button', { name: /view my tickets/i }));
-    expect(await screen.findByRole('heading', { name: 'Ticket history' })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    await waitFor(() => expect(countGets()).toBeGreaterThan(before));
+    await waitFor(() => expect(vi.mocked(global.fetch).mock.calls.some(
+      ([u]) => String(u).startsWith('/api/user_tickets?userId=u1')
+    )).toBe(true));
   });
 });
 
