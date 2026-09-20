@@ -39,7 +39,7 @@ export const demo = {
   routed: 'Routed to the billing agent',
   draftLabel: 'Draft reply',
   draft: 'Thanks for flagging this. We are checking your March invoice for a duplicate charge and will confirm the result here.',
-  checked: 'Checked before sending: no internal details in the reply',
+  checked: 'Checked before sending: no internal technical detail found',
 } as const;
 
 export const agents = {
@@ -50,7 +50,7 @@ export const agents = {
     {
       key: 'technical',
       title: 'Technical agent',
-      body: 'Handles product and technical issues. Drafts from your documentation and from how similar tickets were resolved before.',
+      body: 'Handles product and technical issues. Drafts from your technical documentation and knowledge base.',
       badge: { text: 'Can resolve automatically', tone: 'success' },
     },
     {
@@ -78,21 +78,21 @@ export const steps = {
   intro: "Five steps, from the customer's message to a reply or a handover.",
   items: [
     { title: 'Submit', body: 'A customer describes the problem by text or voice, with an optional screenshot.' },
-    { title: 'Mask', body: 'Personal details in the text are replaced with placeholders before the ticket is classified or drafted.' },
+    { title: 'Mask', body: 'Names and email addresses are swapped for stand-ins, and phone and card numbers are redacted, before the ticket is classified or drafted.' },
     { title: 'Classify and route', body: 'The ticket gets a category, priority and sentiment, then goes to the technical, billing or HR agent.' },
-    { title: 'Draft and check', body: 'The agent drafts a reply from your knowledge base. A validation step checks that it does not expose internal technical detail.' },
-    { title: 'Send or hand over', body: 'Routine replies go out with the real details restored. Anything uncertain, and every HR ticket, waits for a person.' },
+    { title: 'Draft and check', body: 'The agent drafts a reply from your knowledge base. A validation step checks it for internal technical detail that customers should not see.' },
+    { title: 'Send or hand over', body: 'Routine replies go out with the real names and email addresses restored. Critical or low-confidence tickets, and every HR ticket, wait for a person.' },
   ],
 } as const;
 
 export const review = {
   id: 'review',
   title: 'People stay in charge of the hard cases',
-  intro: 'Escalated tickets wait in a review queue with everything the reviewer needs.',
+  intro: "Escalated tickets wait in a review queue with the agent's draft ready to edit.",
   points: [
-    "The customer's message, the agent's draft and the sources it used, together.",
-    'The validation result, so the reviewer knows what was checked.',
-    'Edit the draft, approve it or reject it.',
+    "The customer's message and the agent's draft, together.",
+    'Edit the draft, then send the reply.',
+    'Every HR ticket lands here, along with critical and low-confidence tickets.',
   ],
   mock: {
     label: 'Example review queue',
@@ -104,22 +104,22 @@ export const review = {
     ],
     status: 'Needs review',
     draftLabel: 'Draft reply',
-    draft: 'Your leave balance carries over after an internal transfer. Please confirm your transfer date so we can check the exact figure.',
-    actions: ['Reject', 'Edit', 'Approve'],
+    draft: 'Thanks for asking. We are checking your leave balance after the transfer and will confirm the exact figure.',
+    actions: ['Send reply'],
   },
 } as const;
 
 export const privacy = {
   id: 'privacy',
   title: 'Personal details stay out of the drafting step',
-  intro: 'The agents work on placeholders, not on names and contact details.',
+  intro: 'The agents draft from stand-ins and redacted text, not from names and contact details.',
   items: [
     {
       key: 'mask',
       title: 'Masked first',
-      body: 'Names, contact details and other personal data in ticket text are replaced with placeholders before classification and drafting.',
+      body: 'Names and email addresses are swapped for stand-ins, and phone and card numbers are redacted, before classification and drafting.',
     },
-    { key: 'restore', title: 'Restored last', body: 'The real details are put back only into the final reply to the customer.' },
+    { key: 'restore', title: 'Restored last', body: 'Real names and email addresses are put back into the reply after the agents have finished drafting.' },
     {
       key: 'roles',
       title: 'Access by role',

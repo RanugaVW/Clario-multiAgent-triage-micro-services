@@ -42,11 +42,29 @@ describe('landing content', () => {
   });
 
   it('has no empty strings, no arrows and no invented statistics', () => {
-    const all = [...collectStrings(hero), ...collectStrings(demo), ...collectStrings(agents), ...collectStrings(steps), ...collectStrings(review), ...collectStrings(privacy), ...collectStrings(cta)];
+    const all = [...collectStrings(nav), ...collectStrings(hero), ...collectStrings(demo), ...collectStrings(agents), ...collectStrings(steps), ...collectStrings(review), ...collectStrings(privacy), ...collectStrings(cta), ...collectStrings(footer)];
     for (const text of all) {
       expect(text.trim().length, 'empty string in content').toBeGreaterThan(0);
       expect(text).not.toMatch(/→/);
-      expect(text).not.toMatch(/\b\d+\s?[kK]\+|\b\d+%/);
+      expect(text, 'copy must not contain numbers').not.toMatch(/\d/);
+    }
+  });
+
+  it('has no spaced em dashes or all-caps words', () => {
+    const all = [...collectStrings(nav), ...collectStrings(hero), ...collectStrings(demo), ...collectStrings(agents), ...collectStrings(steps), ...collectStrings(review), ...collectStrings(privacy), ...collectStrings(cta), ...collectStrings(footer)];
+    for (const text of all) {
+      expect(text).not.toMatch(/ — /);
+      expect(text).not.toMatch(/\b[A-Z]{4,}\b/);
+    }
+  });
+
+  it('only uses valid badge and label tones', () => {
+    const validTones = ['neutral', 'brand', 'accent', 'success', 'warning', 'danger', 'info'] as const;
+    for (const label of demo.labels) {
+      expect(validTones).toContain(label.tone);
+    }
+    for (const agent of agents.items) {
+      expect(validTones).toContain(agent.badge.tone);
     }
   });
 });
