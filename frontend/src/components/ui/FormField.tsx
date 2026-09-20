@@ -12,6 +12,9 @@ export interface FieldProps {
  * Wires a visible label, an optional hint and an optional error to a field. The child is a function so it
  * receives the props to spread onto the input: `{(field) => <Input {...field} ... />}`. The error is an
  * alert so screen readers announce it when it appears.
+ *
+ * `{...field}` is only for components that accept `invalid` (Input, Textarea, PasswordInput). Spread onto a
+ * native element, `invalid` leaks to the DOM as an unknown attribute.
  */
 export function FormField({
   label,

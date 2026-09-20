@@ -65,7 +65,16 @@ export default function ResetPassword() {
   };
 
   return (
-    <AuthLayout title="Choose a new password">
+    <AuthLayout
+      title="Choose a new password"
+      footer={
+        status === 'ready' ? (
+          <Link href="/login" className={AUTH_LINK}>
+            Back to sign in
+          </Link>
+        ) : undefined
+      }
+    >
       {status === 'checking' && (
         <p role="status" className="text-app text-fg-muted">
           Verifying your reset link…

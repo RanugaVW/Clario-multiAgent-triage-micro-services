@@ -12,7 +12,8 @@ export const AUTH_LINK = 'font-medium text-fg underline underline-offset-4 trans
 
 /**
  * Shared shell for login, register, forgot password and reset password: a glow background, the brand link and
- * theme toggle in a header, and one raised card that carries the page's h1.
+ * theme toggle in a header, and one raised card that carries the page's h1. `footer` renders below the card in
+ * a block element, so any content (text, links, paragraphs) is fine.
  */
 export function AuthLayout({
   title,
@@ -43,7 +44,7 @@ export function AuthLayout({
           {description && <p className="mt-2 text-app text-fg-muted">{description}</p>}
           <div className="mt-8">{children}</div>
         </Card>
-        {footer && <p className="mt-6 text-center text-app text-fg-muted">{footer}</p>}
+        {footer && <div className="mt-6 text-center text-app text-fg-muted">{footer}</div>}
       </main>
     </div>
   );

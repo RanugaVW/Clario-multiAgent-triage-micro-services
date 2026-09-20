@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ResetPassword from '../reset-password/page';
@@ -136,6 +136,27 @@ describe('Reset password page', () => {
     await openRecoveryForm();
 
     expect(screen.getAllByRole('button', { name: 'Show password' })).toHaveLength(2);
+  });
+
+  it('offers a way back to sign in only on the form', async () => {
+    const back = () => screen.queryByRole('link', { name: /back to sign in/i });
+    const user = userEvent.setup();
+
+    renderReset();
+    expect(back()).not.toBeInTheDocument(); // checking
+
+    fire('INITIAL_SESSION', null);
+    expect(back()).not.toBeInTheDocument(); // invalid
+    cleanup();
+
+    const field = await openRecoveryForm();
+    expect(back()).toHaveAttribute('href', '/login'); // ready
+
+    await user.type(field, 'longenough1');
+    await user.type(screen.getByLabelText(/confirm new password/i), 'longenough1');
+    await user.click(screen.getByRole('button', { name: /update password/i }));
+    await screen.findByText(/password updated/i);
+    expect(back()).not.toBeInTheDocument(); // done
   });
 
   it('stops listening for auth events when it goes away', () => {
