@@ -109,7 +109,9 @@ describe('Reset password page', () => {
 
     await waitFor(() => expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'longenough1' }));
     expect(supabase.auth.signOut).toHaveBeenCalled();
-    expect(await screen.findByRole('status')).toHaveTextContent(/password updated/i);
+    const done = await screen.findByRole('status');
+    expect(done).toHaveTextContent(/password updated/i);
+    expect(done).toHaveFocus();
     expect(screen.getByRole('link', { name: /go to sign in/i })).toHaveAttribute('href', '/login');
   });
 

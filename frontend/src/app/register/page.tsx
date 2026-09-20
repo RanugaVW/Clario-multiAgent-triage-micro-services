@@ -52,7 +52,7 @@ export default function Register() {
       }
     >
       {success ? (
-        <Notice tone="success" role="status" title="Check your email">
+        <Notice tone="success" role="status" title="Check your email" focusOnMount>
           We sent you a confirmation link. Confirm your address, then sign in.
           <div className="mt-4">
             <Link href="/login" className={AUTH_LINK}>

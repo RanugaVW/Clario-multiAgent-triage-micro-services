@@ -51,7 +51,7 @@ export default function ForgotPassword() {
       }
     >
       {sent ? (
-        <Notice tone="success" role="status" title="Check your email">
+        <Notice tone="success" role="status" title="Check your email" focusOnMount>
           {/* Deliberately identical whether or not the address has an account,
               so this form can't be used to discover who is registered. */}
           If an account exists for that address, we&apos;ve sent a link to reset your password.

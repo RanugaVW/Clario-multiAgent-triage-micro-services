@@ -81,6 +81,7 @@ describe('Register form accessibility', () => {
     );
     const status = await screen.findByRole('status');
     expect(status).toHaveTextContent(/check your email/i);
+    expect(status).toHaveFocus();
     expect(screen.getByRole('link', { name: /return to sign in/i })).toHaveAttribute('href', '/login');
   });
 

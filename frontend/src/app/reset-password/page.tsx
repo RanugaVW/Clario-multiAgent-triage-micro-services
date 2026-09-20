@@ -84,7 +84,7 @@ export default function ResetPassword() {
       )}
 
       {status === 'done' && (
-        <Notice tone="success" role="status" title="Password updated">
+        <Notice tone="success" role="status" title="Password updated" focusOnMount>
           You can now sign in with your new password.
           <div className="mt-4">
             <Link href="/login" className={AUTH_LINK}>

@@ -43,6 +43,7 @@ describe('Forgot password page', () => {
 
     const confirmation = await screen.findByRole('status');
     expect(confirmation).toHaveTextContent(/if an account exists/i);
+    expect(confirmation).toHaveFocus();
     expect(confirmation).not.toHaveTextContent(/nobody@example\.com/);
     expect(screen.getByRole('link', { name: /return to sign in/i })).toHaveAttribute('href', '/login');
   });

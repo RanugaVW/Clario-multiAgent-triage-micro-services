@@ -34,4 +34,27 @@ describe('Notice', () => {
     expect(tokens).toContain(cls);
     expect(tokens).toContain('bg-surface');
   });
+
+  it('takes focus on mount only when focusOnMount is set', () => {
+    render(
+      <Notice tone="success" role="status" focusOnMount>
+        Done
+      </Notice>
+    );
+    const status = screen.getByRole('status');
+    expect(status).toHaveFocus();
+    expect(status).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('does not take focus or become focusable by default', () => {
+    render(
+      <Notice tone="success" role="status">
+        Done
+      </Notice>
+    );
+    const status = screen.getByRole('status');
+    expect(status).not.toHaveFocus();
+    expect(document.body).toHaveFocus();
+    expect(status).not.toHaveAttribute('tabindex');
+  });
 });
