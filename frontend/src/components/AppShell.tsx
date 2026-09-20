@@ -26,8 +26,10 @@ export type ShellNavItem = {
 export type ShellLink = { key: string; label: string; icon: ReactNode; href: string; tone?: 'default' | 'brand' | 'success' };
 
 const NAV_ITEM =
-  'flex w-full shrink-0 items-center gap-3 rounded-lg border px-3.5 py-2.5 text-left text-app font-medium whitespace-nowrap transition-colors';
-const NAV_ACTIVE = 'border-brand/40 bg-brand-soft text-brand';
+  'flex flex-1 shrink-0 items-center gap-3 rounded-lg border px-3.5 py-2.5 text-left text-app font-medium whitespace-nowrap transition-colors lg:w-full lg:flex-none';
+// Text never sits on the brand-soft wash (brand on it is 4.39:1 in light mode, below AA); the wash + border
+// mark the active item, and only the decorative icon takes the brand colour.
+const NAV_ACTIVE = 'border-brand/40 bg-brand-soft text-fg';
 const NAV_IDLE = 'border-transparent text-fg-muted hover:bg-brand-soft hover:text-fg';
 
 const FOOTER_ITEM =
@@ -72,7 +74,7 @@ export function AppShell({
             const className = cx(NAV_ITEM, item.active ? NAV_ACTIVE : NAV_IDLE);
             const content = (
               <>
-                <span className={cx('flex shrink-0', item.warn && !item.active && 'text-warning')} aria-hidden="true">{item.icon}</span>
+                <span className={cx('flex shrink-0', item.active && 'text-brand', item.warn && !item.active && 'text-warning')} aria-hidden="true">{item.icon}</span>
                 <span className="truncate">{item.label}</span>
               </>
             );

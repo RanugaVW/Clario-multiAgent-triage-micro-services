@@ -370,8 +370,8 @@ describe('User Workflow Scenarios', () => {
     // Wait for tab to be active
     await waitFor(() => {
       const tab = screen.getByRole('button', { name: /My Tickets/i });
-      // Check if it's highlighted (contains the active-tab gold gradient)
-      expect(tab.className).toContain('text-brand');
+      // The active tab carries the brand-soft wash and border (its text stays fg for AA contrast).
+      expect(tab.className).toContain('bg-brand-soft');
     });
 
     // History content should be visible

@@ -60,6 +60,19 @@ describe('AppShell tabs and tones', () => {
     expect(screen.getByTestId('i').parentElement).not.toHaveClass('text-warning');
   });
 
+  it('never puts brand-coloured text on the brand-soft wash of the active item (AA contrast)', () => {
+    render(
+      <AppShell brand={{ icon: <svg />, title: 'T', subtitle: 'S' }} nav={[{ key: 'q', label: 'Queue', icon: <svg data-testid="i" />, onClick: vi.fn(), active: true }]} onSignOut={vi.fn()}>x</AppShell>
+    );
+    const item = screen.getByRole('button', { name: 'Queue' });
+    expect(item).toHaveClass('bg-brand-soft', 'text-fg');
+    expect(item).not.toHaveClass('text-brand');
+    // Below lg the tabs share the top-bar row instead of each claiming the full width (which hid the second tab off-screen).
+    expect(item).toHaveClass('flex-1', 'lg:w-full');
+    expect(item).not.toHaveClass('w-full');
+    expect(screen.getByTestId('i').parentElement).toHaveClass('text-brand');
+  });
+
   it('accepts a rich brand title and extra classes for the content area', () => {
     render(
       <AppShell brand={{ icon: <svg />, title: <h1>Clario Triage</h1>, subtitle: 'Portal' }} nav={[]} onSignOut={vi.fn()} mainClassName="items-center">
