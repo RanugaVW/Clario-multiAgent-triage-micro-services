@@ -20,4 +20,22 @@ describe('Card', () => {
     render(<Card data-testid="c" className="mt-4" />);
     expect(screen.getByTestId('c').className).toContain('mt-4');
   });
+
+  it('has the exact class token p-card by default', () => {
+    render(<Card data-testid="c">Default</Card>);
+    const cls = screen.getByTestId('c').className;
+    expect(cls.split(' ')).toContain('p-card');
+  });
+
+  it('does not emit p-card when flush is true', () => {
+    render(<Card flush data-testid="c">Flush</Card>);
+    const cls = screen.getByTestId('c').className;
+    expect(cls.split(' ')).not.toContain('p-card');
+  });
+
+  it('does not pass flush as a DOM attribute', () => {
+    const { container } = render(<Card flush data-testid="c">Flush</Card>);
+    const element = container.querySelector('[data-testid="c"]');
+    expect(element).not.toHaveAttribute('flush');
+  });
 });

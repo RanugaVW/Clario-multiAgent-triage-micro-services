@@ -16,8 +16,8 @@ describe('HumanReview', () => {
   });
 
   it('shows the example queue as a decorative, non-interactive picture', () => {
-    const { container } = render(<HumanReview />);
-    const mock = container.querySelector('[aria-hidden="true"]:not(svg)') as HTMLElement;
+    render(<HumanReview />);
+    const mock = screen.getByText(review.mock.label).closest('[aria-hidden="true"]') as HTMLElement;
     expect(mock).not.toBeNull();
     expect(mock).toHaveTextContent(review.mock.label);
     expect(mock.querySelectorAll('a, button, input, [tabindex]')).toHaveLength(0);

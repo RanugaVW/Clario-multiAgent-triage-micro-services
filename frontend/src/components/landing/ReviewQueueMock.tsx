@@ -10,7 +10,7 @@ const { mock } = review;
 // The text version of this information is the list beside it.
 export function ReviewQueueMock() {
   return (
-    <Card raised aria-hidden="true" className="overflow-hidden p-0">
+    <Card raised flush aria-hidden="true" className="overflow-hidden">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
         <span className="text-small text-fg-muted">{mock.label}</span>
         <span className="text-small text-fg">{mock.queueTitle}</span>
