@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
-import { PasswordInput } from '../../components/ui';
+import { PasswordInput } from '../../components/ui/Input';
 
 // SRS 3.9.1 (Authentication Interface): "Password visibility toggle".
 describe('PasswordInput', () => {
