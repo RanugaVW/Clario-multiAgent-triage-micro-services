@@ -39,7 +39,19 @@ describe('AuthLayout', () => {
     expect(screen.getByRole('group', { name: 'Color theme' })).toBeInTheDocument();
   });
 
+  it('pads the card at p-8 and sm:p-10, with the Card default overridden', () => {
+    setup();
+    const card = screen.getByRole('heading', { level: 1 }).parentElement as HTMLElement;
+    const tokens = card.className.split(/\s+/);
+    expect(tokens).toContain('p-8');
+    expect(tokens).toContain('sm:p-10');
+    expect(tokens).not.toContain('p-card');
+  });
+
   it('exports one link style for inline links', () => {
-    expect(AUTH_LINK).toContain('underline');
+    const tokens = AUTH_LINK.split(/\s+/);
+    expect(tokens).toContain('font-medium');
+    expect(tokens).toContain('underline');
+    expect(tokens).toContain('hover:text-brand');
   });
 });

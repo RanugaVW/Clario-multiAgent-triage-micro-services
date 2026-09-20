@@ -167,10 +167,31 @@ describe('Reset password page', () => {
   });
 
   it('is the auth layout with one h1 in every state', async () => {
+    const user = userEvent.setup();
+    const expectLayout = () => {
+      expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Choose a new password');
+      expect(screen.getAllByRole('main')).toHaveLength(1);
+    };
+
     renderReset();
-    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Choose a new password');
-    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByText(/verifying/i)).toBeInTheDocument();
+    expectLayout(); // checking
+
+    fire('INITIAL_SESSION', null);
+    expect(screen.getByRole('alert')).toHaveTextContent(/invalid or has expired/i);
+    expectLayout(); // invalid
+    cleanup();
+
+    const field = await openRecoveryForm();
+    expect(field).toBeInTheDocument();
+    expectLayout(); // ready
+
+    await user.type(field, 'longenough1');
+    await user.type(screen.getByLabelText(/confirm new password/i), 'longenough1');
+    await user.click(screen.getByRole('button', { name: /update password/i }));
+    await screen.findByText(/password updated/i);
+    expectLayout(); // done
   });
 
   it('attaches a too-short password error to the password field', async () => {
