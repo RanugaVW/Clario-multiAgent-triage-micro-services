@@ -84,6 +84,10 @@
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
   --radius-xl: var(--r-xl);
+  /* The theme radius scale deliberately stops at xl: 2xl to 4xl alias it so the scale stays monotonic. */
+  --radius-2xl: var(--r-xl);
+  --radius-3xl: var(--r-xl);
+  --radius-4xl: var(--r-xl);
   --radius-pill: var(--r-pill);
   --spacing-section: var(--sp-section);
   --spacing-page: var(--sp-page);
