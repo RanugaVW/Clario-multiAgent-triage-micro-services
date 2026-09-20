@@ -8,18 +8,20 @@ const src = (rel: string) => readFileSync(join(__dirname, '..', rel), 'utf8');
 
 describe('UR-001 - shared design system usage', () => {
   it.each(['login', 'register', 'forgot-password', 'reset-password'])(
-    'the %s page is built from the shared Glass components',
+    'the %s page is built from AuthLayout and the shared primitives',
     (page) => {
       const code = src(`${page}/page.tsx`);
-      expect(code).toMatch(/import \{[^}]*GlassPanel[^}]*\} from '..\/..\/components\/ui'/);
-      expect(code).toMatch(/<GlassPanel/);
-      expect(code).toMatch(/<GlassButton/);
-      // no hand-rolled primary button styling
-      expect(code).not.toMatch(/bg-white text-black/);
+      expect(code).toMatch(/import \{[^}]*AuthLayout[^}]*\} from '..\/..\/components\/auth\/AuthLayout'/);
+      expect(code).toMatch(/<AuthLayout/);
+      expect(code).toMatch(/import \{[^}]*Button[^}]*\} from '..\/..\/components\/ui\/Button'/);
+      // theme tokens only: no hard-coded colors, no legacy glass classes, no hand-rolled primary button
+      expect(code).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
+      expect(code).not.toMatch(/rgba?\(/);
+      expect(code).not.toMatch(/glass-|bg-white text-black/);
     }
   );
 
-  it('every text/email input on the auth pages uses GlassInput or PasswordInput, not a raw <input>', () => {
+  it('every text/email input on the auth pages uses Input or PasswordInput, not a raw <input>', () => {
     for (const page of ['login', 'register', 'forgot-password', 'reset-password']) {
       expect(src(`${page}/page.tsx`), page).not.toMatch(/<input\b/);
     }

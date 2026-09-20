@@ -164,7 +164,8 @@ describe('ThemeProvider default migratedRoutes', () => {
   });
 
   it('forces dark on a route that is not migrated', () => {
-    nav.pathname = '/login';
+    // any path that is not in MIGRATED_ROUTES; deliberately made up so migrating real routes never breaks this test
+    nav.pathname = '/legacy-only-route';
     localStorage.setItem('theme-preference', 'light');
     renderDefault();
     expect(attr()).toBe('dark');
