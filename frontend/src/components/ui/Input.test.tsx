@@ -1,3 +1,4 @@
+import { createRef, type ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -89,5 +90,60 @@ describe('PasswordInput', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Show password' }));
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe('Input on phones', () => {
+  it('is 16 px below 640 px (iOS Safari zooms smaller focused fields) and the compact size from 640 px', () => {
+    render(<Input aria-label="Email" />);
+    const tokens = screen.getByLabelText('Email').className.split(' ');
+    expect(tokens).toContain('text-body');
+    expect(tokens).toContain('sm:text-app');
+    expect(tokens).not.toContain('text-app');
+  });
+
+  it('applies the same sizes to Textarea', () => {
+    render(<Textarea aria-label="Message" />);
+    const tokens = screen.getByLabelText('Message').className.split(' ');
+    expect(tokens).toContain('text-body');
+    expect(tokens).toContain('sm:text-app');
+  });
+});
+
+describe('refs', () => {
+  it('forwards a ref to the input, the textarea and the password input', () => {
+    const inputRef = createRef<HTMLInputElement>();
+    const areaRef = createRef<HTMLTextAreaElement>();
+    const passwordRef = createRef<HTMLInputElement>();
+    render(
+      <>
+        <Input aria-label="a" ref={inputRef} />
+        <Textarea aria-label="b" ref={areaRef} />
+        <PasswordInput aria-label="c" ref={passwordRef} />
+      </>
+    );
+    expect(inputRef.current).toBeInstanceOf(HTMLInputElement);
+    expect(areaRef.current).toBeInstanceOf(HTMLTextAreaElement);
+    expect(passwordRef.current).toBeInstanceOf(HTMLInputElement);
+  });
+});
+
+describe('PasswordInput hardening', () => {
+  it('cannot be turned into a plain text field by a caller-supplied type', () => {
+    // A JS caller or an untyped spread could pass `type`; the visibility toggle must stay in control of it.
+    const untyped = { type: 'text' } as object;
+    render(<PasswordInput aria-label="Password" {...untyped} />);
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
+  });
+
+  it('disables the visibility toggle together with the input', () => {
+    render(<PasswordInput aria-label="Password" disabled />);
+    expect(screen.getByLabelText('Password')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Show password' })).toBeDisabled();
+  });
+
+  it('passes invalid through to the field', () => {
+    render(<PasswordInput aria-label="Password" invalid />);
+    expect(screen.getByLabelText('Password')).toHaveAttribute('aria-invalid', 'true');
   });
 });
