@@ -42,4 +42,12 @@ describe('Nav', () => {
     expect(parent?.className.split(' ')).toContain('sm:block');
     expect(toggle.className.split(' ')).not.toContain('hidden');
   });
+
+  it('shows the inline section links from lg only', () => {
+    renderWithTheme(<Nav />);
+    const tokens = screen.getByRole('navigation', { name: 'Primary' }).className.split(' ');
+    expect(tokens).toContain('hidden');
+    expect(tokens).toContain('lg:flex');
+    expect(tokens).not.toContain('md:flex');
+  });
 });
