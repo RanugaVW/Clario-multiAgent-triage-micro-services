@@ -8,9 +8,9 @@ import {
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle,
   BarChart2, MessageSquare, ShieldAlert, Tag, Bot,
   CreditCard, Wrench, Brain, GitBranch, Eye, RotateCcw, ArrowRightLeft,
-  Shield, Layers, CheckCircle2, Image as ImageIcon, Pencil,
+  Shield, Layers, CheckCircle2, Image as ImageIcon, Pencil, Download,
 } from 'lucide-react';
-import { StatusBadge, ConfirmDialog } from '../../components/ui';
+import { GlassButton, StatusBadge, ConfirmDialog } from '../../components/ui';
 import { AdminShell } from './AdminShell';
 import type { ShellNavItem } from '../../components/AppShell';
 import { supabase } from '../../lib/supabase';
@@ -53,6 +53,11 @@ function parseAdminResponse(text: string | null | undefined): React.ReactNode {
     );
   }
   return <p>{text}</p>;
+}
+
+function escapeCsvField(value: unknown): string {
+  const field = value == null ? '' : String(value);
+  return /[",\r\n]/.test(field) ? `"${field.replace(/"/g, '""')}"` : field;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -321,6 +326,51 @@ export default function AdminDashboard() {
     .filter(t => categoryFilter === 'all' || splitCategories(t.ticket_classifications?.[0]?.category).includes(categoryFilter))
     .filter(t => priorityFilter === 'all' || t.ticket_classifications?.[0]?.priority?.toLowerCase() === priorityFilter);
 
+  const handleDownloadCsv = () => {
+    const headers = [
+      'ticket ID',
+      'submitted at',
+      'status',
+      'category',
+      'priority',
+      'sentiment',
+      'requester email',
+      'resolved at',
+      'escalated',
+      'customer feedback score',
+    ];
+    const rows = filteredAllTickets.map(ticket => {
+      const classification = ticket.ticket_classifications?.[0];
+      const resolvedAt = ticket.resolutions?.find(resolution => !resolution.escalated)?.resolved_at || '';
+      const escalated = ticket.resolutions?.some(resolution => resolution.escalated) || false;
+
+      return [
+        ticket.id,
+        ticket.created_at,
+        ticket.status,
+        classification?.category || '',
+        classification?.priority || '',
+        classification?.sentiment || '',
+        ticket.customer_email || ticket.users?.email || '',
+        resolvedAt,
+        escalated,
+        ticket.customer_feedback?.score ?? '',
+      ];
+    });
+    const csv = [headers, ...rows]
+      .map(row => row.map(escapeCsvField).join(','))
+      .join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `tickets-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const navItems: { id: typeof activeTab; icon: React.ReactNode; label: string; warn?: boolean }[] = [
     { id: 'agents', icon: <Bot className="w-4 h-4" />, label: `AI Agents (${AI_AGENTS.length})` },
     { id: 'pipeline', icon: <Layers className="w-4 h-4" />, label: 'Pipeline Nodes' },
@@ -559,6 +609,15 @@ export default function AdminDashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="glass-input rounded-xl text-[#ECECEC] text-xs px-3 py-1.5 w-64"
                 />
+                <GlassButton
+                  variant="secondary"
+                  onClick={handleDownloadCsv}
+                  disabled={filteredAllTickets.length === 0}
+                  className="px-4 py-2 text-xs whitespace-nowrap"
+                >
+                  <Download className="w-4 h-4" />
+                  Download CSV
+                </GlassButton>
                 <RotateButton onClick={fetchData} isLoading={dataLoading} />
               </div>
             </div>

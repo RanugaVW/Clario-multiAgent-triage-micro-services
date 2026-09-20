@@ -1,14 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { Mail, KeyRound, ArrowRight, UserPlus } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from "react";
+import { supabase } from "../../lib/supabase";
+import {
+  Mail,
+  KeyRound,
+  ArrowRight,
+  UserPlus,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import Link from "next/link";
 import { GlassPanel, GlassButton, GlassInput, PasswordInput } from '../../components/ui';
 
 export default function Register() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
@@ -23,7 +31,7 @@ export default function Register() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/login`,
-      }
+      },
     });
 
     if (signUpError) {
@@ -36,7 +44,10 @@ export default function Register() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
-      <GlassPanel tier={1} className="p-8 sm:p-12 w-full max-w-md animate-fade-in relative overflow-hidden">
+      <GlassPanel
+        tier={1}
+        className="p-8 sm:p-12 w-full max-w-md animate-fade-in relative overflow-hidden"
+      >
         <div className="absolute top-0 right-0 p-8 opacity-5">
           <UserPlus className="w-48 h-48" />
         </div>
@@ -46,14 +57,22 @@ export default function Register() {
             <div className="bg-[#2DD4BF]/15 p-3 rounded-2xl border border-[#2DD4BF]/25">
               <UserPlus className="text-[#2DD4BF] w-6 h-6" />
             </div>
-            <h1 className="text-3xl font-bold text-[#ECECEC]">Create an account</h1>
+            <h1 className="text-3xl font-bold text-[#ECECEC]">
+              Create an account
+            </h1>
           </div>
 
           {success ? (
             <div className="bg-[#2DD4BF]/10 border border-[#2DD4BF]/30 text-[#2DD4BF] p-6 rounded-2xl text-center">
               <h2 className="text-lg font-semibold mb-2">Check your email</h2>
-              <p className="text-sm mb-6">We sent you a confirmation link. Confirm your address, then sign in.</p>
-              <Link href="/login" className="text-[#2DD4BF] hover:text-[#5eead4] font-medium underline">
+              <p className="text-sm mb-6">
+                We sent you a confirmation link. Confirm your address, then sign
+                in.
+              </p>
+              <Link
+                href="/login"
+                className="text-[#2DD4BF] hover:text-[#5eead4] font-medium underline"
+              >
                 Return to sign in
               </Link>
             </div>
@@ -99,15 +118,28 @@ export default function Register() {
                     placeholder="••••••••"
                   />
                 </div>
+                {password.length > 0 && password.length < 6 && (
+                  <p className="mt-2 text-xs text-[#FB7185]" role="alert">
+                    Password must be at least 6 characters.
+                  </p>
+                )}
               </div>
 
-              <GlassButton type="submit" variant="primary" disabled={loading} className="w-full">
-                <span>{loading ? 'Creating account…' : 'Create account'}</span>
+              <GlassButton
+                type="submit"
+                variant="primary"
+                disabled={loading}
+                className="w-full"
+              >
+                <span>{loading ? "Creating account…" : "Create account"}</span>
                 {!loading && <ArrowRight className="w-4 h-4" />}
               </GlassButton>
 
               <div className="text-center mt-4">
-                <Link href="/login" className="text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors">
+                <Link
+                  href="/login"
+                  className="text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors"
+                >
                   Already have an account? Sign in
                 </Link>
               </div>

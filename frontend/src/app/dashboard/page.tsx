@@ -1,19 +1,43 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { Bot, Send, Ticket, AlertCircle, CheckCircle2, ShieldAlert, Cpu, History, Star } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Bot,
+  Send,
+  Ticket,
+  AlertCircle,
+  CheckCircle2,
+  ShieldAlert,
+  Cpu,
+  History,
+ 
+  Star,
+  X,
+} from "lucide-react";
 
-import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
+import {
+  formatDate,
+  formatDateTime,
+  formatElapsed,
+  formatRelative,
+  formatTime,
+} from "../../lib/datetime";
 import { priorityColor } from '../../lib/classification';
-import { GlassPanel, GlassButton, GlassTextarea, Modal, ConfirmDialog, StatusBadge } from '../../components/ui';
+import {
+  GlassPanel,
+  GlassButton,
+  GlassTextarea,
+  Modal,
+  ConfirmDialog, StatusBadge,
+} from "../../components/ui";
 import { AppShell, type ShellLink, type ShellNavItem } from '../../components/AppShell';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8600";
 
 function parseCustomerResponse(text: string | null | undefined): string {
-  if (!text) return 'No final response was produced.';
-  if (text.includes('**[CUSTOMER RESPONSE]**')) {
-    return text.split('**[CUSTOMER RESPONSE]**')[1].trim();
+  if (!text) return "No final response was produced.";
+  if (text.includes("**[CUSTOMER RESPONSE]**")) {
+    return text.split("**[CUSTOMER RESPONSE]**")[1].trim();
   }
   return text;
 }
@@ -45,6 +69,22 @@ export async function describeSubmitFailure(res: Response): Promise<string> {
   return message + reference;
 }
 
+type UserTicketStatus = "In progress" | "Needs review" | "Resolved";
+
+function getUserTicketStatus(ticket: TicketWithResolution): UserTicketStatus {
+  const finalResolution = ticket.resolutions?.find(
+    (resolution) => resolution.escalated === false,
+  );
+  const isFullyResolved = ticket.status === "resolved" || !!finalResolution;
+  const isEscalated =
+    !isFullyResolved &&
+    (ticket.status === "escalated" ||
+      ticket.resolutions?.some((resolution) => resolution.escalated));
+
+  if (isEscalated) return "Needs review";
+  if (isFullyResolved) return "Resolved";
+  return "In progress";
+}
 
 type TicketState = {
   category?: string;
@@ -94,24 +134,29 @@ type TicketWithResolution = {
   image_storage_path?: string | null;
 };
 
-import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
-import { useRouter } from 'next/navigation';
-import MorphButton from '../../components/MorphButton';
-import ShakeButton from '../../components/ShakeButton';
-import RotateButton from '../../components/RotateButton';
-import VoiceRecorder from '../../components/VoiceRecorder';
-import { fetchJson } from '../../lib/fetchJson';
+import { useAuth } from "../../contexts/AuthContext";
+import { supabase } from "../../lib/supabase";
+import { useRouter } from "next/navigation";
+import MorphButton from "../../components/MorphButton";
+import ShakeButton from "../../components/ShakeButton";
+import RotateButton from "../../components/RotateButton";
+import VoiceRecorder from "../../components/VoiceRecorder";
+import { fetchJson } from "../../lib/fetchJson";
 
 export default function Home() {
-  const [ticketText, setTicketText] = useState('');
+  const [ticketText, setTicketText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<TicketResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pastTickets, setPastTickets] = useState<TicketWithResolution[]>([]);
-  const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
+  const [activeTab, setActiveTab] = useState<"new" | "history">("new");
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [successModal, setSuccessModal] = useState<{show: boolean, trackingId: string}>({show: false, trackingId: ''});
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [successModal, setSuccessModal] = useState<{
+    show: boolean;
+    trackingId: string;
+  }>({ show: false, trackingId: "" });
   const [dataLoading, setDataLoading] = useState(false);
   const [ticketPendingDelete, setTicketPendingDelete] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -119,18 +164,28 @@ export default function Home() {
   const { user, role, loading, roleLoading } = useAuth();
   const router = useRouter();
 
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    };
+  }, [imagePreviewUrl]);
+
   const fetchHistory = useCallback(async () => {
     if (!user) return;
     setDataLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      const json = await fetchJson<{ data: TicketWithResolution[] }>(`/api/user_tickets?userId=${user.id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const json = await fetchJson<{ data: TicketWithResolution[] }>(
+        `/api/user_tickets?userId=${user.id}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        },
+      );
       setPastTickets(json.data || []);
     } catch (e) {
-      console.error('Failed to fetch history:', e);
+      console.error("Failed to fetch history:", e);
     } finally {
       setDataLoading(false);
     }
@@ -153,8 +208,8 @@ export default function Home() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const res = await fetch(`${API_URL}/customer_tickets/${ticketId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         fetchHistory(); // refresh UI
@@ -175,9 +230,9 @@ export default function Home() {
     const fullyLoaded = !loading && !roleLoading;
     if (!fullyLoaded) return;
     if (!user) {
-      router.push('/login');
-    } else if (role === 'admin') {
-      router.push('/admin');
+      router.push("/login");
+    } else if (role === "admin") {
+      router.push("/admin");
     } else {
       // fetchHistory sets state synchronously as its first step; deferring
       // the call to a microtask keeps that update out of this effect's own
@@ -213,7 +268,7 @@ export default function Home() {
           reader.onloadend = () => {
             const result = reader.result as string;
             // Remove the data:image/png;base64, prefix
-            const base64 = result.split(',')[1];
+            const base64 = result.split(",")[1];
             resolve(base64);
           };
           reader.onerror = reject;
@@ -222,21 +277,23 @@ export default function Home() {
       }
 
       let ticketUuid = crypto.randomUUID();
-      const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
-      const TRACE_RELAY_URL = process.env.NEXT_PUBLIC_TRACE_RELAY_URL || 'http://localhost:8700';
-      const traceEnabled = process.env.NEXT_PUBLIC_TRACE_ENABLED === 'true';
+      const GATEWAY_URL =
+        process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8080";
+      const TRACE_RELAY_URL =
+        process.env.NEXT_PUBLIC_TRACE_RELAY_URL || "http://localhost:8700";
+      const traceEnabled = process.env.NEXT_PUBLIC_TRACE_ENABLED === "true";
       const correlationId = crypto.randomUUID();
 
       if (traceEnabled) {
         fetch(`${TRACE_RELAY_URL}/trace/event`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ticket_id: correlationId,
             correlation_id: correlationId,
-            service: 'frontend',
-            step: 'submit',
-            status: 'done',
+            service: "frontend",
+            step: "submit",
+            status: "done",
             detail: {},
           }),
         }).catch(() => {});
@@ -250,14 +307,16 @@ export default function Home() {
         const res = await fetch(`${GATEWAY_URL}/api/v1/tickets`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            ...(traceEnabled ? { 'X-Trace-Correlation-Id': correlationId } : {})
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(traceEnabled
+              ? { "X-Trace-Correlation-Id": correlationId }
+              : {}),
           },
           body: JSON.stringify({
             rawText: ticketText,
             subject: "Support Ticket",
-            imageBase64: base64String || undefined
+            imageBase64: base64String || undefined,
           }),
         });
 
@@ -275,13 +334,13 @@ export default function Home() {
         throw new Error("You need to be logged in to submit a ticket. Please sign in and try again.");
       }
 
-        // Success!
-        setSuccessModal({ show: true, trackingId: ticketUuid });
-        setTicketText('');
-        setImageFile(null);
-        if (user) fetchHistory();
-        setActiveTab('history');
-
+      // Success!
+      setSuccessModal({ show: true, trackingId: ticketUuid });
+      setTicketText("");
+      setImageFile(null);
+      setImagePreviewUrl(null);
+      if (user) fetchHistory();
+      setActiveTab("history");
     } catch (err: unknown) {
       if (err instanceof TypeError) {
         // fetch() itself rejects with a TypeError for network-level failures
@@ -343,32 +402,53 @@ export default function Home() {
       {/* Success Modal */}
       <Modal
         open={successModal.show}
-        onClose={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
+        onClose={() => {
+          setSuccessModal({ show: false, trackingId: "" });
+          setActiveTab("history");
+          if (user) fetchHistory();
+        }}
       >
         <div className="flex flex-col items-center text-center">
           <div className="w-12 h-12 bg-emerald-500/15 rounded-full flex items-center justify-center mb-4 border border-emerald-500/25">
             <CheckCircle2 className="w-6 h-6 text-emerald-400" />
           </div>
-          <h3 className="text-xl font-bold text-[#ECECEC] mb-2">Ticket submitted successfully!</h3>
-          <p className="text-[#8A8F98] text-sm mb-6">Your issue has been securely logged and is being routed by our LangGraph orchestration.</p>
+          <h3 className="text-xl font-bold text-[#ECECEC] mb-2">
+            Ticket submitted successfully!
+          </h3>
+          <p className="text-[#8A8F98] text-sm mb-6">
+            Your issue has been securely logged and is being routed by our
+            LangGraph orchestration.
+          </p>
 
           <div className="w-full rounded-2xl bg-white/[0.03] p-4 border border-white/10 flex flex-col items-center">
-            <span className="text-xs text-[#8A8F98] font-semibold mb-2">Tracking ID</span>
+            <span className="text-xs text-[#8A8F98] font-semibold mb-2">
+              Tracking ID
+            </span>
             <div className="flex items-center space-x-3 w-full justify-center">
-              <span className="font-mono text-[#2DD4BF] text-sm">{successModal.trackingId}</span>
-              <MorphButton textToCopy={successModal.trackingId} label="Copy ID" />
+              <span className="font-mono text-[#2DD4BF] text-sm">
+                {successModal.trackingId}
+              </span>
+              <MorphButton
+                textToCopy={successModal.trackingId}
+                label="Copy ID"
+              />
             </div>
           </div>
 
           <GlassButton
             variant="primary"
             className="mt-6 w-full"
-            onClick={() => { setSuccessModal({show: false, trackingId: ''}); setActiveTab('history'); if (user) fetchHistory(); }}
+            onClick={() => {
+              setSuccessModal({ show: false, trackingId: "" });
+              setActiveTab("history");
+              if (user) fetchHistory();
+            }}
           >
             View my tickets
           </GlassButton>
         </div>
       </Modal>
+
 
       <ConfirmDialog
         open={ticketPendingDelete !== null}
@@ -383,82 +463,123 @@ export default function Home() {
         {/* Header section */}
         <div className="text-center mb-12 animate-fade-in w-full">
           <p className="text-[#8A8F98] max-w-2xl mx-auto text-lg font-light">
-            Submit a support ticket and watch our LangGraph orchestration securely classify, route, and resolve issues in real-time.
+            Submit a support ticket and watch our LangGraph orchestration
+            securely classify, route, and resolve issues in real-time.
           </p>
         </div>
 
-      {activeTab === 'new' && (
-      <div className="w-full max-w-2xl mx-auto items-start">
+        {activeTab === "new" && (
+          <div className="w-full max-w-2xl mx-auto items-start">
+            {/* Form */}
+            <GlassPanel
+              tier={1}
+              className="p-8 w-full animate-fade-in relative overflow-hidden"
+              style={{ animationDelay: "0.1s" }}
+            >
+              <h2 className="text-xl font-semibold mb-8 flex items-center text-[#ECECEC] border-b border-white/10 pb-4">
+                <Ticket className="w-5 h-5 mr-3 text-[#2DD4BF]" />
+                Submit a ticket
+              </h2>
 
-        {/* Form */}
-        <GlassPanel tier={1} className="p-8 w-full animate-fade-in relative overflow-hidden" style={{ animationDelay: '0.1s' }}>
-
-          <h2 className="text-xl font-semibold mb-8 flex items-center text-[#ECECEC] border-b border-white/10 pb-4">
-            <Ticket className="w-5 h-5 mr-3 text-[#2DD4BF]" />
-            Submit a ticket
-          </h2>
-
-          {error && (
-            <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/20 text-[#FB7185] px-4 py-3 rounded-xl flex items-start text-sm">
-              <AlertCircle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div>
-              <label htmlFor="ticket-text" className="block text-sm font-medium text-[#8A8F98] mb-2">
-                Describe the issue
-              </label>
-              <GlassTextarea
-                id="ticket-text"
-                required
-                value={ticketText}
-                onChange={(e) => setTicketText(e.target.value)}
-                placeholder="Describe the issue, or dictate it with the microphone below..."
-                className="h-40"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#8A8F98] mb-2">
-                Or use voice input
-              </label>
-              <VoiceRecorder
-                value={ticketText}
-                onValueChange={setTicketText}
-                disabled={isProcessing}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="ticket-image" className="block text-sm font-medium text-[#8A8F98] mb-2">
-                Attach a screenshot (optional)
-              </label>
-              <input
-                id="ticket-image"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setImageFile(e.target.files[0]);
-                  }
-                }}
-                className="w-full py-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-white/10 file:bg-white/[0.06] file:text-xs file:text-[#ECECEC] hover:file:bg-white/[0.12] transition-all text-[#8A8F98] text-sm"
-              />
-              {imageFile && (
-                <p className="mt-2 text-xs font-mono text-[#2DD4BF]">Attached: {imageFile.name}</p>
+              {error && (
+                <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/20 text-[#FB7185] px-4 py-3 rounded-xl flex items-start text-sm">
+                  <AlertCircle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
               )}
-            </div>
 
-            <GlassButton type="submit" variant="primary" disabled={isProcessing} className="w-full">
-              <span>{isProcessing ? 'Submitting…' : 'Submit ticket'}</span>
-              {!isProcessing && <Send className="w-4 h-4" />}
-            </GlassButton>
-          </form>
-        </GlassPanel>
-      </div>
-      )}
+              <form onSubmit={handleSubmit} className="space-y-8">
+                <div>
+                  <label
+                    htmlFor="ticket-text"
+                    className="block text-sm font-medium text-[#8A8F98] mb-2"
+                  >
+                    Describe the issue
+                  </label>
+                  <GlassTextarea
+                    id="ticket-text"
+                    required
+                    value={ticketText}
+                    onChange={(e) => setTicketText(e.target.value)}
+                    placeholder="Describe the issue, or dictate it with the microphone below..."
+                    className="h-40"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#8A8F98] mb-2">
+                    Or use voice input
+                  </label>
+                  <VoiceRecorder
+                    value={ticketText}
+                    onValueChange={setTicketText}
+                    disabled={isProcessing}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="ticket-image"
+                    className="block text-sm font-medium text-[#8A8F98] mb-2"
+                  >
+                    Attach a screenshot (optional)
+                  </label>
+                  <input
+                    id="ticket-image"
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setImageFile(file);
+                      setImagePreviewUrl(
+                        file ? URL.createObjectURL(file) : null,
+                      );
+                    }}
+                    className="w-full py-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-white/10 file:bg-white/[0.06] file:text-xs file:text-[#ECECEC] hover:file:bg-white/[0.12] transition-all text-[#8A8F98] text-sm"
+                  />
+                  {imageFile && (
+                    <div className="mt-2 flex items-center gap-3">
+                      {imagePreviewUrl && (
+                        <img
+                          src={imagePreviewUrl}
+                          alt="Attached screenshot preview"
+                          className="max-h-24 max-w-32 rounded-lg border border-white/10 object-contain"
+                        />
+                      )}
+                      <div className="flex items-center gap-2 text-xs font-mono text-[#2DD4BF]">
+                        <span>Attached: {imageFile.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreviewUrl(null);
+                            if (imageInputRef.current)
+                              imageInputRef.current.value = "";
+                          }}
+                          className="text-[#8A8F98] hover:text-[#FB7185] transition-colors"
+                          aria-label="Remove attached screenshot"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <GlassButton
+                  type="submit"
+                  variant="primary"
+                  disabled={isProcessing}
+                  className="w-full"
+                >
+                  <span>{isProcessing ? "Submitting…" : "Submit ticket"}</span>
+                  {!isProcessing && <Send className="w-4 h-4" />}
+                </GlassButton>
+              </form>
+            </GlassPanel>
+          </div>
+        )}
 
       {/* ─── Ticket History Full View ─── */}
       {activeTab === 'history' && (
@@ -522,23 +643,39 @@ export default function Home() {
 
 // ─── UserTicketRow ──────────────────────────────────────────────────────────
 
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { WavePhysicsLoader } from "../../components/WavePhysicsLoader";
 
-export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolution; onDelete: (id: string) => void; userId: string }) {
+export function UserTicketRow({
+  ticket,
+  onDelete,
+  userId,
+}: {
+  ticket: TicketWithResolution;
+  onDelete: (id: string) => void;
+  userId: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!expanded || signedImageUrl || !ticket.image_storage_path) return;
-    supabase.storage.from('ticket-attachments').createSignedUrl(ticket.image_storage_path, 3600).then(({ data }) => {
-      if (data?.signedUrl) setSignedImageUrl(data.signedUrl);
-    });
+    supabase.storage
+      .from("ticket-attachments")
+      .createSignedUrl(ticket.image_storage_path, 3600)
+      .then(({ data }) => {
+        if (data?.signedUrl) setSignedImageUrl(data.signedUrl);
+      });
   }, [expanded, signedImageUrl, ticket.image_storage_path]);
 
-  const finalResolution = ticket.resolutions?.find(r => r.escalated === false);
-  const isFullyResolved = ticket.status === 'resolved' || !!finalResolution;
-  const isEscalated = !isFullyResolved && (ticket.status === 'escalated' || ticket.resolutions?.some(r => r.escalated));
+  const finalResolution = ticket.resolutions?.find(
+    (r) => r.escalated === false,
+  );
+  const isFullyResolved = ticket.status === "resolved" || !!finalResolution;
+  const isEscalated =
+    !isFullyResolved &&
+    (ticket.status === "escalated" ||
+      ticket.resolutions?.some((r) => r.escalated));
 
   let statusColor = '#8A8F98';
   let statusLabel = 'In progress';
@@ -546,15 +683,27 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
   if (isEscalated) { statusColor = '#FB923C'; statusLabel = 'Needs review'; statusTone = 'warning'; }
   else if (isFullyResolved) { statusColor = '#34D399'; statusLabel = 'Resolved'; statusTone = 'success'; }
 
-  const issueSnippet = ticket.raw_text.substring(0, 80) + (ticket.raw_text.length > 80 ? '...' : '');
+
+  const issueSnippet =
+    ticket.raw_text.substring(0, 80) +
+    (ticket.raw_text.length > 80 ? "..." : "");
   const classification = ticket.ticket_classifications?.[0];
-  const resolvedAt = finalResolution?.resolved_at || ticket.resolutions?.find(r => r.resolved_at)?.resolved_at || null;
+  const resolvedAt =
+    finalResolution?.resolved_at ||
+    ticket.resolutions?.find((r) => r.resolved_at)?.resolved_at ||
+    null;
   // The pipeline never stamps resolved_by, so an escalation that later closed is the
   // reliable sign a person took the ticket over.
-  const wasEscalatedAtSomePoint = !!ticket.resolutions?.some(r => r.escalated);
+  const wasEscalatedAtSomePoint = !!ticket.resolutions?.some(
+    (r) => r.escalated,
+  );
   const handledBy = isFullyResolved
-    ? ((finalResolution?.resolved_by || wasEscalatedAtSomePoint) ? 'Support agent' : 'Clario AI')
-    : (isEscalated ? 'Support agent (in progress)' : 'Clario AI (in progress)');
+    ? finalResolution?.resolved_by || wasEscalatedAtSomePoint
+      ? "Support agent"
+      : "Clario AI"
+    : isEscalated
+      ? "Support agent (in progress)"
+      : "Clario AI (in progress)";
 
   return (
     <div className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] mb-2 transition-all duration-200 hover:border-white/20 overflow-hidden">
@@ -565,48 +714,109 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
       >
         <div className="flex items-center space-x-6 flex-1 min-w-0">
           <div className="flex items-center space-x-3 w-36 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
-            <span className="text-xs font-mono text-[#8A8F98] truncate">{ticket.id.split('-')[0]}</span>
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: statusColor }}
+            />
+            <span className="text-xs font-mono text-[#8A8F98] truncate">
+              {ticket.id.split("-")[0]}
+            </span>
           </div>
-          <div className="w-28 shrink-0 leading-tight" title={"Submitted " + formatDateTime(ticket.created_at)}>
-            <span className="text-[11px] text-[#ECECEC] font-mono block">{formatDate(ticket.created_at)}</span>
-            <span className="text-[11px] text-[#8A8F98] font-mono block">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
+          <div
+            className="w-28 shrink-0 leading-tight"
+            title={"Submitted " + formatDateTime(ticket.created_at)}
+          >
+            <span className="text-[11px] text-[#ECECEC] font-mono block">
+              {formatDate(ticket.created_at)}
+            </span>
+            <span className="text-[11px] text-[#8A8F98] font-mono block">
+              {formatTime(ticket.created_at)} ·{" "}
+              {formatRelative(ticket.created_at)}
+            </span>
           </div>
-          <span className="text-sm text-[#ECECEC] truncate font-sans">{issueSnippet}</span>
+          <span className="text-sm text-[#ECECEC] truncate font-sans">
+            {issueSnippet}
+          </span>
         </div>
 
         <div className="flex items-center space-x-6 shrink-0 pl-4">
           <StatusBadge label={statusLabel} tone={statusTone} />
-          <ShakeButton onDelete={(e) => { e.stopPropagation(); onDelete(ticket.id); }} />
-          {expanded ? <ChevronUp className="w-4 h-4 text-[#8A8F98]" /> : <ChevronDown className="w-4 h-4 text-[#8A8F98]" />}
+          <ShakeButton
+            onDelete={(e) => {
+              e.stopPropagation();
+              onDelete(ticket.id);
+            }}
+          />
+          {expanded ? (
+            <ChevronUp className="w-4 h-4 text-[#8A8F98]" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-[#8A8F98]" />
+          )}
         </div>
       </div>
 
       {/* Expanded Details */}
       {expanded && (
         <div className="border-t border-white/10 p-6 space-y-6">
-
           {/* Ticket facts, not just the clock time it came in */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <span className="text-xs text-[#8A8F98] block mb-3">Ticket details</span>
+            <span className="text-xs text-[#8A8F98] block mb-3">
+              Ticket details
+            </span>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
-              <UserMetaItem label="Reference" value={ticket.id.split('-')[0].toUpperCase()} mono title={ticket.id} />
-              <UserMetaItem label="Status" value={statusLabel} color={statusColor} />
-              <UserMetaItem label="Subject" value={ticket.subject || 'No subject'} />
-              <UserMetaItem label="Submitted" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
+              <UserMetaItem
+                label="Reference"
+                value={ticket.id.split("-")[0].toUpperCase()}
+                mono
+                title={ticket.id}
+              />
+              <UserMetaItem
+                label="Status"
+                value={statusLabel}
+                color={statusColor}
+              />
+              <UserMetaItem
+                label="Subject"
+                value={ticket.subject || "No subject"}
+              />
+              <UserMetaItem
+                label="Submitted"
+                value={formatDateTime(ticket.created_at)}
+                hint={formatRelative(ticket.created_at)}
+              />
               <UserMetaItem
                 label="Last update"
-                value={ticket.updated_at ? formatDateTime(ticket.updated_at) : '—'}
-                hint={ticket.updated_at ? formatRelative(ticket.updated_at) : undefined}
+                value={
+                  ticket.updated_at ? formatDateTime(ticket.updated_at) : "—"
+                }
+                hint={
+                  ticket.updated_at
+                    ? formatRelative(ticket.updated_at)
+                    : undefined
+                }
               />
               <UserMetaItem
-                label={resolvedAt ? 'Resolved' : 'Resolution'}
-                value={resolvedAt ? formatDateTime(resolvedAt) : (isEscalated ? 'With a human agent' : 'Being processed')}
-                hint={resolvedAt ? 'Took ' + formatElapsed(ticket.created_at, resolvedAt) : undefined}
-                color={resolvedAt ? '#34D399' : statusColor}
+                label={resolvedAt ? "Resolved" : "Resolution"}
+                value={
+                  resolvedAt
+                    ? formatDateTime(resolvedAt)
+                    : isEscalated
+                      ? "With a human agent"
+                      : "Being processed"
+                }
+                hint={
+                  resolvedAt
+                    ? "Took " + formatElapsed(ticket.created_at, resolvedAt)
+                    : undefined
+                }
+                color={resolvedAt ? "#34D399" : statusColor}
               />
               {classification?.category && (
-                <UserMetaItem label="Category" value={classification.category} mono />
+                <UserMetaItem
+                  label="Category"
+                  value={classification.category}
+                  mono
+                />
               )}
               {classification?.priority && (
                 <UserMetaItem
@@ -622,8 +832,14 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
 
           {signedImageUrl && (
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <span className="text-xs text-[#8A8F98] block mb-3">Your attached screenshot</span>
-              <img src={signedImageUrl} alt="Your attached screenshot" className="max-w-full rounded-lg border border-white/10" />
+              <span className="text-xs text-[#8A8F98] block mb-3">
+                Your attached screenshot
+              </span>
+              <img
+                src={signedImageUrl}
+                alt="Your attached screenshot"
+                className="max-w-full rounded-lg border border-white/10"
+              />
             </div>
           )}
 
@@ -632,21 +848,32 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
               <span className="text-xs text-[#8A8F98] block">Your message</span>
               <MorphButton textToCopy={ticket.id} label="Copy ID" />
             </div>
-            <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">&quot;{ticket.raw_text}&quot;</p>
+            <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">
+              &quot;{ticket.raw_text}&quot;
+            </p>
           </div>
 
           <div className="border-t border-white/10 pt-4">
-            <span className="text-xs block mb-2" style={{ color: statusColor }}>Resolution</span>
+            <span className="text-xs block mb-2" style={{ color: statusColor }}>
+              Resolution
+            </span>
             <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 min-h-[100px] font-sans text-sm text-[#ECECEC]">
-              {(isFullyResolved && finalResolution?.final_response)
-                ? parseCustomerResponse(finalResolution.final_response)
-                : (isEscalated
-                    ? 'A human agent has taken over this ticket and is currently drafting a resolution.'
-                    : <div className="flex justify-center items-center py-8"><WavePhysicsLoader /></div>
-                  )}
+              {isFullyResolved && finalResolution?.final_response ? (
+                parseCustomerResponse(finalResolution.final_response)
+              ) : isEscalated ? (
+                "A human agent has taken over this ticket and is currently drafting a resolution."
+              ) : (
+                <div className="flex justify-center items-center py-8">
+                  <WavePhysicsLoader />
+                </div>
+              )}
             </div>
             {isFullyResolved && finalResolution?.final_response && (
-              <FeedbackStars ticketId={ticket.id} userId={userId} existingScore={ticket.customer_feedback?.score ?? null} />
+              <FeedbackStars
+                ticketId={ticket.id}
+                userId={userId}
+                existingScore={ticket.customer_feedback?.score ?? null}
+              />
             )}
           </div>
         </div>
@@ -677,17 +904,17 @@ export function FeedbackStars({
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      const res = await fetch('/api/customer_feedback', {
-        method: 'POST',
+      const res = await fetch("/api/customer_feedback", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ ticketId, userId, score: n }),
       });
       if (res.ok) setScore(n);
     } catch (e) {
-      console.error('Failed to submit feedback', e);
+      console.error("Failed to submit feedback", e);
     } finally {
       setIsSubmitting(false);
     }
@@ -712,7 +939,7 @@ export function FeedbackStars({
           >
             <Star
               className="w-4 h-4"
-              fill={displayed >= n ? '#E8A33D' : 'none'}
+              fill={displayed >= n ? "#E8A33D" : "none"}
               stroke="#E8A33D"
             />
           </button>
@@ -720,7 +947,8 @@ export function FeedbackStars({
       </div>
       {score != null && (
         <p className="text-xs text-[#2DD4BF] mt-1">
-          Thanks for your feedback! You rated this {score}/5 - click a star to change it.
+          Thanks for your feedback! You rated this {score}/5 - click a star to
+          change it.
         </p>
       )}
     </div>
@@ -728,20 +956,34 @@ export function FeedbackStars({
 }
 
 /** One label/value pair in the customer-facing ticket detail grid. */
-function UserMetaItem({ label, value, hint, color, mono, title }: {
-  label: string; value: string; hint?: string; color?: string; mono?: boolean; title?: string;
+function UserMetaItem({
+  label,
+  value,
+  hint,
+  color,
+  mono,
+  title,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  color?: string;
+  mono?: boolean;
+  title?: string;
 }) {
   return (
     <div className="min-w-0">
       <span className="text-xs text-[#8A8F98] block mb-1">{label}</span>
       <span
-        className={`text-sm block truncate ${mono ? 'font-mono' : 'font-sans'}`}
-        style={{ color: color || '#ECECEC' }}
+        className={`text-sm block truncate ${mono ? "font-mono" : "font-sans"}`}
+        style={{ color: color || "#ECECEC" }}
         title={title || value}
       >
         {value}
       </span>
-      {hint && <span className="text-xs text-[#8A8F98] block mt-0.5">{hint}</span>}
+      {hint && (
+        <span className="text-xs text-[#8A8F98] block mt-0.5">{hint}</span>
+      )}
     </div>
   );
 }
