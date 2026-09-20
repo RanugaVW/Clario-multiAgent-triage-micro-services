@@ -10,6 +10,10 @@ describe('MIGRATED_ROUTES', () => {
     expect(MIGRATED_ROUTES).toContain('/design');
   });
 
+  it('includes the landing page', () => {
+    expect(MIGRATED_ROUTES).toContain('/');
+  });
+
   it('is what the rendered ThemeScript embeds', () => {
     const html = renderToStaticMarkup(<ThemeScript />);
     expect(html).toContain(JSON.stringify(MIGRATED_ROUTES));

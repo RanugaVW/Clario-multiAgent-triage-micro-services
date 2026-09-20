@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Shield, KeyRound, Mail, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { GlassPanel, GlassButton, GlassInput, PasswordInput } from '../../components/ui';
+import { GlowBackdrop } from '../../components/ui/GlowBackdrop';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -53,16 +54,8 @@ export default function Login() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* 3D Wave Background - purely decorative, hidden from assistive tech and keyboard focus */}
-      <iframe
-        src="/landing.html?bgOnly=true"
-        className="absolute inset-0 w-full h-full border-none pointer-events-none"
-        // colorScheme 'normal' keeps the embedded landing document transparent under the dark root color-scheme; remove together with the iframe in Phase 2/3.
-        style={{ zIndex: 0, colorScheme: 'normal' }}
-        title="Decorative background animation"
-        aria-hidden="true"
-        tabIndex={-1}
-      />
+      {/* Decorative glow. Login is still a dark-only legacy page; Phase 3 redesigns it. */}
+      <GlowBackdrop />
 
       <GlassPanel tier={1} className="relative z-10 w-full max-w-md p-8 sm:p-10 animate-fade-in overflow-hidden">
         {/* Background elements */}
