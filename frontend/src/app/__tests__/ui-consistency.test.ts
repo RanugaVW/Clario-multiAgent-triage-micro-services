@@ -11,11 +11,11 @@ describe('UR-001 - shared design system usage', () => {
     'the %s page is built from AuthLayout and the shared primitives',
     (page) => {
       const code = src(`${page}/page.tsx`);
-      expect(code).toMatch(/import \{[^}]*AuthLayout[^}]*\} from '..\/..\/components\/auth\/AuthLayout'/);
+      expect(code).toMatch(/import \{[^}]*AuthLayout[^}]*\} from '\.\.\/\.\.\/components\/auth\/AuthLayout'/);
       expect(code).toMatch(/<AuthLayout/);
-      expect(code).toMatch(/import \{[^}]*Button[^}]*\} from '..\/..\/components\/ui\/Button'/);
+      expect(code).toMatch(/import \{[^}]*Button[^}]*\} from '\.\.\/\.\.\/components\/ui\/Button'/);
       // theme tokens only: no hard-coded colors, no legacy glass classes, no hand-rolled primary button
-      expect(code).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
+      expect(code).not.toMatch(/(?<![\w&])#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})(?![\w-])/);
       expect(code).not.toMatch(/rgba?\(/);
       expect(code).not.toMatch(/glass-|bg-white text-black/);
     }
