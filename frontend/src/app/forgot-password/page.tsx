@@ -37,11 +37,17 @@ export default function ForgotPassword() {
   return (
     <AuthLayout
       title="Reset password"
-      description="Enter the email address for your account and we'll send you a link to choose a new password."
+      description={
+        sent
+          ? undefined
+          : "Enter the email address for your account and we'll send you a link to choose a new password."
+      }
       footer={
-        <Link href="/login" className={AUTH_LINK}>
-          Back to sign in
-        </Link>
+        sent ? undefined : (
+          <Link href="/login" className={AUTH_LINK}>
+            Back to sign in
+          </Link>
+        )
       }
     >
       {sent ? (

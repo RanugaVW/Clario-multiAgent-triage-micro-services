@@ -79,6 +79,25 @@ describe('Forgot password page', () => {
     expect(screen.getByRole('link', { name: /back to sign in/i })).toHaveAttribute('href', '/login');
   });
 
+  it('shows the instruction and the back link only before sending', async () => {
+    const user = userEvent.setup();
+    vi.mocked(supabase.auth.resetPasswordForEmail).mockResolvedValue({ data: {}, error: null } as never);
+    renderForgot();
+
+    expect(screen.getByText(/enter the email address/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /back to sign in/i })).toHaveAttribute('href', '/login');
+
+    await user.type(screen.getByLabelText('Email address'), 'me@example.com');
+    await user.click(screen.getByRole('button', { name: /send reset link/i }));
+    await screen.findByRole('status');
+
+    expect(screen.queryByText(/enter the email address/i)).not.toBeInTheDocument();
+    const loginLinks = screen
+      .getAllByRole('link', { name: /sign in/i })
+      .filter((a) => a.getAttribute('href') === '/login');
+    expect(loginLinks).toHaveLength(1);
+  });
+
   it('is the auth layout with one h1', () => {
     renderForgot();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
