@@ -90,9 +90,60 @@ describe('ThemeProvider', () => {
       setItem.mockRestore();
       // Another tab's write arrives as a storage event; it clears the in-memory fallback so it cannot leak into later tests.
       act(() => {
-        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new StorageEvent('storage', { key: null }));
       });
     }
+  });
+
+  describe('storage events while storage is blocked', () => {
+    const blockAndChooseLight = async () => {
+      const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('blocked', 'SecurityError');
+      });
+      renderProvider();
+      await userEvent.click(screen.getByRole('button', { name: 'set light' }));
+      expect(attr()).toBe('light');
+      return setItem;
+    };
+
+    it('ignores a storage event for an unrelated key', async () => {
+      const setItem = await blockAndChooseLight();
+      try {
+        act(() => {
+          window.dispatchEvent(new StorageEvent('storage', { key: 'something-else' }));
+        });
+        expect(attr()).toBe('light');
+      } finally {
+        setItem.mockRestore();
+        act(() => {
+          window.dispatchEvent(new StorageEvent('storage', { key: null }));
+        });
+      }
+    });
+
+    it('clears the in-memory choice on storage.clear() (key is null)', async () => {
+      const setItem = await blockAndChooseLight();
+      try {
+        act(() => {
+          window.dispatchEvent(new StorageEvent('storage', { key: null }));
+        });
+        expect(attr()).toBe('dark');
+      } finally {
+        setItem.mockRestore();
+      }
+    });
+
+    it('clears the in-memory choice when the theme key itself changes', async () => {
+      const setItem = await blockAndChooseLight();
+      try {
+        act(() => {
+          window.dispatchEvent(new StorageEvent('storage', { key: 'theme-preference' }));
+        });
+        expect(attr()).toBe('dark');
+      } finally {
+        setItem.mockRestore();
+      }
+    });
   });
 });
 

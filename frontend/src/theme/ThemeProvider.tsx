@@ -21,8 +21,10 @@ const LOCAL_EVENT = 'theme-preference-change';
 let unpersistedPreference: Preference | null = null;
 
 function subscribePreference(notify: () => void) {
-  // A storage event means another tab wrote successfully, so storage is authoritative again.
-  const onStorage = () => {
+  // A storage event means another tab wrote successfully, so storage is authoritative again. Events for
+  // other keys are unrelated; key === null means storage.clear(), which does concern us.
+  const onStorage = (e: StorageEvent) => {
+    if (e.key !== null && e.key !== THEME_STORAGE_KEY) return;
     unpersistedPreference = null;
     notify();
   };

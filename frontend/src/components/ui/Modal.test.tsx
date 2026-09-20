@@ -23,6 +23,17 @@ describe('Modal', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
   });
 
+  it('scrolls inside the viewport instead of overflowing it on short screens', () => {
+    render(
+      <Modal open onClose={() => {}} title="Invite a teammate">
+        body
+      </Modal>
+    );
+    const tokens = screen.getByRole('dialog').className.split(' ');
+    expect(tokens).toContain('max-h-[calc(100dvh-2rem)]');
+    expect(tokens).toContain('overflow-y-auto');
+  });
+
   it('moves focus into the dialog when it opens', () => {
     render(
       <Modal open onClose={() => {}} title="T">

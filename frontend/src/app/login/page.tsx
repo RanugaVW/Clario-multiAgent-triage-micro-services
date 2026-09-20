@@ -57,6 +57,7 @@ export default function Login() {
       <iframe
         src="/landing.html?bgOnly=true"
         className="absolute inset-0 w-full h-full border-none pointer-events-none"
+        // colorScheme 'normal' keeps the embedded landing document transparent under the dark root color-scheme; remove together with the iframe in Phase 2/3.
         style={{ zIndex: 0, colorScheme: 'normal' }}
         title="Decorative background animation"
         aria-hidden="true"

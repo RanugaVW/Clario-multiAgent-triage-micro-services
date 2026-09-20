@@ -14,8 +14,8 @@ function sharedEntries(t: Theme): Entry[] {
   for (const [k, v] of Object.entries(t.space)) out.push([`--sp-${k}`, v]);
   for (const [k, v] of Object.entries(t.layout)) out.push([`--l-${kebab(k)}`, v]);
   for (const [k, v] of Object.entries(t.motion)) out.push([`--m-${kebab(k)}`, v]);
-  out.push(['--f-sans', `var(--font-face-sans),${t.fontStacks.sans}`]);
-  out.push(['--f-mono', `var(--font-face-mono),${t.fontStacks.mono}`]);
+  out.push(['--f-sans', `var(--font-face-sans, system-ui),${t.fontStacks.sans}`]);
+  out.push(['--f-mono', `var(--font-face-mono, ui-monospace),${t.fontStacks.mono}`]);
   return out;
 }
 

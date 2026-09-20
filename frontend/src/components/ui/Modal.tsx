@@ -88,7 +88,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative w-full max-w-md rounded-xl border border-border bg-surface-raised p-8 shadow-raised outline-none"
+        className="relative w-full max-w-md rounded-xl border border-border bg-surface-raised p-8 shadow-raised outline-none max-h-[calc(100dvh-2rem)] overflow-y-auto"
       >
         <button
           type="button"

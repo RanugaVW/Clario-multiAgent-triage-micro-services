@@ -1,5 +1,8 @@
 'use client';
 
+// LEGACY. src/components/ui/ (a directory) has same-named exports (Badge, Card, ...). Always import by full
+// file path (../components/ui/Badge vs ../components/ui) and never add an index.ts barrel there while this file exists.
+
 import { ReactNode, useState } from 'react';
 import { Eye, EyeOff, X } from 'lucide-react';
 

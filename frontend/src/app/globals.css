@@ -144,14 +144,15 @@
     outline: 2px solid var(--c-focus);
     outline-offset: 2px;
   }
-}
 
-body {
-  color: var(--c-fg);
-  background-color: var(--c-canvas);
-  font-family: var(--f-sans);
-  min-height: 100vh;
-  overflow-x: hidden;
+  /* In the base layer so utility classes on <body> can override it. */
+  body {
+    color: var(--c-fg);
+    background-color: var(--c-canvas);
+    font-family: var(--f-sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 }
 
 /* Browser autofill paints its own background; keep the text readable in both modes */

@@ -20,8 +20,8 @@ describe('themeToCss', () => {
     expect(shared).toContain('--sp-card:1.5rem');
     expect(shared).toContain('--l-container-marketing:75rem');
     expect(shared).toContain('--m-duration-fast:150ms');
-    expect(shared).toContain('--f-sans:var(--font-face-sans),');
-    expect(shared).toContain('--f-mono:var(--font-face-mono),');
+    expect(shared).toContain('--f-sans:var(--font-face-sans, system-ui),');
+    expect(shared).toContain('--f-mono:var(--font-face-mono, ui-monospace),');
   });
 
   it('makes dark the default and scopes it to data-theme="dark"', () => {
