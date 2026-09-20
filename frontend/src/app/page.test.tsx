@@ -32,6 +32,18 @@ describe('landing page', () => {
     expect(tokens).not.toContain('py-2');
   });
 
+  it('lists nav links in the same order as the sections on the page', () => {
+    renderWithTheme(<Home />);
+    const ids = nav.links.map((l) => l.href.slice(1));
+    const els = ids.map((id) => document.getElementById(id) as HTMLElement);
+    for (let i = 1; i < els.length; i++) {
+      expect(
+        els[i - 1].compareDocumentPosition(els[i]) & Node.DOCUMENT_POSITION_FOLLOWING,
+        `${ids[i - 1]} should come before ${ids[i]}`,
+      ).toBeTruthy();
+    }
+  });
+
   it('every in-page nav link lands on a section that is really on the page', () => {
     renderWithTheme(<Home />);
     for (const link of nav.links) {

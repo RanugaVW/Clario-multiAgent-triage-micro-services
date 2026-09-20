@@ -8,8 +8,8 @@
 
 export const nav = {
   links: [
-    { label: 'How it works', href: '#how' },
     { label: 'Agents', href: '#agents' },
+    { label: 'How it works', href: '#how' },
     { label: 'Human review', href: '#review' },
     { label: 'Privacy', href: '#privacy' },
   ],
