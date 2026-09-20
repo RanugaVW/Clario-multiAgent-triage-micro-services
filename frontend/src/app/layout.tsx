@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '../contexts/AuthContext';
 import StoreProvider from '../components/StoreProvider';
+import { REVEAL_FALLBACK_CSS } from '../components/landing/revealFallback';
 import { monoFont, sansFont } from '../theme/fonts';
 import { theme } from '../theme/theme.config';
 import { ThemeProvider } from '../theme/ThemeProvider';
@@ -25,6 +26,7 @@ export default function RootLayout({
       <head>
         <ThemeStyle />
         <ThemeScript />
+        <noscript><style>{REVEAL_FALLBACK_CSS}</style></noscript>
       </head>
       <body className="font-sans antialiased">
         <ThemeProvider>
