@@ -67,7 +67,7 @@ export default function VoiceRecorder({
   else if (status === 'error') statusText = 'Voice input failed';
 
   return (
-    <div className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-border bg-surface">
       <div className="flex items-center gap-4 p-3">
         <button
           type="button"
@@ -76,14 +76,14 @@ export default function VoiceRecorder({
           aria-pressed={isRecording}
           aria-label={isRecording ? 'Stop recording' : 'Start recording'}
           title={isRecording ? 'Stop recording' : 'Dictate your issue'}
-          className={`relative shrink-0 w-11 h-11 rounded-full flex items-center justify-center border transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed ${
+          className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-40 ${
             isRecording
-              ? 'border-[#FB7185] bg-[#FB7185]/10 text-[#FB7185]'
-              : 'border-[#2DD4BF] bg-white/[0.04] text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-[#08090D]'
+              ? 'border-danger bg-surface text-danger'
+              : 'border-accent bg-surface text-accent hover:bg-accent hover:text-canvas'
           }`}
         >
           {isRecording && (
-            <span className="absolute inset-0 rounded-full border border-[#FB7185] animate-ping opacity-40" />
+            <span className="absolute inset-0 animate-ping rounded-full border border-danger opacity-40" />
           )}
           {status === 'finalizing' ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -98,20 +98,20 @@ export default function VoiceRecorder({
           <AudioWaveform
             analyser={analyser}
             active={status === 'listening'}
-            color={isRecording ? '#FB7185' : '#2DD4BF'}
+            color={isRecording ? 'var(--c-danger)' : 'var(--c-accent)'}
             height={44}
           />
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-white/10 px-3 py-2">
+      <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2">
         <span
-          className={`text-xs ${
+          className={`text-caption ${
             status === 'error'
-              ? 'text-[#FB7185]'
+              ? 'text-danger'
               : status === 'listening'
-                ? 'text-[#2DD4BF]'
-                : 'text-[#8A8F98]'
+                ? 'text-accent'
+                : 'text-fg-muted'
           }`}
         >
           {busy && status !== 'finalizing' ? (
@@ -121,17 +121,17 @@ export default function VoiceRecorder({
         </span>
 
         {engine && (
-          <span className="text-xs text-[#8A8F98] shrink-0">
+          <span className="shrink-0 text-caption text-fg-muted">
             {ENGINE_LABEL[engine]}
             {didFallback && engine === 'server' && (
-              <span className="text-[#FB923C]"> · fallback</span>
+              <span className="text-warning"> · fallback</span>
             )}
           </span>
         )}
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 border-t border-white/10 px-3 py-2 text-[11px] text-[#FB7185]">
+        <div className="flex items-start gap-2 border-t border-border px-3 py-2 text-caption text-danger">
           <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>

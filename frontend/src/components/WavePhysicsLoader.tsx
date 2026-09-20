@@ -18,7 +18,7 @@ export function WavePhysicsLoader() {
   const { bars, ballX, ballY, ballScaleX, ballScaleY, times } = useMemo(() => {
     const barsData = Array.from({ length: numBars }).map(() => ({ 
       heights: [] as string[],
-      colors: [] as string[],
+      opacities: [] as number[],
     }));
     const bX: string[] = [];
     const bY: string[] = [];
@@ -66,12 +66,8 @@ export function WavePhysicsLoader() {
         const bar_h = baseBarH + wave_val * wavePeakH - indent;
         barsData[i].heights.push(`${Math.max(4, bar_h)}px`);
 
-        // Idle bars sit as faint glass; the wave crest lights up gold.
-        const r = Math.round(255 - wave_val * (255 - 232));
-        const g = Math.round(255 - wave_val * (255 - 163));
-        const b = Math.round(255 - wave_val * (255 - 61));
-        const alpha = 0.12 + wave_val * 0.88;
-        barsData[i].colors.push(`rgba(${r}, ${g}, ${b}, ${alpha})`);
+        // Idle bars are faint; the wave crest is fully opaque.
+        barsData[i].opacities.push(0.12 + wave_val * 0.88);
       }
     }
 
@@ -84,11 +80,11 @@ export function WavePhysicsLoader() {
         {bars.map((bar, i) => (
           <motion.div
             key={i}
-            className="w-3 rounded-full origin-bottom"
-            style={{ height: '16px', backgroundColor: 'rgba(255, 255, 255, 0.12)' }}
+            className="w-3 origin-bottom rounded-full bg-brand"
+            style={{ height: '16px', opacity: 0.12 }}
             animate={{
               height: bar.heights,
-              backgroundColor: bar.colors,
+              opacity: bar.opacities,
             }}
             transition={{
               duration: 4,
@@ -100,13 +96,12 @@ export function WavePhysicsLoader() {
         ))}
         
         <motion.div
-          className="absolute w-3 h-3 rounded-full z-10"
+          className="absolute z-10 h-3 w-3 rounded-full bg-brand"
           style={{
             bottom: 0,
             left: 0,
             transformOrigin: 'bottom center',
-            background: 'linear-gradient(135deg, #E8A33D, #F4B856)',
-            boxShadow: '0 0 12px rgba(232, 163, 61, 0.6)',
+            boxShadow: '0 0 12px var(--c-glow)',
           }}
           animate={{
             x: ballX,

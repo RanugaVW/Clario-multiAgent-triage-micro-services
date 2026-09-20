@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { categoryDomain, priorityColor, sentimentColor, splitCategories } from './classification';
+import { categoryDomain, priorityClass, priorityColor, sentimentColor, splitCategories } from './classification';
 
 describe('splitCategories', () => {
   it('splits a comma-joined multi-label category and trims each label', () => {
@@ -55,5 +55,17 @@ describe('sentimentColor', () => {
     expect(sentimentColor('negative')).toBeDefined();
     expect(sentimentColor('Neutral')).toBeUndefined();
     expect(sentimentColor(undefined)).toBeUndefined();
+  });
+});
+
+describe('priorityClass', () => {
+  it.each([
+    ['critical', 'text-danger'],
+    ['High', 'text-warning'],
+    ['low', ''],
+    [null, ''],
+    [undefined, ''],
+  ])('maps %s to %s', (p, cls) => {
+    expect(priorityClass(p)).toBe(cls);
   });
 });

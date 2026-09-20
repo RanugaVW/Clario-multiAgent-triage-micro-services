@@ -44,6 +44,15 @@ export function priorityColor(priority: string | null | undefined): string | und
   }
 }
 
+/** Theme text-colour class for a priority; '' means "use the default colour". */
+export function priorityClass(priority: string | null | undefined): string {
+  switch (priority?.toLowerCase()) {
+    case 'critical': return 'text-danger';
+    case 'high': return 'text-warning';
+    default: return '';
+  }
+}
+
 /** Text colour for a sentiment value; undefined means "use the default colour". */
 export function sentimentColor(sentiment: string | null | undefined): string | undefined {
   switch (sentiment?.toLowerCase()) {

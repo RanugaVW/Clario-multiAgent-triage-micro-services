@@ -11,6 +11,12 @@ interface AudioWaveformProps {
   className?: string;
 }
 
+export function resolveColor(el: Element, value: string): string {
+  const match = /^var\((--[\w-]+)\)$/.exec(value.trim());
+  if (!match) return value;
+  return getComputedStyle(el).getPropertyValue(match[1]).trim() || value;
+}
+
 /**
  * Mirror-bar visualiser driven by the analyser's time-domain data.
  *
@@ -20,7 +26,7 @@ interface AudioWaveformProps {
 export default function AudioWaveform({
   analyser,
   active,
-  color = '#2DD4BF',
+  color = 'var(--c-accent)',
   height = 56,
   className = '',
 }: AudioWaveformProps) {
@@ -89,7 +95,7 @@ export default function AudioWaveform({
         // Older samples scroll left and fade out.
         const age = i / Math.max(1, levels.length - 1);
         ctx.globalAlpha = active ? 0.25 + age * 0.75 : 0.18;
-        ctx.fillStyle = color;
+        ctx.fillStyle = resolveColor(canvas, color);
         ctx.fillRect(x, mid - barHeight / 2, BAR_WIDTH, barHeight);
       }
       ctx.globalAlpha = 1;
