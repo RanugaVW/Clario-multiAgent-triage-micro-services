@@ -96,6 +96,30 @@ describe('ThemeProvider', () => {
   });
 });
 
+describe('ThemeProvider default migratedRoutes', () => {
+  // No migratedRoutes prop: proves the real MIGRATED_ROUTES list is what the provider uses at runtime.
+  const renderDefault = () =>
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>
+    );
+
+  it('honours the stored light preference on a migrated route', () => {
+    nav.pathname = '/design';
+    localStorage.setItem('theme-preference', 'light');
+    renderDefault();
+    expect(attr()).toBe('light');
+  });
+
+  it('forces dark on a route that is not migrated', () => {
+    nav.pathname = '/login';
+    localStorage.setItem('theme-preference', 'light');
+    renderDefault();
+    expect(attr()).toBe('dark');
+  });
+});
+
 describe('useTheme', () => {
   it('throws a clear error outside a ThemeProvider', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
