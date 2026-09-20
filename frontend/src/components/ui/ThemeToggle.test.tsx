@@ -51,4 +51,9 @@ describe('ThemeToggle', () => {
     expect(tokens).toContain('sm:inline-flex');
     expect(tokens).not.toContain('inline-flex');
   });
+
+  it('renders nothing when there is no ThemeProvider above it', () => {
+    const { container } = render(<ThemeToggle />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });

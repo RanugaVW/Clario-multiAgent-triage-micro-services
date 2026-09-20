@@ -13,7 +13,7 @@ export function AgentShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   return (
     <AppShell
-      brand={{ icon: <Ticket className="text-[#E8A33D] w-5 h-5" />, title: 'Agent workspace', subtitle: 'Clario Platform' }}
+      brand={{ icon: <Ticket className="h-5 w-5" />, title: 'Agent workspace', subtitle: 'Clario Platform' }}
       nav={[{ key: 'queue', label: 'Escalation queue', icon: <Ticket className="w-4 h-4" />, href: '/agent', active: true }]}
       links={role === 'admin' ? [{ key: 'admin', label: 'Admin panel', icon: <ShieldAlert className="w-4 h-4" />, href: '/admin' }] : []}
       email={user?.email}

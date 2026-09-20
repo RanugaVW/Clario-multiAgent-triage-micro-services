@@ -2,6 +2,9 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { AppShell } from './AppShell';
+import { renderWithTheme } from '../test/renderWithTheme';
+
+vi.mock('next/navigation', () => ({ usePathname: () => '/dashboard' }));
 
 const setup = (over: Partial<React.ComponentProps<typeof AppShell>> = {}) => {
   const onSignOut = vi.fn();
@@ -50,11 +53,11 @@ describe('AppShell tabs and tones', () => {
     const { rerender } = render(
       <AppShell brand={{ icon: <svg />, title: 'T', subtitle: 'S' }} nav={[{ key: 'q', label: 'Queue (3)', icon: <svg data-testid="i" />, onClick: vi.fn(), warn: true }]} onSignOut={vi.fn()}>x</AppShell>
     );
-    expect(screen.getByTestId('i').parentElement).toHaveClass('text-[#FB923C]');
+    expect(screen.getByTestId('i').parentElement).toHaveClass('text-warning');
     rerender(
       <AppShell brand={{ icon: <svg />, title: 'T', subtitle: 'S' }} nav={[{ key: 'q', label: 'Queue (3)', icon: <svg data-testid="i" />, onClick: vi.fn(), warn: true, active: true }]} onSignOut={vi.fn()}>x</AppShell>
     );
-    expect(screen.getByTestId('i').parentElement).not.toHaveClass('text-[#FB923C]');
+    expect(screen.getByTestId('i').parentElement).not.toHaveClass('text-warning');
   });
 
   it('accepts a rich brand title and extra classes for the content area', () => {
@@ -112,5 +115,36 @@ describe('AppShell (UR-001 shared navigation layout)', () => {
     await user.tab(); expect(screen.getByRole('link', { name: 'Other' })).toHaveFocus();
     await user.tab(); expect(screen.getByRole('link', { name: 'Admin panel' })).toHaveFocus();
     await user.tab(); expect(screen.getByRole('button', { name: /sign out/i })).toHaveFocus();
+  });
+});
+
+describe('AppShell theme toggle and token styling', () => {
+  it('shows the colour theme toggle once when a ThemeProvider is present', () => {
+    renderWithTheme(
+      <AppShell brand={{ icon: <svg />, title: 'T', subtitle: 'S' }} nav={[]} onSignOut={vi.fn()}>x</AppShell>,
+      ['/dashboard']
+    );
+    expect(screen.getAllByRole('group', { name: 'Color theme' })).toHaveLength(1);
+  });
+
+  it('omits the toggle (and does not crash) without a ThemeProvider', () => {
+    setup();
+    expect(screen.queryByRole('group', { name: 'Color theme' })).not.toBeInTheDocument();
+  });
+
+  it('styles footer link tones with theme tokens', () => {
+    render(
+      <AppShell
+        brand={{ icon: <svg />, title: 'T', subtitle: 'S' }}
+        nav={[]}
+        links={[
+          { key: 'a', label: 'Brand link', icon: <svg />, href: '/a', tone: 'brand' },
+          { key: 'b', label: 'Success link', icon: <svg />, href: '/b', tone: 'success' },
+        ]}
+        onSignOut={vi.fn()}
+      >x</AppShell>
+    );
+    expect(screen.getByRole('link', { name: 'Brand link' })).toHaveClass('text-brand');
+    expect(screen.getByRole('link', { name: 'Success link' })).toHaveClass('text-success');
   });
 });

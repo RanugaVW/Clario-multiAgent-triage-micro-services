@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { LogOut } from 'lucide-react';
+import { cx } from '../lib/cx';
+import { ThemeToggle } from './ui/ThemeToggle';
 
 // UR-001: every signed-in workspace (customer, agent, admin) shares this one navigation layout instead of
 // building its own: brand block, primary nav, signed-in identity, footer links, sign out.
@@ -21,19 +23,19 @@ export type ShellNavItem = {
   warn?: boolean;
 } & ({ href: string; onClick?: undefined } | { onClick: () => void; href?: undefined });
 
-export type ShellLink = { key: string; label: string; icon: ReactNode; href: string; tone?: 'default' | 'amber' | 'emerald' };
+export type ShellLink = { key: string; label: string; icon: ReactNode; href: string; tone?: 'default' | 'brand' | 'success' };
 
 const NAV_ITEM =
-  'w-full shrink-0 flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-left whitespace-nowrap transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/60';
-const NAV_ACTIVE = 'bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shadow-[0_0_15px_rgba(232,163,61,0.15)]';
-const NAV_IDLE = 'text-[#8A8F98] hover:text-[#ECECEC] border border-transparent hover:bg-white/[0.04]';
+  'flex w-full shrink-0 items-center gap-3 rounded-lg border px-3.5 py-2.5 text-left text-app font-medium whitespace-nowrap transition-colors';
+const NAV_ACTIVE = 'border-brand/40 bg-brand-soft text-brand';
+const NAV_IDLE = 'border-transparent text-fg-muted hover:bg-brand-soft hover:text-fg';
 
 const FOOTER_ITEM =
-  'flex items-center text-sm px-3 lg:px-3.5 py-2 rounded-lg whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/60 hover:bg-white/[0.06]';
+  'flex items-center rounded-lg px-3 py-2 text-app whitespace-nowrap transition-colors hover:bg-brand-soft lg:px-3.5';
 const TONES = {
-  default: 'text-[#8A8F98] hover:text-[#ECECEC]',
-  amber: 'text-[#E8A33D] hover:text-[#F4B856]',
-  emerald: 'text-emerald-300 hover:text-emerald-200',
+  default: 'text-fg-muted hover:text-fg',
+  brand: 'text-brand hover:text-brand-hover',
+  success: 'text-success hover:text-fg',
 } as const;
 
 export function AppShell({
@@ -42,7 +44,7 @@ export function AppShell({
   links = [],
   email,
   onSignOut,
-  mainClassName = '',
+  mainClassName,
   children,
 }: {
   brand: { icon: ReactNode; title: ReactNode; subtitle: string };
@@ -55,22 +57,22 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      <aside className="flex flex-col lg:w-64 lg:shrink-0 lg:h-screen lg:sticky lg:top-0 border-b lg:border-b-0 lg:border-r border-white/10 bg-white/[0.02] backdrop-blur-xl">
-        <div className="p-4 lg:p-6 border-b border-white/10 flex items-center space-x-3">
-          <div className="bg-[#E8A33D]/15 p-2 rounded-xl border border-[#E8A33D]/25 shrink-0">{brand.icon}</div>
+    <div className="flex min-h-dvh flex-col bg-canvas text-fg lg:flex-row">
+      <aside className="flex flex-col border-b border-border bg-surface lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
+        <div className="flex items-center gap-3 border-b border-border p-4 lg:p-6">
+          <div className="shrink-0 rounded-lg border border-border bg-brand-soft p-2 text-brand">{brand.icon}</div>
           <div className="min-w-0">
-            <div className="text-sm font-bold text-[#ECECEC] leading-tight">{brand.title}</div>
-            <p className="text-xs text-[#8A8F98] truncate hidden lg:block">{brand.subtitle}</p>
+            <div className="text-app font-semibold leading-tight text-fg">{brand.title}</div>
+            <p className="hidden truncate text-caption text-fg-muted lg:block">{brand.subtitle}</p>
           </div>
         </div>
 
-        <nav aria-label="Main" className="flex flex-row lg:flex-col gap-1 p-3 lg:p-4 overflow-x-auto lg:overflow-y-auto lg:flex-1">
+        <nav aria-label="Main" className="flex flex-row gap-1 overflow-x-auto p-3 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:p-4">
           {nav.map((item) => {
-            const className = `${NAV_ITEM} ${item.active ? NAV_ACTIVE : NAV_IDLE}`;
+            const className = cx(NAV_ITEM, item.active ? NAV_ACTIVE : NAV_IDLE);
             const content = (
               <>
-                <span className={`shrink-0 flex ${item.warn && !item.active ? 'text-[#FB923C]' : ''}`} aria-hidden="true">{item.icon}</span>
+                <span className={cx('flex shrink-0', item.warn && !item.active && 'text-warning')} aria-hidden="true">{item.icon}</span>
                 <span className="truncate">{item.label}</span>
               </>
             );
@@ -86,27 +88,28 @@ export function AppShell({
           })}
         </nav>
 
-        <div className="p-3 lg:p-4 border-t border-white/10 flex flex-row lg:flex-col items-center lg:items-stretch justify-between lg:justify-start gap-3 lg:gap-1">
+        <div className="flex flex-row items-center justify-between gap-3 border-t border-border p-3 lg:flex-col lg:items-stretch lg:justify-start lg:gap-1 lg:p-4">
           {email && (
-            <p className="text-xs text-[#8A8F98] truncate lg:pb-2" title={email}>
-              Logged in as <span className="text-[#E8A33D]">{email}</span>
+            <p className="truncate text-caption text-fg-muted lg:pb-2" title={email}>
+              Logged in as <span className="text-brand">{email}</span>
             </p>
           )}
-          <div className="flex items-center lg:flex-col lg:items-stretch gap-2 lg:gap-1 shrink-0 overflow-x-auto">
+          <div className="flex shrink-0 items-center gap-2 overflow-x-auto lg:flex-col lg:items-stretch lg:gap-1">
             {links.map((l) => (
-              <Link key={l.key} href={l.href} className={`${FOOTER_ITEM} ${TONES[l.tone ?? 'default']}`}>
+              <Link key={l.key} href={l.href} className={cx(FOOTER_ITEM, TONES[l.tone ?? 'default'])}>
                 <span className="mr-2 flex" aria-hidden="true">{l.icon}</span>
                 {l.label}
               </Link>
             ))}
-            <button onClick={onSignOut} className={`${FOOTER_ITEM} ${TONES.default} hover:!text-[#FB7185]`}>
-              <LogOut className="w-4 h-4 mr-2" aria-hidden="true" /> Sign out
+            <button type="button" onClick={onSignOut} className={cx(FOOTER_ITEM, TONES.default, 'hover:text-danger')}>
+              <LogOut className="mr-2 h-4 w-4" aria-hidden="true" /> Sign out
             </button>
+            <ThemeToggle className="shrink-0 self-start lg:mt-2" />
           </div>
         </div>
       </aside>
 
-      <main className={`flex-1 min-w-0 py-8 px-4 sm:px-6 lg:px-10 max-w-[1800px] ${mainClassName}`}>{children}</main>
+      <main className={cx('min-w-0 max-w-[1800px] flex-1 px-page py-8 lg:px-10', mainClassName)}>{children}</main>
     </div>
   );
 }

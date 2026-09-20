@@ -29,7 +29,7 @@ export function AdminShell({
   ];
   return (
     <AppShell
-      brand={{ icon: <Settings className="text-[#E8A33D] w-5 h-5" />, title: 'System administration', subtitle: 'Clario Platform' }}
+      brand={{ icon: <Settings className="h-5 w-5" />, title: 'System administration', subtitle: 'Clario Platform' }}
       nav={[
         ...consoleNav,
         { key: 'reports', label: 'Reports', icon: <BarChart3 className="w-4 h-4" />, href: '/admin/reports', active: active === 'reports' },

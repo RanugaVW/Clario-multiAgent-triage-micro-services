@@ -3,7 +3,7 @@
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { cx } from '../../lib/cx';
 import type { Preference } from '../../theme/mode';
-import { useTheme } from '../../theme/ThemeProvider';
+import { useOptionalTheme } from '../../theme/ThemeProvider';
 
 const OPTIONS: Array<{ value: Preference; label: string; Icon: typeof Sun }> = [
   { value: 'system', label: 'System', Icon: Monitor },
@@ -12,7 +12,9 @@ const OPTIONS: Array<{ value: Preference; label: string; Icon: typeof Sun }> = [
 ];
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { preference, setPreference } = useTheme();
+  const theme = useOptionalTheme();
+  if (!theme) return null;
+  const { preference, setPreference } = theme;
   return (
     <div
       role="group"
