@@ -83,7 +83,7 @@ describe('FeedbackStars', () => {
     const stars = screen.getAllByLabelText(/Rate \d stars/);
     const fills = stars.map((btn) => btn.querySelector('svg')?.getAttribute('fill'));
 
-    expect(fills).toEqual(['#E8A33D', '#E8A33D', '#E8A33D', 'none', 'none']);
+    expect(fills).toEqual(['currentColor', 'currentColor', 'currentColor', 'none', 'none']);
     expect(screen.getByText(/you rated this 3\/5/i)).toBeInTheDocument();
   });
 });

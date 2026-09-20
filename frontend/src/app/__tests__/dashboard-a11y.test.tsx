@@ -1,7 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import DashboardPage from '../dashboard/page';
+import DashboardPage, { UserTicketRow } from '../dashboard/page';
 import { useAuth } from '../../contexts/AuthContext';
 
 vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
@@ -50,5 +50,66 @@ describe('customer dashboard - accessible structure', () => {
     await user.click(screen.getByRole('button', { name: /submit ticket/i }));
     const dialog = await screen.findByRole('dialog', { name: 'Ticket submitted successfully!' });
     await waitFor(() => expect(dialog).toHaveTextContent('abc-123'));
+  });
+
+  it('switches to the history tab from the success dialog and refetches tickets', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url: string) =>
+      String(url).includes('/api/v1/tickets')
+        ? { ok: true, status: 200, json: async () => ({ id: 'abc-123' }) }
+        : { ok: true, json: async () => ({ data: [] }) }
+    ) as unknown as typeof fetch;
+    const user = userEvent.setup();
+    render(<DashboardPage />);
+    await user.type(screen.getByLabelText('Describe the issue'), 'help');
+    await user.click(screen.getByRole('button', { name: /submit ticket/i }));
+    const dialog = await screen.findByRole('dialog', { name: 'Ticket submitted successfully!' });
+    const countGets = () => vi.mocked(global.fetch).mock.calls.filter(
+      ([u]) => String(u).startsWith('/api/user_tickets?userId=u1')
+    ).length;
+    const before = countGets();
+    await user.click(within(dialog).getByRole('button', { name: /view my tickets/i }));
+    expect(await screen.findByRole('heading', { name: 'Ticket history' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(countGets()).toBeGreaterThan(before));
+  });
+});
+
+const ticket = {
+  id: 'abcd1234-0000-0000-0000-000000000000',
+  raw_text: 'My invoice is wrong',
+  created_at: '2026-01-02T10:00:00Z',
+  status: 'processing',
+  subject: 'Invoice',
+  resolutions: [],
+};
+
+describe('UserTicketRow - accessible structure', () => {
+  it('expands through a real button that reports aria-expanded', async () => {
+    const user = userEvent.setup();
+    render(<UserTicketRow ticket={ticket} onDelete={vi.fn()} userId="u1" />);
+    const toggle = screen.getByRole('button', { name: /My invoice is wrong/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Ticket details')).toBeInTheDocument();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('keeps Delete outside the expand button and does not toggle the row', async () => {
+    const onDelete = vi.fn();
+    const user = userEvent.setup();
+    render(<UserTicketRow ticket={ticket} onDelete={onDelete} userId="u1" />);
+    const toggle = screen.getByRole('button', { name: /My invoice is wrong/ });
+    const del = screen.getByRole('button', { name: /delete/i });
+    expect(toggle.contains(del)).toBe(false);
+    await user.click(del);
+    expect(onDelete).toHaveBeenCalledWith(ticket.id);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('shows the in-progress state as a neutral badge', () => {
+    render(<UserTicketRow ticket={ticket} onDelete={vi.fn()} userId="u1" />);
+    expect(screen.getByText('In progress')).toBeInTheDocument();
   });
 });

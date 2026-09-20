@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useId } from 'react';
 import { Bot, Send, Ticket, CheckCircle2, ShieldAlert, Cpu, History, Star } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
-import { priorityColor } from '../../lib/classification';
-import { StatusBadge } from '../../components/ui';
+import { priorityClass } from '../../lib/classification';
+import { Badge } from '../../components/ui/Badge';
+import type { BadgeTone } from '../../components/ui/Badge';
+import { cx } from '../../lib/cx';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { FormField } from '../../components/ui/FormField';
@@ -507,6 +509,7 @@ import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 
 export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolution; onDelete: (id: string) => void; userId: string }) {
   const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -520,11 +523,12 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
   const isFullyResolved = ticket.status === 'resolved' || !!finalResolution;
   const isEscalated = !isFullyResolved && (ticket.status === 'escalated' || ticket.resolutions?.some(r => r.escalated));
 
-  let statusColor = '#8A8F98';
   let statusLabel = 'In progress';
-  let statusTone: 'neutral' | 'warning' | 'success' = 'neutral';
-  if (isEscalated) { statusColor = '#FB923C'; statusLabel = 'Needs review'; statusTone = 'warning'; }
-  else if (isFullyResolved) { statusColor = '#34D399'; statusLabel = 'Resolved'; statusTone = 'success'; }
+  let statusTone: BadgeTone = 'neutral';
+  let statusText = 'text-fg-muted';
+  let statusDot = 'bg-fg-subtle';
+  if (isEscalated) { statusLabel = 'Needs review'; statusTone = 'warning'; statusText = 'text-warning'; statusDot = 'bg-warning'; }
+  else if (isFullyResolved) { statusLabel = 'Resolved'; statusTone = 'success'; statusText = 'text-success'; statusDot = 'bg-success'; }
 
   const issueSnippet = ticket.raw_text.substring(0, 80) + (ticket.raw_text.length > 80 ? '...' : '');
   const classification = ticket.ticket_classifications?.[0];
@@ -537,41 +541,40 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
     : (isEscalated ? 'Support agent (in progress)' : 'Clario AI (in progress)');
 
   return (
-    <div className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] mb-2 transition-all duration-200 hover:border-white/20 overflow-hidden">
-      {/* Unexpanded Row */}
-      <div
-        className="flex items-center justify-between p-4 cursor-pointer select-none"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-center space-x-6 flex-1 min-w-0">
-          <div className="flex items-center space-x-3 w-36 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
-            <span className="text-xs font-mono text-[#8A8F98] truncate">{ticket.id.split('-')[0]}</span>
-          </div>
-          <div className="w-28 shrink-0 leading-tight" title={"Submitted " + formatDateTime(ticket.created_at)}>
-            <span className="text-[11px] text-[#ECECEC] font-mono block">{formatDate(ticket.created_at)}</span>
-            <span className="text-[11px] text-[#8A8F98] font-mono block">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
-          </div>
-          <span className="text-sm text-[#ECECEC] truncate font-sans">{issueSnippet}</span>
-        </div>
+    <Card flush className="overflow-hidden transition-colors hover:border-border-strong">
+      <div className="flex items-center gap-2 p-4">
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+          onClick={() => setExpanded(!expanded)}
+          className="flex min-w-0 flex-1 items-center gap-4 rounded-md text-left"
+        >
+          {expanded ? <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden="true" />}
+          <span className="flex w-24 shrink-0 items-center gap-3">
+            <span className={cx('h-1.5 w-1.5 rounded-full', statusDot)} aria-hidden="true" />
+            <span className="truncate font-mono text-caption text-fg-muted">{ticket.id.split('-')[0]}</span>
+          </span>
+          <span className="hidden w-28 shrink-0 leading-tight md:block" title={'Submitted ' + formatDateTime(ticket.created_at)}>
+            <span className="block font-mono text-caption text-fg">{formatDate(ticket.created_at)}</span>
+            <span className="block font-mono text-caption text-fg-muted">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
+          </span>
+          <span className="truncate text-app text-fg">{issueSnippet}</span>
+        </button>
 
-        <div className="flex items-center space-x-6 shrink-0 pl-4">
-          <StatusBadge label={statusLabel} tone={statusTone} />
-          <ShakeButton onDelete={(e) => { e.stopPropagation(); onDelete(ticket.id); }} />
-          {expanded ? <ChevronUp className="w-4 h-4 text-[#8A8F98]" /> : <ChevronDown className="w-4 h-4 text-[#8A8F98]" />}
+        <div className="flex shrink-0 items-center gap-3 pl-2">
+          <Badge tone={statusTone}>{statusLabel}</Badge>
+          <ShakeButton onDelete={() => onDelete(ticket.id)} />
         </div>
       </div>
 
-      {/* Expanded Details */}
       {expanded && (
-        <div className="border-t border-white/10 p-6 space-y-6">
-
-          {/* Ticket facts, not just the clock time it came in */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <span className="text-xs text-[#8A8F98] block mb-3">Ticket details</span>
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4">
+        <div id={detailsId} className="space-y-6 border-t border-border p-6">
+          <div className="rounded-lg border border-border bg-surface-raised p-4">
+            <span className="mb-3 block text-caption text-fg-muted">Ticket details</span>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3 xl:grid-cols-4">
               <UserMetaItem label="Reference" value={ticket.id.split('-')[0].toUpperCase()} mono title={ticket.id} />
-              <UserMetaItem label="Status" value={statusLabel} color={statusColor} />
+              <UserMetaItem label="Status" value={statusLabel} toneClass={statusText} />
               <UserMetaItem label="Subject" value={ticket.subject || 'No subject'} />
               <UserMetaItem label="Submitted" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
               <UserMetaItem
@@ -583,46 +586,39 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
                 label={resolvedAt ? 'Resolved' : 'Resolution'}
                 value={resolvedAt ? formatDateTime(resolvedAt) : (isEscalated ? 'With a human agent' : 'Being processed')}
                 hint={resolvedAt ? 'Took ' + formatElapsed(ticket.created_at, resolvedAt) : undefined}
-                color={resolvedAt ? '#34D399' : statusColor}
+                toneClass={resolvedAt ? 'text-success' : statusText}
               />
-              {classification?.category && (
-                <UserMetaItem label="Category" value={classification.category} mono />
-              )}
+              {classification?.category && <UserMetaItem label="Category" value={classification.category} mono />}
               {classification?.priority && (
-                <UserMetaItem
-                  label="Priority"
-                  value={classification.priority}
-                  mono
-                  color={priorityColor(classification.priority)}
-                />
+                <UserMetaItem label="Priority" value={classification.priority} mono toneClass={priorityClass(classification.priority)} />
               )}
               <UserMetaItem label="Handled by" value={handledBy} />
             </div>
           </div>
 
           {signedImageUrl && (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <span className="text-xs text-[#8A8F98] block mb-3">Your attached screenshot</span>
-              <img src={signedImageUrl} alt="Your attached screenshot" className="max-w-full rounded-lg border border-white/10" />
+            <div className="rounded-lg border border-border bg-surface-raised p-4">
+              <span className="mb-3 block text-caption text-fg-muted">Your attached screenshot</span>
+              <img src={signedImageUrl} alt="Your attached screenshot" className="max-w-full rounded-lg border border-border" />
             </div>
           )}
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs text-[#8A8F98] block">Your message</span>
+              <span className="block text-caption text-fg-muted">Your message</span>
               <MorphButton textToCopy={ticket.id} label="Copy ID" />
             </div>
-            <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">&quot;{ticket.raw_text}&quot;</p>
+            <p className="whitespace-pre-wrap text-app leading-relaxed text-fg">&quot;{ticket.raw_text}&quot;</p>
           </div>
 
-          <div className="border-t border-white/10 pt-4">
-            <span className="text-xs block mb-2" style={{ color: statusColor }}>Resolution</span>
-            <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 min-h-[100px] font-sans text-sm text-[#ECECEC]">
+          <div className="border-t border-border pt-4">
+            <span className={cx('mb-2 block text-caption', statusText)}>Resolution</span>
+            <div className="min-h-[100px] rounded-lg border border-border bg-surface-raised p-4 text-app text-fg">
               {(isFullyResolved && finalResolution?.final_response)
                 ? parseCustomerResponse(finalResolution.final_response)
                 : (isEscalated
                     ? 'A human agent has taken over this ticket and is currently drafting a resolution.'
-                    : <div className="flex justify-center items-center py-8"><WavePhysicsLoader /></div>
+                    : <div className="flex items-center justify-center py-8"><WavePhysicsLoader /></div>
                   )}
             </div>
             {isFullyResolved && finalResolution?.final_response && (
@@ -631,7 +627,7 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -678,7 +674,7 @@ export function FeedbackStars({
   return (
     <div className="mt-3">
       <div className="flex items-center gap-1">
-        <span className="text-xs text-[#8A8F98] mr-2">Rate this response</span>
+        <span className="mr-2 text-caption text-fg-muted">Rate this response</span>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
@@ -688,18 +684,14 @@ export function FeedbackStars({
             onMouseLeave={() => setHovered(null)}
             onClick={() => handleRate(n)}
             disabled={isSubmitting}
-            className="disabled:opacity-50"
+            className="rounded-md p-0.5 text-warning disabled:opacity-50"
           >
-            <Star
-              className="w-4 h-4"
-              fill={displayed >= n ? '#E8A33D' : 'none'}
-              stroke="#E8A33D"
-            />
+            <Star className="h-4 w-4" fill={displayed >= n ? 'currentColor' : 'none'} stroke="currentColor" />
           </button>
         ))}
       </div>
       {score != null && (
-        <p className="text-xs text-[#2DD4BF] mt-1">
+        <p className="mt-1 text-caption text-success">
           Thanks for your feedback! You rated this {score}/5 - click a star to change it.
         </p>
       )}
@@ -708,20 +700,16 @@ export function FeedbackStars({
 }
 
 /** One label/value pair in the customer-facing ticket detail grid. */
-function UserMetaItem({ label, value, hint, color, mono, title }: {
-  label: string; value: string; hint?: string; color?: string; mono?: boolean; title?: string;
+function UserMetaItem({ label, value, hint, toneClass, mono, title }: {
+  label: string; value: string; hint?: string; toneClass?: string; mono?: boolean; title?: string;
 }) {
   return (
     <div className="min-w-0">
-      <span className="text-xs text-[#8A8F98] block mb-1">{label}</span>
-      <span
-        className={`text-sm block truncate ${mono ? 'font-mono' : 'font-sans'}`}
-        style={{ color: color || '#ECECEC' }}
-        title={title || value}
-      >
+      <span className="mb-1 block text-caption text-fg-muted">{label}</span>
+      <span className={cx('block truncate text-app', mono && 'font-mono', toneClass || 'text-fg')} title={title || value}>
         {value}
       </span>
-      {hint && <span className="text-xs text-[#8A8F98] block mt-0.5">{hint}</span>}
+      {hint && <span className="mt-0.5 block text-caption text-fg-muted">{hint}</span>}
     </div>
   );
 }

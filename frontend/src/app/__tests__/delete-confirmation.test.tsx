@@ -52,7 +52,7 @@ describe('Ticket delete confirmation (UR-006)', () => {
     const onConfirmedDelete = vi.fn();
     render(<DeleteFlowHarness onConfirmedDelete={onConfirmedDelete} />);
 
-    await user.click(screen.getByRole('button')); // the row's only button: delete
+    await user.click(screen.getByRole('button', { name: 'Delete' })); // the row's Delete button
 
     expect(screen.getByText('Delete this ticket?')).toBeInTheDocument();
     expect(onConfirmedDelete).not.toHaveBeenCalled();
@@ -63,7 +63,7 @@ describe('Ticket delete confirmation (UR-006)', () => {
     const onConfirmedDelete = vi.fn();
     render(<DeleteFlowHarness onConfirmedDelete={onConfirmedDelete} />);
 
-    await user.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
     await user.click(screen.getByRole('button', { name: 'Delete ticket' }));
 
     expect(onConfirmedDelete).toHaveBeenCalledWith('ticket-abc-123');
@@ -75,7 +75,7 @@ describe('Ticket delete confirmation (UR-006)', () => {
     const onConfirmedDelete = vi.fn();
     render(<DeleteFlowHarness onConfirmedDelete={onConfirmedDelete} />);
 
-    await user.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(onConfirmedDelete).not.toHaveBeenCalled();
