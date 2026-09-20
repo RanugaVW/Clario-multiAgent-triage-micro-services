@@ -19,6 +19,7 @@ export const theme: Theme = {
   brand: {
     name: 'Clario',
     tagline: 'Intelligent agentic support',
+    description: 'Submit and track support tickets with AI-powered triage.',
     mark: {
       viewBox: '0 0 24 24',
       path: 'M18.5 6.8A8.25 8.25 0 1 0 18.5 17.2',

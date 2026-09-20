@@ -6,6 +6,12 @@ import { COLOR_TOKENS, type ColorSet } from './types';
 const MODES = ['light', 'dark'] as const;
 
 describe('theme completeness', () => {
+  it('defines the brand name, tagline and page description', () => {
+    expect(theme.brand.name).toBeTruthy();
+    expect(theme.brand.tagline).toBeTruthy();
+    expect(theme.brand.description).toBeTruthy();
+  });
+
   it.each(MODES)('%s mode defines every color token', (mode) => {
     for (const token of COLOR_TOKENS) {
       expect(theme.colors[mode][token], `${mode}.${token}`).toBeTruthy();

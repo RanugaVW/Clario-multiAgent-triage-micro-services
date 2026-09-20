@@ -53,6 +53,8 @@ export interface Theme {
   brand: {
     name: string;
     tagline: string;
+    /** Page meta description (search results, link previews). */
+    description: string;
     /** Single-stroke logo mark, drawn in the brand color. Company supplies its own path data. */
     mark: { viewBox: string; path: string; dot?: { cx: number; cy: number; r: number } };
   };

@@ -10,7 +10,7 @@ import { ThemeStyle } from '../theme/ThemeStyle';
 
 export const metadata: Metadata = {
   title: `${theme.brand.name} - AI Support Triage`,
-  description: 'Submit and track support tickets with AI-powered triage.',
+  description: theme.brand.description,
 };
 
 export default function RootLayout({
