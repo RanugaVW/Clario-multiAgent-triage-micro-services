@@ -1,0 +1,138 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { ConfirmDialog, Modal } from './Modal';
+
+describe('Modal', () => {
+  it('renders nothing when closed', () => {
+    render(
+      <Modal open={false} onClose={() => {}} title="Title">
+        Body
+      </Modal>
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('is a modal dialog labelled by its title', () => {
+    render(
+      <Modal open onClose={() => {}} title="Invite a teammate">
+        Body
+      </Modal>
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Invite a teammate' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+  });
+
+  it('moves focus into the dialog when it opens', () => {
+    render(
+      <Modal open onClose={() => {}} title="T">
+        <button>Inside</button>
+      </Modal>
+    );
+    expect(screen.getByRole('dialog')).toHaveFocus();
+  });
+
+  it('closes on Escape, on the close button and on a backdrop click', async () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <Modal open onClose={onClose} title="T">
+        Body
+      </Modal>
+    );
+    await userEvent.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledTimes(2);
+
+    await userEvent.click(container.firstElementChild as HTMLElement);
+    expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not close when the panel itself is clicked', async () => {
+    const onClose = vi.fn();
+    render(
+      <Modal open onClose={onClose} title="T">
+        <p>Body</p>
+      </Modal>
+    );
+    await userEvent.click(screen.getByText('Body'));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('keeps Tab focus inside the dialog', async () => {
+    render(
+      <>
+        <button>Outside</button>
+        <Modal open onClose={() => {}} title="T">
+          <button>First</button>
+          <button>Last</button>
+        </Modal>
+      </>
+    );
+    // close button, First, Last are the focusable items inside
+    await userEvent.tab();
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: 'Last' })).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+  });
+
+  it('returns focus to the element that opened it', () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    const { rerender } = render(
+      <Modal open onClose={() => {}} title="T">
+        Body
+      </Modal>
+    );
+    rerender(
+      <Modal open={false} onClose={() => {}} title="T">
+        Body
+      </Modal>
+    );
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
+});
+
+describe('ConfirmDialog', () => {
+  const setup = (over: Partial<React.ComponentProps<typeof ConfirmDialog>> = {}) => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <ConfirmDialog
+        open
+        title="Delete ticket"
+        message="This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+        {...over}
+      />
+    );
+    return { onConfirm, onCancel };
+  };
+
+  it('shows the title and message', () => {
+    setup();
+    expect(screen.getByRole('dialog', { name: 'Delete ticket' })).toBeInTheDocument();
+    expect(screen.getByText('This cannot be undone.')).toBeInTheDocument();
+  });
+
+  it('confirms with the destructive button and cancels with the other', async () => {
+    const { onConfirm, onCancel } = setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels on Escape', async () => {
+    const { onCancel } = setup();
+    await userEvent.keyboard('{Escape}');
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+});
