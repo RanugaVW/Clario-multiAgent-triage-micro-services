@@ -1,14 +1,18 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Login from '../login/page';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
+import { renderWithTheme } from '../../test/renderWithTheme';
 
 // Mock Next.js navigation
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
+  usePathname: () => '/login',
 }));
+
+const renderLogin = () => renderWithTheme(<Login />, ['/login']);
 
 // Mock Supabase
 vi.mock('../../lib/supabase', () => ({
@@ -35,7 +39,7 @@ describe('Login Authentication', () => {
   });
 
   it('renders login form correctly', () => {
-    render(<Login />);
+    renderLogin();
 
     expect(screen.getByPlaceholderText('Email address')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
@@ -46,7 +50,7 @@ describe('Login Authentication', () => {
   // labels, not just placeholder text (placeholders disappear on input and
   // are not reliably announced by all screen readers).
   it('associates an accessible label with the email and password inputs', () => {
-    render(<Login />);
+    renderLogin();
 
     const emailInput = screen.getByLabelText('Email address');
     const passwordInput = screen.getByLabelText('Password');
@@ -59,14 +63,14 @@ describe('Login Authentication', () => {
 
   // SRS 3.9.1 (Authentication Interface): Forgot Password option + visibility toggle.
   it('links to the forgot-password page', () => {
-    render(<Login />);
+    renderLogin();
 
     expect(screen.getByRole('link', { name: /forgot password/i })).toHaveAttribute('href', '/forgot-password');
   });
 
   it('lets the user reveal the password they are typing, without submitting the form', async () => {
     const user = userEvent.setup();
-    render(<Login />);
+    renderLogin();
 
     await user.type(screen.getByPlaceholderText('Password'), 'secret-pw');
     expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'password');
@@ -84,7 +88,7 @@ describe('Login Authentication', () => {
       data: { user: null },
     } as unknown as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>);
 
-    render(<Login />);
+    renderLogin();
 
     await user.type(screen.getByPlaceholderText('Email address'), 'test@example.com');
     await user.type(screen.getByPlaceholderText('Password'), 'wrongpassword');
@@ -104,7 +108,7 @@ describe('Login Authentication', () => {
       data: { user: null },
     } as unknown as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>);
 
-    render(<Login />);
+    renderLogin();
     await user.type(screen.getByPlaceholderText('Email address'), 'gone@example.com');
     await user.type(screen.getByPlaceholderText('Password'), 'whatever');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
@@ -127,7 +131,7 @@ describe('Login Authentication', () => {
     const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
     vi.mocked(supabase.from).mockReturnValue({ select: mockSelect } as unknown as ReturnType<typeof supabase.from>);
 
-    render(<Login />);
+    renderLogin();
 
     await user.type(screen.getByPlaceholderText('Email address'), 'admin@example.com');
     await user.type(screen.getByPlaceholderText('Password'), 'password');
@@ -152,7 +156,7 @@ describe('Login Authentication', () => {
     const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
     vi.mocked(supabase.from).mockReturnValue({ select: mockSelect } as unknown as ReturnType<typeof supabase.from>);
 
-    render(<Login />);
+    renderLogin();
 
     await user.type(screen.getByPlaceholderText('Email address'), 'user@example.com');
     await user.type(screen.getByPlaceholderText('Password'), 'password');
@@ -161,5 +165,34 @@ describe('Login Authentication', () => {
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/dashboard');
     });
+  });
+
+  it('is the auth layout: one h1, a main landmark, a home link and the theme toggle', () => {
+    renderLogin();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Welcome back');
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /home$/i })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('group', { name: 'Color theme' })).toBeInTheDocument();
+  });
+
+  it('shows a failed sign-in as an alert', async () => {
+    const user = userEvent.setup();
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
+      data: { user: null, session: null },
+      error: { message: 'Invalid login credentials' },
+    } as never);
+    renderLogin();
+
+    await user.type(screen.getByPlaceholderText('Email address'), 'test@example.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'wrongpassword');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid login credentials');
+  });
+
+  it('links to registration with a real link (no full page reload)', () => {
+    renderLogin();
+    expect(screen.getByRole('link', { name: /create one now/i })).toHaveAttribute('href', '/register');
   });
 });

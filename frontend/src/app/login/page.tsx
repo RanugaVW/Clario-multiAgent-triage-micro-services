@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { useRouter } from 'next/navigation';
-import { Shield, KeyRound, Mail, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { GlassPanel, GlassButton, GlassInput, PasswordInput } from '../../components/ui';
-import { GlowBackdrop } from '../../components/ui/GlowBackdrop';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../../lib/supabase';
+import { AUTH_LINK, AuthLayout } from '../../components/auth/AuthLayout';
+import { Button } from '../../components/ui/Button';
+import { FormField } from '../../components/ui/FormField';
+import { Input, PasswordInput } from '../../components/ui/Input';
+import { Notice } from '../../components/ui/Notice';
+import { theme } from '../../theme/theme.config';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -53,90 +56,63 @@ export default function Login() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative glow. Login is still a dark-only legacy page; Phase 3 redesigns it. */}
-      <GlowBackdrop />
+    <AuthLayout
+      title="Welcome back"
+      description={`Sign in to your ${theme.brand.name} account. Your role is assigned from your profile.`}
+      footer={
+        <>
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className={AUTH_LINK}>
+            Create one now
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleLogin} className="flex flex-col gap-5">
+        {error && (
+          <Notice tone="danger" role="alert">
+            {error}
+          </Notice>
+        )}
 
-      <GlassPanel tier={1} className="relative z-10 w-full max-w-md p-8 sm:p-10 animate-fade-in overflow-hidden">
-        {/* Background elements */}
-        <div className="absolute -top-20 -right-20 p-8 opacity-10 pointer-events-none blur-3xl">
-          <Shield className="w-64 h-64 text-[#E8A33D]" />
+        {/* The placeholders are kept exactly (e2e/helpers.ts and e2e/auth.spec.ts select the fields by them). */}
+        <FormField label="Email address">
+          {(field) => (
+            <Input
+              {...field}
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+            />
+          )}
+        </FormField>
+
+        <FormField label="Password">
+          {(field) => (
+            <PasswordInput
+              {...field}
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+            />
+          )}
+        </FormField>
+
+        <div className="-mt-1 text-right">
+          <Link href="/forgot-password" className="text-app text-fg-muted underline underline-offset-4 transition-colors hover:text-fg">
+            Forgot password?
+          </Link>
         </div>
 
-        <div className="relative z-10">
-          <div className="flex flex-col items-center mb-10 text-center">
-            <div className="bg-white/5 p-4 rounded-3xl border border-white/10 mb-4 shadow-[0_0_20px_rgba(255,255,255,0.05)]">
-              <Shield className="text-[#E8A33D] w-8 h-8" />
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Welcome back</h1>
-            <p className="text-white/50 mt-2 text-sm">Please enter your details to sign in</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            {error && (
-              <div className="bg-[#FB7185]/10 border border-[#FB7185]/20 text-[#FB7185] text-sm p-4 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div className="relative group">
-                <label htmlFor="login-email" className="sr-only">Email address</label>
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-white/40 group-focus-within:text-[#E8A33D] transition-colors" />
-                </div>
-                <GlassInput
-                  id="login-email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-12"
-                  placeholder="Email address"
-                />
-              </div>
-
-              <div className="relative group">
-                <label htmlFor="login-password" className="sr-only">Password</label>
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <KeyRound className="h-5 w-5 text-white/40 group-focus-within:text-[#E8A33D] transition-colors" />
-                </div>
-                <PasswordInput
-                  id="login-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="glass-input rounded-2xl px-4 py-3.5 text-sm placeholder-white/40 pl-12"
-                  placeholder="Password"
-                />
-              </div>
-
-              <div className="text-right -mt-1">
-                <Link href="/forgot-password" className="text-sm text-white/60 hover:text-[#E8A33D] transition-colors underline underline-offset-4 decoration-white/20">
-                  Forgot password?
-                </Link>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <GlassButton type="submit" variant="primary" disabled={loading} className="w-full">
-                <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
-                {!loading && <ArrowRight className="w-4 h-4" />}
-              </GlassButton>
-            </div>
-          </form>
-
-          <div className="mt-8 text-center text-sm">
-            <p className="text-white/40 mb-1">Role is automatically assigned from your profile.</p>
-            <p className="text-white/60">
-              Don&apos;t have an account?{' '}
-              <a href="/register" className="text-white hover:text-[#E8A33D] font-medium transition-colors underline underline-offset-4 decoration-white/20">
-                Create one now
-              </a>
-            </p>
-          </div>
-        </div>
-      </GlassPanel>
-    </main>
+        <Button type="submit" size="lg" disabled={loading} className="w-full">
+          {loading ? 'Signing in…' : 'Sign in'}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }
