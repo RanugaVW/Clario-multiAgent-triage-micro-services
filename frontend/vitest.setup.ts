@@ -1,6 +1,21 @@
 import '@testing-library/jest-dom';
 import { vi, beforeAll, afterAll } from 'vitest';
 
+// jsdom has no IntersectionObserver and framer-motion's whileInView needs one. Nothing ever intersects in tests.
+if (!('IntersectionObserver' in globalThis)) {
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    }
+  );
+}
+
 // Global mock for fetch if needed
 global.fetch = vi.fn();
 
