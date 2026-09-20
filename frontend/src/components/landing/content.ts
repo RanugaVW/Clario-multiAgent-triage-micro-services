@@ -102,7 +102,6 @@ export const review = {
       { subject: 'Refund for a duplicate charge', tag: 'Billing', selected: false },
       { subject: 'Export fails with a timeout', tag: 'Technical', selected: false },
     ],
-    status: 'Needs review',
     draftLabel: 'Draft reply',
     draft: 'Thanks for asking. We are checking your leave balance after the transfer and will confirm the exact figure.',
     actions: ['Send reply'],

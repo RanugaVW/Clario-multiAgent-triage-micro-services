@@ -20,10 +20,7 @@ export function ReviewQueueMock() {
         {mock.rows.map((row) => (
           <li key={row.subject} className={cx('flex items-center justify-between gap-3 px-5 py-3', row.selected && 'bg-canvas')}>
             <span className="text-app text-fg">{row.subject}</span>
-            <span className="flex shrink-0 items-center gap-2">
-              <Badge>{row.tag}</Badge>
-              <Badge tone="warning">{mock.status}</Badge>
-            </span>
+            <Badge>{row.tag}</Badge>
           </li>
         ))}
       </ul>

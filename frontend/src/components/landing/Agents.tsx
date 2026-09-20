@@ -8,7 +8,6 @@ import { Reveal } from './Reveal';
 import { SectionHeading } from './SectionHeading';
 
 const ICONS = { technical: Wrench, billing: CreditCard, hr: Users } as const;
-const SPAN = { technical: 'md:col-span-2', billing: '', hr: '' } as const;
 
 // Icons sit on brand-soft; that pairing is only contrast-tested for non-text, so never put text on it.
 function IconTile({ children }: { children: ReactNode }) {
@@ -24,7 +23,7 @@ export function Agents() {
         {agents.items.map((item, i) => {
           const Icon = ICONS[item.key];
           return (
-            <Reveal key={item.key} delay={i * 0.06} className={SPAN[item.key]}>
+            <Reveal key={item.key} delay={i * 0.06}>
               <Card className="flex h-full flex-col gap-4">
                 <div className="flex items-start justify-between gap-3">
                   <IconTile>
@@ -39,7 +38,7 @@ export function Agents() {
           );
         })}
 
-        <Reveal delay={0.18} className="md:col-span-2">
+        <Reveal delay={0.18} className="md:col-span-3">
           <Card className="flex h-full flex-col gap-4 sm:flex-row sm:items-center">
             <IconTile>
               <ImagePlus className="h-5 w-5" aria-hidden="true" />
