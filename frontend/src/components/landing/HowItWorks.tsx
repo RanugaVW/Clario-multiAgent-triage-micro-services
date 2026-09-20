@@ -9,7 +9,7 @@ export function HowItWorks() {
     <Section id={steps.id} aria-labelledby={`${steps.id}-title`} className="scroll-mt-20">
       <SectionHeading id={steps.id} title={steps.title} intro={steps.intro} />
 
-      <ol className="mt-12 grid gap-8 md:grid-cols-3 lg:grid-cols-5">
+      <ol role="list" className="mt-12 grid gap-8 md:grid-cols-3 lg:grid-cols-5">
         {steps.items.map((step, i) => (
           <li key={step.title}>
             <Reveal delay={i * 0.06} className="flex flex-col gap-3">

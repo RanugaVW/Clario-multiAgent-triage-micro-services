@@ -14,6 +14,8 @@ describe('HowItWorks', () => {
     render(<HowItWorks />);
     const list = screen.getByRole('list');
     expect(list.tagName).toBe('OL');
+    // Preflight removes list-style, and Safari/VoiceOver then drop the list semantics unless the role is explicit.
+    expect(list).toHaveAttribute('role', 'list');
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(5);
     steps.items.forEach((step, i) => {
