@@ -184,6 +184,7 @@ input:-webkit-autofill:active {
   ::before,
   ::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
@@ -207,4 +208,59 @@ input:-webkit-autofill:active {
 
 .animate-pulse-slow {
   animation: pulse-slow 2s infinite ease-in-out;
+}
+
+/*
+ * Landing motion. Timings and distances come from the theme (--m-*); nothing here is a color or a size.
+ * Every animation ends visible (fill-mode forwards) and the reduced-motion block above collapses them to instant.
+ */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--m-reveal-offset) * 1px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Hero entrance. Set --rise-index (0, 1, 2 ...) on the element to stagger it by the theme's hero stagger. */
+.rise-in {
+  opacity: 0;
+  animation: rise-in var(--m-duration-slow) var(--m-ease-out) forwards;
+  animation-delay: calc(var(--rise-index, 0) * var(--m-hero-stagger) * 1s);
+}
+
+@keyframes demo-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The example ticket plays once, one step at a time. Set --demo-index (0, 1, 2 ...) on each step. */
+.demo-step {
+  opacity: 0;
+  animation: demo-in var(--m-duration-base) var(--m-ease-out) forwards;
+  animation-delay: calc(0.6s + var(--demo-index, 0) * 0.7s);
+}
+
+@keyframes glow-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 5%, 0) scale(1.08);
+  }
+}
+
+.glow-blob {
+  background: radial-gradient(closest-side, var(--c-glow), transparent);
+  filter: blur(48px);
+  animation: glow-drift 20s ease-in-out infinite alternate;
 }
