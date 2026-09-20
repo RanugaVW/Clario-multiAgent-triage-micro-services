@@ -21,4 +21,13 @@ describe('Reveal', () => {
     );
     expect(screen.getByTestId('wrap')).toHaveStyle({ opacity: '0' });
   });
+
+  it('carries a stable data-reveal hook so a <noscript> stylesheet can force reveals visible without JavaScript', () => {
+    render(
+      <Reveal data-testid="wrap">
+        <p>Inside</p>
+      </Reveal>
+    );
+    expect(screen.getByTestId('wrap')).toHaveAttribute('data-reveal');
+  });
 });

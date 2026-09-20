@@ -12,7 +12,10 @@ import { theme } from '../../theme/theme.config';
 export function Reveal({
   delay = 0,
   ...rest
-}: Omit<ComponentProps<typeof motion.div>, 'initial' | 'whileInView' | 'viewport' | 'transition'> & { delay?: number }) {
+}: Omit<
+  ComponentProps<typeof motion.div>,
+  'initial' | 'animate' | 'whileInView' | 'viewport' | 'transition' | 'variants' | 'exit' | 'style'
+> & { delay?: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: theme.motion.revealOffset }}
@@ -20,6 +23,9 @@ export function Reveal({
       viewport={{ once: true, margin: '0px 0px -80px 0px' }}
       transition={{ duration: duration.slow, ease: ease.out, delay }}
       {...rest}
+      // The server HTML carries inline opacity:0 from `initial`. This hook lets the page's <noscript> stylesheet force
+      // reveals visible when JavaScript is off. It comes after {...rest} so a caller can never remove it.
+      data-reveal=""
     />
   );
 }
