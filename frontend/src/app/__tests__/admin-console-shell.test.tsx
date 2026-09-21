@@ -89,4 +89,15 @@ describe('Admin console inside the shared navigation shell', () => {
     expect(badge.parentElement).toHaveClass('bg-surface', 'border-border');
     expect(badge.parentElement?.className).not.toMatch(/gradient|#|white\//);
   });
+
+  it('tones the active priority pills with the same rule as priorityClass', async () => {
+    const user = userEvent.setup();
+    render(<AdminDashboard />);
+    const nav = await screen.findByRole('navigation', { name: 'Main' });
+    await user.click(within(nav).getByRole('button', { name: /All Tickets/ }));
+    await user.click(screen.getByRole('button', { name: 'high' }));
+    expect(screen.getByRole('button', { name: 'high' })).toHaveClass('text-warning');
+    await user.click(screen.getByRole('button', { name: 'critical' }));
+    expect(screen.getByRole('button', { name: 'critical' })).toHaveClass('text-danger');
+  });
 });

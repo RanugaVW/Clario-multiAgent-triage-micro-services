@@ -22,7 +22,7 @@ import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 import ShakeButton from '../../components/ShakeButton';
 import { formatDate, formatDateTime, formatElapsed, formatDuration, formatRelative, formatTime } from '../../lib/datetime';
 import { fetchJson } from '../../lib/fetchJson';
-import { categoryDomain, priorityColor, sentimentColor, splitCategories } from '../../lib/classification';
+import { categoryDomain, priorityClass, priorityColor, sentimentColor, splitCategories } from '../../lib/classification';
 import { cx } from '../../lib/cx';
 import RotateButton from '../../components/RotateButton';
 
@@ -381,8 +381,10 @@ export default function AdminDashboard() {
 
         {/* ── Debug ──────────────────────────────────────────────────────────── */}
         {debugInfo && (
-          <Notice tone="danger" role="alert" className="mb-6 font-mono text-mono text-fg-muted">
-            <strong>Debug:</strong> {debugInfo}
+          <Notice tone="danger" className="mb-6">
+            <div className="font-mono text-mono text-fg-muted">
+              <strong>Debug:</strong> {debugInfo}
+            </div>
           </Notice>
         )}
 
@@ -1185,9 +1187,9 @@ function CategoryPill({ active, onClick, label, count }: {
   );
 }
 
+// critical/high come from priorityClass so priority has one tone rule across admin; the map only adds the
+// two levels that helper leaves at the default colour.
 const PRIORITY_COLORS: Record<string, string> = {
-  critical: 'text-danger',
-  high: 'text-danger',
   medium: 'text-warning',
   low: 'text-fg-muted',
 };
@@ -1196,7 +1198,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 function PriorityPill({ active, onClick, priority }: {
   active: boolean; onClick: () => void; priority: 'all' | 'low' | 'medium' | 'high' | 'critical';
 }) {
-  const toneClass = PRIORITY_COLORS[priority];
+  const toneClass = priorityClass(priority) || PRIORITY_COLORS[priority];
   return (
     <button
       onClick={onClick}
