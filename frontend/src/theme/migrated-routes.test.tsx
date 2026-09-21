@@ -31,6 +31,10 @@ describe('MIGRATED_ROUTES', () => {
     expect(MIGRATED_ROUTES).toContain('/dashboard');
   });
 
+  it('includes /agent (the agent console is on the theme tokens)', () => {
+    expect(MIGRATED_ROUTES).toContain('/agent');
+  });
+
   it('is what the rendered ThemeScript embeds', () => {
     const html = renderToStaticMarkup(<ThemeScript />);
     expect(html).toContain(JSON.stringify(MIGRATED_ROUTES));

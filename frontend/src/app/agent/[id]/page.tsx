@@ -133,10 +133,12 @@ export default function AgentTicketReview() {
       </Card>
 
       {sent ? (
-        <Notice tone="success" role="status" focusOnMount className="space-y-4 p-6 text-center">
-          <CheckCircle2 className="mx-auto h-10 w-10" aria-hidden="true" />
-          <p className="font-medium">Response sent. The ticket is now resolved.</p>
-          <Link href="/agent" className={AUTH_LINK}>Back to queue</Link>
+        <Notice tone="success" role="status" focusOnMount className="p-6 text-center">
+          <div className="space-y-4">
+            <CheckCircle2 className="mx-auto h-10 w-10" aria-hidden="true" />
+            <p className="font-medium">Response sent. The ticket is now resolved.</p>
+            <Link href="/agent" className={AUTH_LINK}>Back to queue</Link>
+          </div>
         </Notice>
       ) : alreadyResolved ? (
         <Notice tone="info" role="status">

@@ -62,11 +62,18 @@ describe('UR-001 - shared design system usage', () => {
     '../components/VoiceRecorder.tsx',
     '../components/AudioWaveform.tsx',
     '../components/WavePhysicsLoader.tsx',
+    'agent/page.tsx',
+    'agent/[id]/page.tsx',
+    'agent/AgentShell.tsx',
   ])('%s uses theme tokens only (no hex, rgb(), white/NN or glass classes)', (file) => {
     const code = src(file);
     expect(code).not.toMatch(HEX);
     expect(code).not.toMatch(/rgba?\(/);
     expect(code).not.toMatch(/glass-|white\/|text-\[#/);
+  });
+
+  it.each(['agent/page.tsx', 'agent/[id]/page.tsx'])('%s imports primitives by file path, never the legacy ui.tsx barrel', (file) => {
+    expect(src(file)).not.toMatch(/from '(\.\.\/)+components\/ui'/);
   });
 
   it('the dashboard imports primitives by file path, never the legacy ui.tsx barrel', () => {
