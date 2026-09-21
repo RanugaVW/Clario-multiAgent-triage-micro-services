@@ -86,12 +86,33 @@ describe('horizon palettes', () => {
   it.each(MODES)('%s mode horizon values are valid CSS colors (except reflect)', (mode) => {
     const h = theme.horizon[mode];
     const hexOrRgba = /^(#[0-9a-fA-F]{6}|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[0-9.]+\s*\))$/;
-    expect(h.core).toMatch(hexOrRgba);
-    expect(h.ring).toMatch(hexOrRgba);
-    expect(h.ringAlt).toMatch(hexOrRgba);
-    expect(h.halo).toMatch(hexOrRgba);
-    expect(h.void).toMatch(hexOrRgba);
-    expect(h.star).toMatch(hexOrRgba);
+    const colors = Object.entries(h).filter(([name]) => name !== 'reflect');
+    expect(colors.length).toBeGreaterThanOrEqual(13);
+    for (const [name, value] of colors) {
+      expect(`${name}=${value}`).toMatch(new RegExp(`^${name}=(#[0-9a-fA-F]{6}|rgba\\(.*\\))$`));
+      expect(value).toMatch(hexOrRgba);
+    }
+  });
+
+  it('the bloom ramp core -> glow1..glow4 is defined in both modes', () => {
+    for (const mode of MODES) {
+      const h = theme.horizon[mode];
+      for (const key of ['core', 'glow1', 'glow2', 'glow3', 'glow4'] as const) {
+        expect(h[key]).toBeTruthy();
+      }
+      // The ramp must actually be a ramp, not one colour repeated.
+      expect(new Set([h.core, h.glow1, h.glow2, h.glow3, h.glow4]).size).toBe(5);
+    }
+  });
+
+  it('every horizon colour differs between light and dark', () => {
+    const dark = theme.horizon.dark;
+    const light = theme.horizon.light;
+    const keys = (Object.keys(dark) as (keyof typeof dark)[]).filter((k) => k !== 'reflect');
+    expect(keys.length).toBeGreaterThanOrEqual(13);
+    for (const key of keys) {
+      expect(`${key}:${dark[key]}`).not.toBe(`${key}:${light[key]}`);
+    }
   });
 
   it.each(MODES)('%s mode horizon reflect parses to a number in [0, 1]', (mode) => {

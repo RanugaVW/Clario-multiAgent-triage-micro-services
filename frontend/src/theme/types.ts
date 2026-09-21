@@ -62,18 +62,37 @@ export interface ChartPalette {
   status: { good: string; warning: string; serious: string; critical: string };
 }
 
+/**
+ * The lensed-disc ("black hole") effect above the hero card. The bloom is a stack of the same dome
+ * shape in five colours, so `core` -> `glow1` -> `glow2` -> `glow3` -> `glow4` must read as one
+ * continuous hot-to-cold progression (white -> pink -> magenta -> violet -> blue in dark mode).
+ */
 export interface HorizonPalette {
-  /** Hot centre line of the ring and the sweep highlight. */
+  /** White-hot centre of the dome and the brightest part of the horizon line. */
   core: string;
-  /** Main ring and horizon line. */
+  /** First fringe outside the core (hot pink in dark mode). */
+  glow1: string;
+  /** Second fringe: the saturated mid band (magenta). */
+  glow2: string;
+  /** Third fringe: the wide bloom (violet). */
+  glow3: string;
+  /** Outermost fringe: the faint dome that fades into the page (blue-violet). */
+  glow4: string;
+  /** The bright photon ring around the disc. */
   ring: string;
-  /** Inner ring (a second accent hue). */
+  /** Inner photon ring (a second accent hue). */
   ringAlt: string;
-  /** Soft halo behind the ring (may be translucent). */
+  /** Thin flares that run along the horizon line either side of the dome. */
+  flare: string;
+  /** Soft halo behind everything, and the reflection on the card (may be translucent). */
   halo: string;
-  /** Fill inside the inner ring (the "void"). */
+  /** Top of the dark disc inside the rings. */
+  disc: string;
+  /** Glow at the bottom of the disc, where it meets the horizon. */
+  discGlow: string;
+  /** Deepest shadow: the core of the void and the vignette under the dome. */
   void: string;
-  /** Stars and the faint outer arcs. */
+  /** Stars, the faint outer arcs and their node dots. */
   star: string;
   /** Opacity 0..1 of the glow reflected onto the card below, as a string. */
   reflect: string;

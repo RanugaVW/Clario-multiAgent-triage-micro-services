@@ -34,9 +34,16 @@ function chartEntries(c: ChartPalette): Entry[] {
 function horizonEntries(h: HorizonPalette): Entry[] {
   return [
     ['--hz-core', h.core],
+    ['--hz-glow-1', h.glow1],
+    ['--hz-glow-2', h.glow2],
+    ['--hz-glow-3', h.glow3],
+    ['--hz-glow-4', h.glow4],
     ['--hz-ring', h.ring],
     ['--hz-ring-alt', h.ringAlt],
+    ['--hz-flare', h.flare],
     ['--hz-halo', h.halo],
+    ['--hz-disc', h.disc],
+    ['--hz-disc-glow', h.discGlow],
     ['--hz-void', h.void],
     ['--hz-star', h.star],
     ['--hz-reflect', h.reflect],

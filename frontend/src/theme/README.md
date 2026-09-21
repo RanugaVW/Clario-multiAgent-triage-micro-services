@@ -23,7 +23,26 @@ Colors, type, spacing, radii, layout widths, motion (durations, easing, stagger,
 
 ## The landing hero event horizon effect
 
-The decorative event horizon ring above the demo card is themed by `theme.horizon` in `theme.config.ts`. Per-mode tokens `core`, `ring`, `ringAlt`, `halo`, `void`, and `star` define the effect's colors. Set `reflect: '0'` to disable the card glow reflection; the effect is decorative and respects `prefers-reduced-motion`.
+The decorative lensed disc above the demo card is themed by `theme.horizon` in `theme.config.ts`, which has a full palette for each mode (`light` and `dark`). Every field is emitted as a `--hz-*` variable by `css.ts` and is the only source of colour for the effect; `EventHorizon.tsx` contains no literals.
+
+| Field | `--hz-*` | What it paints |
+| --- | --- | --- |
+| `core` | `--hz-core` | The hottest line of the arch and the brightest point of the horizon |
+| `glow1` | `--hz-glow-1` | First fringe outside the core |
+| `glow2` | `--hz-glow-2` | The saturated mid band, and the reflection's ring |
+| `glow3` | `--hz-glow-3` | The wide bloom, and the reflection's core |
+| `glow4` | `--hz-glow-4` | The outermost dome, fading into the page |
+| `ring` | `--hz-ring` | The bright photon ring around the disc |
+| `ringAlt` | `--hz-ring-alt` | The inner photon ring (a second accent hue) |
+| `flare` | `--hz-flare` | The thin flares running along the horizon line |
+| `halo` | `--hz-halo` | The soft halo dome behind everything |
+| `disc` | `--hz-disc` | The body of the dark disc inside the rings |
+| `discGlow` | `--hz-disc-glow` | The glow at the bottom of the disc, where it meets the horizon |
+| `void` | `--hz-void` | The deepest shadow, at the top of the disc |
+| `star` | `--hz-star` | The stars, the faint outer arcs and their node dots |
+| `reflect` | `--hz-reflect` | Opacity `0`..`1` of the glow reflected onto the card, as a string |
+
+`core` -> `glow1` -> `glow2` -> `glow3` -> `glow4` must read as one continuous ramp from the hottest colour to the one that disappears into the canvas; in dark mode that is white -> pink -> magenta -> violet -> blue, in light mode it runs the other way (a saturated violet arch fading to pale). Set `reflect: '0'` to disable the card glow reflection entirely (the light theme does). The effect is decorative (`aria-hidden`, nothing focusable), animates only `transform` and `opacity`, and the global `prefers-reduced-motion` block collapses it to a complete static composition.
 
 ## Modes and charts
 
