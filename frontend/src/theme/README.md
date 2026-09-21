@@ -21,6 +21,10 @@ Colors, type, spacing, radii, layout widths, motion (durations, easing, stagger,
 - Do not put colors or sizes in components or in `globals.css`. Add or change a token in `theme.config.ts` instead.
 - Do not add `dark:` variants. Dark and light are both defined in the theme file and switch through CSS variables.
 
+## The landing hero event horizon effect
+
+The decorative event horizon ring above the demo card is themed by `theme.horizon` in `theme.config.ts`. Per-mode tokens `core`, `ring`, `ringAlt`, `halo`, `void`, and `star` define the effect's colors. Set `reflect: '0'` to disable the card glow reflection; the effect is decorative and respects `prefers-reduced-motion`.
+
 ## Modes and charts
 
 Every route follows the theme: the `ThemeToggle` (System, Light, Dark) and the pre-paint script in `ThemeScript.tsx` apply the chosen mode everywhere, with no per-route exceptions. Chart colours live in `theme.charts` in `theme.config.ts` (a categorical palette and tone colours for light and dark), so re-skinning the theme re-skins the charts too.

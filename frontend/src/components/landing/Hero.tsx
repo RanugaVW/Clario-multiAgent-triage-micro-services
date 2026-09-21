@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { ButtonLink } from '../ui/Button';
 import { Container } from '../ui/Container';
 import { GlowBackdrop } from '../ui/GlowBackdrop';
+import { EventHorizon, EventHorizonReflection } from './EventHorizon';
 import { hero } from './content';
 import { TriageDemo } from './TriageDemo';
 
@@ -27,8 +28,10 @@ export function Hero() {
             {hero.secondary.label}
           </ButtonLink>
         </div>
-        <div className="rise-in mt-16 w-full max-w-3xl" style={at(3)}>
+        <div className="rise-in relative mt-40 w-full max-w-3xl sm:mt-56" style={at(3)}>
+          <EventHorizon />
           <TriageDemo />
+          <EventHorizonReflection />
         </div>
       </Container>
     </section>
