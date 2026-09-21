@@ -9,6 +9,12 @@ import { AgentShell } from '../AgentShell';
 import { fetchStaffTickets, submitResolution } from '../../../lib/agentApi';
 import { draftFor, isAnswered, ticketCategories, type QueueTicket } from '../../../lib/agentQueue';
 import { formatDateTime } from '../../../lib/datetime';
+import { Badge } from '../../../components/ui/Badge';
+import { Button } from '../../../components/ui/Button';
+import { Card } from '../../../components/ui/Card';
+import { Notice } from '../../../components/ui/Notice';
+import { Textarea } from '../../../components/ui/Input';
+import { AUTH_LINK } from '../../../components/auth/AuthLayout';
 
 type LoadState = 'loading' | 'ready' | 'missing' | 'error';
 
@@ -73,15 +79,15 @@ export default function AgentTicketReview() {
 
   if (loading || state === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading ticket">
-        <Loader2 className="w-8 h-8 animate-spin text-[#E8A33D]" />
+      <div className="flex min-h-dvh items-center justify-center bg-canvas" role="status" aria-label="Loading ticket">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" aria-hidden="true" />
       </div>
     );
   }
 
   const back = (
-    <Link href="/agent" className="inline-flex items-center gap-2 text-sm text-[#8A8F98] hover:text-[#ECECEC] transition-colors">
-      <ArrowLeft className="w-4 h-4" /> Back to queue
+    <Link href="/agent" className="inline-flex items-center gap-2 rounded-md text-app text-fg-muted transition-colors hover:text-fg">
+      <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to queue
     </Link>
   );
 
@@ -89,10 +95,10 @@ export default function AgentTicketReview() {
     return (
       <AgentShell><div className="max-w-3xl space-y-6">
         {back}
-        <div role="alert" className="bg-[#FB7185]/10 border border-[#FB7185]/30 text-[#FB7185] text-sm p-4 rounded-2xl">
+        <Notice tone="danger" role="alert">
           {state === 'missing' ? 'Ticket not found.' : `Could not load the ticket: ${loadError}`}
-          {state === 'error' && <button onClick={retry} className="ml-3 underline underline-offset-4">Try again</button>}
-        </div>
+          {state === 'error' && <Button variant="secondary" size="sm" onClick={retry} className="ml-3">Try again</Button>}
+        </Notice>
       </div></AgentShell>
     );
   }
@@ -107,61 +113,54 @@ export default function AgentTicketReview() {
       {back}
 
       <header>
-        <h1 className="text-2xl font-bold text-[#ECECEC]">{ticket.subject?.trim() || 'Support ticket'}</h1>
-        <p className="text-sm text-[#8A8F98] mt-1">
+        <h1 className="text-h2 text-fg">{ticket.subject?.trim() || 'Support ticket'}</h1>
+        <p className="mt-1 text-app text-fg-muted">
           <span className="font-mono">{ticket.id}</span> · opened {formatDateTime(ticket.created_at)}
           {ticket.customer_email ? ` · ${ticket.customer_email}` : ''}
         </p>
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="mt-3 flex flex-wrap gap-2">
           {ticketCategories(ticket).map((c) => (
-            <span key={c} className="px-2 py-0.5 rounded-full text-xs font-medium bg-white/[0.06] text-[#8A8F98]">{c}</span>
+            <Badge key={c}>{c}</Badge>
           ))}
-          {cls?.priority && <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#FB923C]/15 text-[#FB923C]">Priority: {cls.priority}</span>}
-          {cls?.sentiment && <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-white/[0.06] text-[#8A8F98]">Sentiment: {cls.sentiment}</span>}
+          {cls?.priority && <Badge tone="warning">Priority: {cls.priority}</Badge>}
+          {cls?.sentiment && <Badge>Sentiment: {cls.sentiment}</Badge>}
         </div>
       </header>
 
-      <section aria-labelledby="customer-message" className="glass-panel rounded-[28px] p-6">
-        <h2 id="customer-message" className="text-sm font-semibold text-[#8A8F98] mb-3">Customer message</h2>
-        <p className="whitespace-pre-wrap text-[#ECECEC] text-sm">{customerText}</p>
-      </section>
+      <Card aria-labelledby="customer-message" role="region">
+        <h2 id="customer-message" className="mb-3 text-app font-semibold text-fg-muted">Customer message</h2>
+        <p className="whitespace-pre-wrap text-app text-fg">{customerText}</p>
+      </Card>
 
       {sent ? (
-        <div role="status" className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-6 rounded-2xl text-center space-y-4">
-          <CheckCircle2 className="w-10 h-10 mx-auto" />
+        <Notice tone="success" role="status" focusOnMount className="space-y-4 p-6 text-center">
+          <CheckCircle2 className="mx-auto h-10 w-10" aria-hidden="true" />
           <p className="font-medium">Response sent. The ticket is now resolved.</p>
-          <Link href="/agent" className="underline underline-offset-4">Back to queue</Link>
-        </div>
+          <Link href="/agent" className={AUTH_LINK}>Back to queue</Link>
+        </Notice>
       ) : alreadyResolved ? (
-        <div role="status" className="bg-white/[0.04] border border-white/10 text-[#8A8F98] p-6 rounded-2xl text-sm">
+        <Notice tone="info" role="status">
           This ticket has already been resolved, so it can no longer be answered here.
-        </div>
+        </Notice>
       ) : (
-        <section aria-labelledby="your-response" className="glass-panel rounded-[28px] p-6 space-y-4">
-          <h2 id="your-response" className="text-sm font-semibold text-[#8A8F98] flex items-center gap-2">
+        <Card aria-labelledby="your-response" role="region" className="space-y-4">
+          <h2 id="your-response" className="flex items-center gap-2 text-app font-semibold text-fg-muted">
             Your response
-            {hasDraft && <span className="inline-flex items-center gap-1 text-[#E8A33D] font-normal"><Sparkles className="w-3 h-3" /> starts from the AI draft — review before sending</span>}
+            {hasDraft && <span className="inline-flex items-center gap-1 font-normal text-brand"><Sparkles className="h-3 w-3" aria-hidden="true" /> starts from the AI draft — review before sending</span>}
           </h2>
           <label htmlFor="agent-reply" className="sr-only">Response to the customer</label>
-          <textarea
+          <Textarea
             id="agent-reply"
             value={reply}
             onChange={(e) => setReply(e.target.value)}
             rows={10}
-            className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm placeholder-white/40 resize-y"
             placeholder="Write the response the customer will receive…"
           />
-          {sendError && (
-            <div role="alert" className="bg-[#FB7185]/10 border border-[#FB7185]/30 text-[#FB7185] text-sm p-3 rounded-xl">{sendError}</div>
-          )}
-          <button
-            onClick={handleSend}
-            disabled={!reply.trim() || sending}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 font-semibold bg-gradient-to-r from-[#E8A33D] to-[#F4B856] text-[#08090D] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Send className="w-4 h-4" /> {sending ? 'Sending…' : 'Send response & resolve'}
-          </button>
-        </section>
+          {sendError && <Notice tone="danger" role="alert">{sendError}</Notice>}
+          <Button size="lg" onClick={handleSend} disabled={!reply.trim() || sending} className="w-full">
+            <Send className="h-4 w-4" aria-hidden="true" /> {sending ? 'Sending…' : 'Send response & resolve'}
+          </Button>
+        </Card>
       )}
     </div></AgentShell>
   );

@@ -256,3 +256,53 @@ describe('Agent ticket review page (FR-035 / FR-036)', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 });
+
+describe('Agent ticket review page - token markup and semantics', () => {
+  beforeEach(() => { vi.clearAllMocks(); routeParams = { id: 'ticket-aaaa-1111' }; asRole('agent'); });
+
+  it('moves keyboard focus to the success notice after sending', async () => {
+    mockFetch((_url, init) => (init?.method === 'PUT' ? { body: { success: true } } : { body: { data: TICKETS } }));
+    const user = userEvent.setup();
+    render(<AgentTicketReview />);
+
+    await user.click(await screen.findByRole('button', { name: /send response/i }));
+
+    const notice = await screen.findByRole('status');
+    expect(notice).toHaveTextContent(/ticket is now resolved/i);
+    expect(notice).toHaveFocus();
+  });
+
+  it('shows the priority and sentiment as badges', async () => {
+    mockFetch(() => ({ body: { data: TICKETS } }));
+    render(<AgentTicketReview />);
+
+    const priority = await screen.findByText('Priority: Urgent');
+    expect(priority.className).toMatch(/\btext-warning\b/);
+    expect(screen.getByText('Sentiment: Frustrated')).toBeInTheDocument();
+  });
+
+  it('labels the reply textarea and marks the AI draft hint', async () => {
+    mockFetch(() => ({ body: { data: TICKETS } }));
+    render(<AgentTicketReview />);
+
+    const box = await screen.findByLabelText('Response to the customer');
+    expect(box.tagName).toBe('TEXTAREA');
+    expect(box).toHaveValue('Draft: we will refund you.');
+    expect(screen.getByText(/starts from the AI draft/)).toBeInTheDocument();
+  });
+
+  it('renders not-found and load errors as alerts with a way back', async () => {
+    routeParams = { id: 'nope' };
+    mockFetch(() => ({ body: { data: TICKETS } }));
+    const first = render(<AgentTicketReview />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ticket not found');
+    expect(screen.getByRole('link', { name: /Back to queue/ })).toHaveAttribute('href', '/agent');
+    first.unmount();
+
+    routeParams = { id: 'ticket-aaaa-1111' };
+    mockFetch(() => ({ status: 500, body: { error: 'Boom' } }));
+    render(<AgentTicketReview />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load the ticket');
+    expect(screen.getByRole('link', { name: /Back to queue/ })).toHaveAttribute('href', '/agent');
+  });
+});
