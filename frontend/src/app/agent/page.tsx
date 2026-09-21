@@ -15,7 +15,7 @@ import { Notice } from '../../components/ui/Notice';
 import { cx } from '../../lib/cx';
 
 export default function AgentDashboard() {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, roleLoading } = useAuth();
   const router = useRouter();
   const [tickets, setTickets] = useState<QueueTicket[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -24,9 +24,10 @@ export default function AgentDashboard() {
   const isStaffUser = !!user && (role === 'agent' || role === 'admin');
 
   useEffect(() => {
-    if (loading) return;
+    // The role arrives after the session; deciding earlier would bounce a signed-in agent to /login on every reload.
+    if (loading || roleLoading) return;
     if (!isStaffUser) router.push('/login');
-  }, [loading, isStaffUser, router]);
+  }, [loading, roleLoading, isStaffUser, router]);
 
   // No synchronous setState here: the effect below calls it on mount, when the
   // initial state (fetching, no error) is already correct.
@@ -53,7 +54,7 @@ export default function AgentDashboard() {
   const queue = useMemo(() => reviewQueue(tickets), [tickets]);
   const stats = useMemo(() => queueStats(tickets), [tickets]);
 
-  if (loading) return (
+  if (loading || roleLoading) return (
     <div className="flex min-h-dvh items-center justify-center bg-canvas">
       <Loader2 className="h-8 w-8 animate-spin text-brand" aria-hidden="true" />
     </div>

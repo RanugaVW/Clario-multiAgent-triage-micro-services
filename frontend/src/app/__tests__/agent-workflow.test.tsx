@@ -306,3 +306,21 @@ describe('Agent ticket review page - token markup and semantics', () => {
     expect(screen.getByRole('link', { name: /Back to queue/ })).toHaveAttribute('href', '/agent');
   });
 });
+
+describe('Agent pages wait for the role before deciding to redirect', () => {
+  beforeEach(() => { vi.clearAllMocks(); routeParams = { id: 'ticket-aaaa-1111' }; });
+
+  // The session resolves first and the role a moment later: user set, role still null, roleLoading true.
+  const roleInFlight = () => vi.mocked(useAuth).mockReturnValue({
+    user: { id: 'agent-1', email: 'a@example.com' }, role: null, loading: false, roleLoading: true,
+  } as unknown as ReturnType<typeof useAuth>);
+
+  it.each([['queue', AgentDashboard], ['review', AgentTicketReview]])('does not bounce a signed-in user to /login on the %s page while the role is loading', async (_n, Page) => {
+    roleInFlight();
+    mockFetch(() => ({ body: { data: TICKETS } }));
+    render(<Page />);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(push).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
