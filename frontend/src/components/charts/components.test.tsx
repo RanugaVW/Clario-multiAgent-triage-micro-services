@@ -85,7 +85,7 @@ describe('StatTile', () => {
     const { rerender } = render(<StatTile label="L" value="1" delta={{ text: '▲ 1%', direction: 'up', tone: 'good' }} />);
     expect(screen.getByText('▲ 1%')).toHaveStyle({ color: STATUS.good });
     rerender(<StatTile label="L" value="1" delta={{ text: '▼ 1%', direction: 'down', tone: 'bad' }} />);
-    expect(screen.getByText('▼ 1%')).toHaveStyle({ color: STATUS.serious });
+    expect(screen.getByText('▼ 1%').style.color).toBe('var(--c-danger)'); // text colour, not the mark-tuned serious orange (3.05:1)
     rerender(<StatTile label="L" value="1" delta={{ text: '▲ 1%', direction: 'up', tone: 'neutral' }} />);
     expect(screen.getByText('▲ 1%').style.color).not.toBe('');
     expect(screen.getByText('▲ 1%')).not.toHaveStyle({ color: STATUS.good });

@@ -141,7 +141,7 @@ function Overview({ a, cmp, versus }: { a: TicketAnalytics; cmp: PeriodCompariso
         <ChartCard
           className="lg:col-span-2"
           title="When tickets arrive"
-          subtitle="By weekday and hour, UTC — darker means quieter"
+          subtitle="By weekday and hour, UTC. The scale below shows tickets per hour"
           table={{ columns: ['Weekday', ...HOURS], rows: WEEKDAYS.map((d, i) => [d, ...a.arrivals[i]]) }}
         >
           <Heatmap grid={a.arrivals} />

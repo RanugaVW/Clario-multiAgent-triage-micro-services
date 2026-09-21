@@ -3,7 +3,9 @@
 import type { DeltaView } from '../../lib/reportCharts';
 import { INK, SERIES, STATUS, SURFACE } from './tokens';
 
-const TONE_COLOR = { good: STATUS.good, bad: STATUS.serious, neutral: INK.secondary } as const;
+// Delta figures are TEXT (4.5:1), unlike marks (3:1): 'bad' uses the theme's danger text colour, since the chart
+// `serious` orange is tuned as a mark colour and reads 3.05:1 on white.
+const TONE_COLOR = { good: STATUS.good, bad: 'var(--c-danger)', neutral: INK.secondary } as const;
 
 /** Twelve-ish points, drawn thin and quiet: the trend is context, the number is the point. Decorative (aria-hidden). */
 export function Sparkline({ values, width = 96, height = 28 }: { values: number[]; width?: number; height?: number }) {

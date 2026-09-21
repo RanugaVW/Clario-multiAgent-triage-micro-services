@@ -101,7 +101,7 @@ export const theme: Theme = {
       sequential: ['#DCE8FB', '#C6D9F7', '#AFCAF3', '#98BAEE', '#7FA8E7', '#6595DF', '#4C82D6', '#376DC7', '#2857AD', '#173F86'],
       emptyCell: '#F1F3F9',
       deemphasis: '#7A8098',
-      status: { good: '#15803D', warning: '#7A4E00', serious: '#F26A2E', critical: '#B0173A' },
+      status: { good: '#15803D', warning: '#996600', serious: '#F26A2E', critical: '#B0173A' },
     },
   },
 

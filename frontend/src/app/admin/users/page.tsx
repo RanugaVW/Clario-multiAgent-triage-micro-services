@@ -128,7 +128,7 @@ export default function AdminUsers() {
         )}
 
         {!fetching && !loadError && (
-          <Card flush className="overflow-x-auto">
+          <Card flush className="relative overflow-x-auto">
             <table className="w-full text-app">
               <thead>
                 <tr className="border-b border-border text-left text-caption text-fg-muted">

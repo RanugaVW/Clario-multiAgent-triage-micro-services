@@ -56,6 +56,12 @@ describe('ReportDashboard', () => {
     expect(screen.queryByText(/vs 20/)).not.toBeInTheDocument();
   });
 
+  it('the heatmap subtitle does not claim a light/dark direction that flips between themes', () => {
+    render(<ReportDashboard {...fixture()} />);
+    expect(screen.queryByText(/darker means/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/The scale below shows tickets per hour/)).toBeInTheDocument();
+  });
+
   it('shows the lifecycle split with a takeaway about the human-review backlog', () => {
     render(<ReportDashboard {...fixture()} />);
     const c = card('Where tickets stand');

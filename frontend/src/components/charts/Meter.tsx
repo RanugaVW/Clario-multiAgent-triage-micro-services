@@ -29,7 +29,7 @@ export function Meter({
         <span className="text-app text-fg-muted">{label}</span>
         <span className="text-app font-semibold text-fg">
           {text}
-          {WORDS[severity] && <span className="ml-2 text-caption font-medium" style={{ color: severity === 'danger' ? STATUS.serious : STATUS.warning }}>{WORDS[severity]}</span>}
+          {WORDS[severity] && <span className="ml-2 text-caption font-medium" style={{ color: severity === 'danger' ? 'var(--c-danger)' : STATUS.warning }}>{WORDS[severity]}</span>}
         </span>
       </div>
       <div
