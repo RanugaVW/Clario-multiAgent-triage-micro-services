@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import AgentDashboard from '../agent/page';
@@ -132,6 +132,49 @@ describe('Agent dashboard (UR-008 / FR-035)', () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/login'));
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('Agent queue - token markup and semantics', () => {
+  beforeEach(() => { vi.clearAllMocks(); routeParams = { id: 'ticket-aaaa-1111' }; asRole('agent'); });
+
+  it('lists queue tickets in a list and keeps the Review button labelled by ticket id', async () => {
+    mockFetch(() => ({ body: { data: TICKETS } }));
+    render(<AgentDashboard />);
+
+    const items = await screen.findAllByRole('listitem');
+    const list = items[0].closest('ul') as HTMLElement;
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Review ticket ticket-a' })).toBeInTheDocument();
+  });
+
+  it('shows the priority as a badge with the tone rule urgent->danger, high->warning, else brand', async () => {
+    const withPriority = (id: string, priority: string) =>
+      ticket({ id, subject: `Subject ${priority}`, ticket_classifications: [{ category: 'Refunds', priority }] });
+    mockFetch(() => ({
+      body: { data: [withPriority('ticket-u-0001', 'Urgent'), withPriority('ticket-h-0002', 'High'), withPriority('ticket-l-0003', 'Low')] },
+    }));
+    render(<AgentDashboard />);
+    await screen.findAllByRole('listitem');
+
+    expect(screen.getByText('Priority: Urgent').className).toMatch(/\btext-danger\b/);
+    expect(screen.getByText('Priority: High').className).toMatch(/\btext-warning\b/);
+    expect(screen.getByText('Priority: Low').className).toMatch(/\btext-brand\b/);
+  });
+
+  it('renders the load error as an alert with a working Try again button', async () => {
+    let calls = 0;
+    mockFetch(() => (++calls === 1 ? { status: 500, body: { error: 'Boom' } } : { body: { data: TICKETS } }));
+    const user = userEvent.setup();
+    render(<AgentDashboard />);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Could not load the queue:');
+    const retry = within(alert).getByRole('button', { name: 'Try again' });
+    expect(retry.tagName).toBe('BUTTON');
+    await user.click(retry);
+    expect(await screen.findAllByRole('listitem')).toHaveLength(2);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
 

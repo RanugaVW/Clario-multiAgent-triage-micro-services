@@ -8,6 +8,11 @@ import { AgentShell } from './AgentShell';
 import { fetchStaffTickets } from '../../lib/agentApi';
 import { reviewQueue, queueStats, ticketHeadline, ticketCategories, type QueueTicket } from '../../lib/agentQueue';
 import { formatRelative } from '../../lib/datetime';
+import { Badge, type BadgeTone } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Notice } from '../../components/ui/Notice';
+import { cx } from '../../lib/cx';
 
 export default function AgentDashboard() {
   const { user, role, loading } = useAuth();
@@ -49,114 +54,114 @@ export default function AgentDashboard() {
   const stats = useMemo(() => queueStats(tickets), [tickets]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#E8A33D]" />
+    <div className="flex min-h-dvh items-center justify-center bg-canvas">
+      <Loader2 className="h-8 w-8 animate-spin text-brand" aria-hidden="true" />
     </div>
   );
 
   return (
     <AgentShell>
-      <header className="flex justify-between items-center mb-10 animate-fade-in">
+      <header className="mb-10 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#ECECEC]">Agent dashboard</h1>
-          <p className="text-sm text-[#8A8F98]">Escalated tickets queue</p>
+          <h1 className="text-h2 text-fg">Agent dashboard</h1>
+          <p className="text-app text-fg-muted">Escalated tickets queue</p>
         </div>
-        <button
-          onClick={refresh}
-          disabled={fetching}
-          className="p-2 hover:bg-white/[0.06] rounded-full transition-colors text-[#8A8F98] hover:text-[#ECECEC] disabled:opacity-50"
-          aria-label="Refresh queue"
-          title="Refresh"
-        >
-          <RefreshCw className={`w-5 h-5 ${fetching ? 'animate-spin' : ''}`} />
-        </button>
+        <Button variant="ghost" size="sm" onClick={refresh} disabled={fetching} aria-label="Refresh queue" title="Refresh" className="h-10 w-10 rounded-pill px-0">
+          <RefreshCw className={cx('h-5 w-5', fetching && 'animate-spin')} aria-hidden="true" />
+        </Button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-        <StatCard icon={<AlertTriangle />} label="Needs review" value={String(stats.needsReview)} color="text-[#FB923C]" />
+      <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <StatCard icon={<AlertTriangle />} label="Needs review" value={String(stats.needsReview)} toneClass="text-warning" />
         <StatCard
           icon={<Clock />}
           label="Oldest waiting"
           value={stats.oldestWaitingSince ? formatRelative(stats.oldestWaitingSince) : '—'}
-          color="text-[#2DD4BF]"
+          toneClass="text-accent"
         />
-        <StatCard icon={<CheckCircle2 />} label="Resolved today" value={String(stats.resolvedToday)} color="text-emerald-400" />
+        <StatCard icon={<CheckCircle2 />} label="Resolved today" value={String(stats.resolvedToday)} toneClass="text-success" />
       </div>
 
-      <section className="glass-panel rounded-[28px] overflow-hidden animate-fade-in" style={{ animationDelay: '0.2s' }}>
-        <div className="p-6 border-b border-white/10 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-[#ECECEC]">Escalation queue</h2>
+      <Card flush className="overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border p-6">
+          <h2 className="text-h3 text-fg">Escalation queue</h2>
         </div>
 
         {error && (
-          <div role="alert" className="m-6 bg-[#FB7185]/10 border border-[#FB7185]/30 text-[#FB7185] text-sm p-4 rounded-2xl flex items-center justify-between gap-4">
-            <span>Could not load the queue: {error}</span>
-            <button onClick={refresh} className="underline underline-offset-4">Try again</button>
-          </div>
+          <Notice tone="danger" role="alert" className="m-6">
+            <div className="flex items-center justify-between gap-4">
+              <span>Could not load the queue: {error}</span>
+              <Button variant="secondary" size="sm" onClick={refresh}>Try again</Button>
+            </div>
+          </Notice>
         )}
 
         {!error && fetching && tickets.length === 0 && (
-          <div className="p-12 flex justify-center" role="status" aria-label="Loading tickets">
-            <Loader2 className="w-6 h-6 animate-spin text-[#E8A33D]" />
+          <div className="flex justify-center p-12" role="status" aria-label="Loading tickets">
+            <Loader2 className="h-6 w-6 animate-spin text-brand" aria-hidden="true" />
           </div>
         )}
 
-        <ul className="divide-y divide-white/10">
+        <ul className="divide-y divide-border">
           {queue.map((ticket) => {
             const cls = ticket.ticket_classifications?.[0];
             const priority = cls?.priority ?? 'Unrated';
-            const tone = /^(urgent|critical)$/i.test(priority)
-              ? 'bg-[#FB7185]/15 text-[#FB7185]'
-              : /^high$/i.test(priority) ? 'bg-[#FB923C]/15 text-[#FB923C]' : 'bg-[#E8A33D]/15 text-[#E8A33D]';
+            const tone: BadgeTone = /^(urgent|critical)$/i.test(priority)
+              ? 'danger'
+              : /^high$/i.test(priority) ? 'warning' : 'brand';
+            const iconTone = tone === 'danger' ? 'text-danger' : tone === 'warning' ? 'text-warning' : 'text-brand';
             return (
-              <li key={ticket.id} className="p-6 hover:bg-white/[0.04] focus-within:bg-white/[0.04] transition-colors flex items-center justify-between gap-4">
-                <div className="flex items-start space-x-4 min-w-0">
-                  <div className={`p-2 rounded-lg ${tone}`}><AlertTriangle className="w-5 h-5" /></div>
+              <li key={ticket.id} className="flex flex-wrap items-center justify-between gap-4 p-6 transition-colors focus-within:bg-surface-raised hover:bg-surface-raised">
+                <div className="flex min-w-0 items-start gap-4">
+                  <div className={cx('rounded-lg border border-border bg-surface p-2', iconTone)}>
+                    <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+                  </div>
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-[#ECECEC] truncate">{ticketHeadline(ticket)}</h3>
-                    <div className="flex flex-wrap items-center text-sm text-[#8A8F98] mt-1 gap-x-4 gap-y-1">
-                      <span className="font-mono text-xs">{ticket.id.slice(0, 8)}</span>
+                    <h3 className="truncate text-body font-semibold text-fg">{ticketHeadline(ticket)}</h3>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-app text-fg-muted">
+                      <span className="font-mono text-caption">{ticket.id.slice(0, 8)}</span>
                       {ticketCategories(ticket).map((c) => (
-                        <span key={c} className="px-2 py-0.5 rounded-full text-xs font-medium bg-white/[0.06]">{c}</span>
+                        <Badge key={c}>{c}</Badge>
                       ))}
-                      <span className="flex items-center"><Clock className="w-3 h-3 mr-1" /> {formatRelative(ticket.created_at)}</span>
-                      <span>Priority: {priority}</span>
+                      <span className="flex items-center"><Clock className="mr-1 h-3 w-3" aria-hidden="true" /> {formatRelative(ticket.created_at)}</span>
+                      <Badge tone={tone}>Priority: {priority}</Badge>
                     </div>
                   </div>
                 </div>
 
-                <button
+                <Button
+                  variant="secondary"
                   onClick={() => router.push(`/agent/${ticket.id}`)}
                   aria-label={`Review ticket ${ticket.id.slice(0, 8)}`}
-                  className="bg-white/[0.06] hover:bg-[#E8A33D] focus-visible:bg-[#E8A33D] text-[#ECECEC] hover:text-[#08090D] focus-visible:text-[#08090D] p-3 rounded-xl transition-all flex items-center shrink-0"
+                  className="shrink-0"
                 >
-                  <span className="text-sm font-medium mr-2">Review</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                  <span>Review</span>
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Button>
               </li>
             );
           })}
         </ul>
 
         {!error && !fetching && queue.length === 0 && (
-          <div className="p-12 text-center text-[#8A8F98]">
-            <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-emerald-500/50" />
+          <div className="p-12 text-center text-fg-muted">
+            <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-success" aria-hidden="true" />
             <p>Queue is empty. Great job!</p>
           </div>
         )}
-      </section>
+      </Card>
     </AgentShell>
   );
 }
 
-function StatCard({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: string, color: string }) {
+function StatCard({ icon, label, value, toneClass }: { icon: React.ReactNode, label: string, value: string, toneClass: string }) {
   return (
-    <div className="glass-panel rounded-[28px] p-6 flex items-center space-x-4">
-      <div className={`p-3 rounded-2xl bg-white/[0.03] border border-white/10 ${color}`}>{icon}</div>
+    <Card className="flex items-center gap-4">
+      <div className={cx('rounded-lg border border-border bg-surface-raised p-3', toneClass)} aria-hidden="true">{icon}</div>
       <div>
-        <p className="text-sm font-medium text-[#8A8F98]">{label}</p>
-        <p className="text-2xl font-bold text-[#ECECEC]">{value}</p>
+        <p className="text-app font-medium text-fg-muted">{label}</p>
+        <p className="text-h2 text-fg">{value}</p>
       </div>
-    </div>
+    </Card>
   );
 }
