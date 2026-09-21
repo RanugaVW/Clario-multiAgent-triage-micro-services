@@ -12,7 +12,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/login',
 }));
 
-const renderLogin = () => renderWithTheme(<Login />, ['/login']);
+const renderLogin = () => renderWithTheme(<Login />);
 
 // Mock Supabase
 vi.mock('../../lib/supabase', () => ({

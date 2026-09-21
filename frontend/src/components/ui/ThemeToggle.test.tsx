@@ -4,9 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '../../theme/ThemeProvider';
 import { ThemeToggle } from './ThemeToggle';
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/design' }));
+const nav = vi.hoisted(() => ({ pathname: '/design' }));
+vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 
 beforeEach(() => {
+  nav.pathname = '/design';
   localStorage.clear();
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches: true,
@@ -18,7 +20,7 @@ beforeEach(() => {
 
 const setup = () =>
   render(
-    <ThemeProvider migratedRoutes={['/design']}>
+    <ThemeProvider>
       <ThemeToggle />
     </ThemeProvider>
   );
@@ -42,7 +44,7 @@ describe('ThemeToggle', () => {
 
   it('lets a passed className override its own display utility', () => {
     render(
-      <ThemeProvider migratedRoutes={['/design']}>
+      <ThemeProvider>
         <ThemeToggle className="hidden sm:inline-flex" />
       </ThemeProvider>
     );
@@ -52,13 +54,10 @@ describe('ThemeToggle', () => {
     expect(tokens).not.toContain('inline-flex');
   });
 
-  it('renders nothing on a route that is still forced dark', () => {
-    const { container } = render(
-      <ThemeProvider migratedRoutes={['/other']}>
-        <ThemeToggle />
-      </ThemeProvider>
-    );
-    expect(container).toBeEmptyDOMElement();
+  it('is visible on a route that used to be forced dark', () => {
+    nav.pathname = '/admin';
+    setup();
+    expect(screen.getByRole('group', { name: 'Color theme' })).toBeInTheDocument();
   });
 
   it('renders nothing when there is no ThemeProvider above it', () => {

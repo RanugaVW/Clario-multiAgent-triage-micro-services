@@ -21,13 +21,15 @@ Colors, type, spacing, radii, layout widths, motion (durations, easing, stagger,
 - Do not put colors or sizes in components or in `globals.css`. Add or change a token in `theme.config.ts` instead.
 - Do not add `dark:` variants. Dark and light are both defined in the theme file and switch through CSS variables.
 
+## Modes and charts
+
+Every route follows the theme: the `ThemeToggle` (System, Light, Dark) and the pre-paint script in `ThemeScript.tsx` apply the chosen mode everywhere, with no per-route exceptions. Chart colours live in `theme.charts` in `theme.config.ts` (a categorical palette and tone colours for light and dark), so re-skinning the theme re-skins the charts too.
+
 ## What is not themeable yet
 
 - The radius scale stops at `xl`; `2xl` to `4xl` alias it.
-- `theme.charts` (the chart palette) arrives in Phase 6.
 - The Logo has a fixed 24 x 24 box, stroke width and wordmark styling.
 - Destructive buttons hover by opacity; there is no `danger-hover` token.
-- A new route renders dark-only until it is listed in `src/theme/migrated-routes.ts`. Admin routes (`/admin`, `/admin/users`, `/admin/reports`) are still forced dark until Phase 6; `AppShell` now uses tokens, so the `ThemeToggle` shows the token palette in dark.
 - Badge borders use the tone colour at 40% opacity.
 - The example ticket's cadence and step distance, and the glow's drift, blur and size, are written in `src/app/globals.css` and `src/components/ui/GlowBackdrop.tsx`.
 - The `scroll-mt-20` anchor offset on the landing sections should equal the header height (`--l-header-height`) but is written by hand.

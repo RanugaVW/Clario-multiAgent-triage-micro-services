@@ -1,15 +1,11 @@
 'use client';
 
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
-import { MIGRATED_ROUTES } from './migrated-routes';
-import { THEME_STORAGE_KEY, isMigrated, parsePreference, resolveMode, type Mode, type Preference } from './mode';
+import { THEME_STORAGE_KEY, parsePreference, resolveMode, type Mode, type Preference } from './mode';
 
 interface ThemeContextValue {
   preference: Preference;
   mode: Mode;
-  // True while the current route is forced dark (not yet migrated). Removed with the gate in Phase 6.
-  locked: boolean;
   setPreference: (preference: Preference) => void;
 }
 
@@ -56,20 +52,13 @@ function subscribeSystem(notify: () => void) {
 const readSystemDark = () => window.matchMedia(MEDIA).matches;
 const subscribeNever = () => () => {};
 
-export function ThemeProvider({
-  children,
-  migratedRoutes = MIGRATED_ROUTES,
-}: {
-  children: ReactNode;
-  migratedRoutes?: readonly string[];
-}) {
-  const pathname = usePathname();
+export function ThemeProvider({ children }: { children: ReactNode }) {
   // The server snapshot is what hydration renders with, so the first client render matches the server HTML.
   const preference = useSyncExternalStore(subscribePreference, readPreference, () => 'system' as Preference);
   const systemDark = useSyncExternalStore(subscribeSystem, readSystemDark, () => true);
   const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
 
-  const mode = resolveMode({ pathname, preference, systemDark, migratedRoutes });
+  const mode = resolveMode({ preference, systemDark });
 
   // Until mounted, leave the attribute the pre-paint script already set; the hydration snapshot is a guess.
   useLayoutEffect(() => {
@@ -87,9 +76,7 @@ export function ThemeProvider({
     window.dispatchEvent(new Event(LOCAL_EVENT));
   }, []);
 
-  const locked = !isMigrated(pathname, migratedRoutes);
-
-  const value = useMemo(() => ({ preference, mode, locked, setPreference }), [preference, mode, locked, setPreference]);
+  const value = useMemo(() => ({ preference, mode, setPreference }), [preference, mode, setPreference]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

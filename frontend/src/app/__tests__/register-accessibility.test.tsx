@@ -16,7 +16,7 @@ vi.mock('../../lib/supabase', () => ({
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/register' }));
 
-const renderRegister = () => renderWithTheme(<Register />, ['/register']);
+const renderRegister = () => renderWithTheme(<Register />);
 
 describe('Register form accessibility', () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMigrated, parsePreference, resolveMode } from './mode';
+import { parsePreference, resolveMode } from './mode';
 
 describe('parsePreference', () => {
   it('accepts the three valid values', () => {
@@ -13,30 +13,17 @@ describe('parsePreference', () => {
   });
 });
 
-describe('isMigrated', () => {
-  const routes = ['/', '/design'];
-  it('matches "/" only exactly, so it does not migrate every route', () => {
-    expect(isMigrated('/', routes)).toBe(true);
-    expect(isMigrated('/login', routes)).toBe(false);
-  });
-  it('matches a route and its children but not look-alike prefixes', () => {
-    expect(isMigrated('/design', routes)).toBe(true);
-    expect(isMigrated('/design/tokens', routes)).toBe(true);
-    expect(isMigrated('/designer', routes)).toBe(false);
-  });
-});
-
 describe('resolveMode', () => {
-  const base = { pathname: '/design', systemDark: true, migratedRoutes: ['/design'] };
+  const base = { systemDark: true };
   it('follows the system when the preference is system', () => {
     expect(resolveMode({ ...base, preference: 'system', systemDark: true })).toBe('dark');
     expect(resolveMode({ ...base, preference: 'system', systemDark: false })).toBe('light');
   });
-  it('honors an explicit preference on a migrated route', () => {
+  it('honors an explicit preference', () => {
     expect(resolveMode({ ...base, preference: 'light' })).toBe('light');
     expect(resolveMode({ ...base, preference: 'dark', systemDark: false })).toBe('dark');
   });
-  it('forces dark on routes that have not been redesigned yet', () => {
-    expect(resolveMode({ ...base, pathname: '/login', preference: 'light', systemDark: false })).toBe('dark');
+  it('has no route gate: the light preference always wins over a dark system', () => {
+    expect(resolveMode({ preference: 'light', systemDark: true })).toBe('light');
   });
 });

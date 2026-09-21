@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { useState } from 'react';
 import { UserTicketRow } from '../dashboard/page';
-import { ConfirmDialog } from '../../components/ui';
+import { ConfirmDialog } from '../../components/ui/Modal';
 
 // UR-006: deleting a ticket used to call the browser's native confirm()/
 // alert(), which can't be styled, isn't reliably announced by screen

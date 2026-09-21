@@ -10,8 +10,7 @@ const setup = (props: { description?: string; footer?: React.ReactNode } = {}) =
   renderWithTheme(
     <AuthLayout title="Welcome back" {...props}>
       <p>Form goes here</p>
-    </AuthLayout>,
-    ['/login']
+    </AuthLayout>
   );
 
 describe('AuthLayout', () => {

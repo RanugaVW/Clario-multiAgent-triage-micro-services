@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { describe, it, expect } from 'vitest';
 
 // UR-001 guardrail. Behaviour is covered by the rendered-page tests; this pins the *structure* so a new page
@@ -52,30 +52,6 @@ describe('UR-001 - shared design system usage', () => {
     expect(src(file)).toContain('<AppShell');
   });
 
-  const HEX = /(?<![\w&])#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})(?![\w-])/;
-  it.each([
-    'dashboard/page.tsx',
-    '../components/AppShell.tsx',
-    '../components/MorphButton.tsx',
-    '../components/ShakeButton.tsx',
-    '../components/RotateButton.tsx',
-    '../components/VoiceRecorder.tsx',
-    '../components/AudioWaveform.tsx',
-    '../components/WavePhysicsLoader.tsx',
-    'agent/page.tsx',
-    'agent/[id]/page.tsx',
-    'agent/AgentShell.tsx',
-    'admin/reports/page.tsx',
-    'admin/users/page.tsx',
-    'admin/page.tsx',
-    'admin/AdminShell.tsx',
-  ])('%s uses theme tokens only (no hex, rgb(), white/NN or glass classes)', (file) => {
-    const code = src(file);
-    expect(code).not.toMatch(HEX);
-    expect(code).not.toMatch(/rgba?\(/);
-    expect(code).not.toMatch(/glass-|white\/|text-\[#/);
-  });
-
   it.each(['agent/page.tsx', 'agent/[id]/page.tsx'])('%s imports primitives by file path, never the legacy ui.tsx barrel', (file) => {
     expect(src(file)).not.toMatch(/from '(\.\.\/)+components\/ui'/);
   });
@@ -91,16 +67,55 @@ describe('UR-001 - shared design system usage', () => {
   it('the dashboard imports primitives by file path, never the legacy ui.tsx barrel', () => {
     expect(src('dashboard/page.tsx')).not.toMatch(/from '\.\.\/\.\.\/components\/ui'/);
   });
+});
 
-  it.each(['ChartCard', 'ChartTooltip', 'tip', 'Heatmap', 'ShareBar', 'StatTile', 'Meter', 'BarsChart', 'TrendChart', 'ReportDashboard'])(
-    'chart component %s takes its chrome from theme tokens (no hex, rgb, white/NN or off-scale type)',
-    (name) => {
-      const code = src(`../components/charts/${name}.tsx`);
-      expect(code).not.toMatch(/(?<![\w&])#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})(?![\w-])/);
-      expect(code).not.toMatch(/rgba?\(/);
-      expect(code).not.toMatch(/white\//);
-      expect(code).not.toMatch(/text-\[#/);
-      expect(code).not.toMatch(/text-(xs|sm|base|lg|xl|2xl|3xl)\b/);
+// Global token guard: every app and component source file must style through theme tokens only.
+const SRC_ROOT = join(__dirname, '..', '..');
+const FORBIDDEN: Array<[string, RegExp]> = [
+  ['hex colour', /(?<![\w&])#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})(?![\w-])/],
+  ['rgb()/rgba()', /rgba?\(/],
+  ['white/NN', /white\//],
+  ['glass-*', /glass-/],
+  ['text-[#...]', /text-\[#/],
+  ['off-scale text size', /text-(xs|sm|base|lg|xl|2xl|3xl)\b/],
+  [
+    'raw palette class',
+    /\b(bg|text|border|from|to|via|ring|fill|stroke)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d/,
+  ],
+  ['animate-fade-in', /animate-fade-in/],
+  ['bare components/ui barrel import (relative)', /from ['"](\.\.\/)+components\/ui['"]/],
+  ['bare components/ui barrel import (alias)', /from ['"]@\/components\/ui['"]/],
+];
+// Files exempt from the guard, each with a justification. Keep empty unless a literal is unavoidable.
+const ALLOWLIST: string[] = [];
+
+function collect(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    const rel = relative(SRC_ROOT, full).split('\\').join('/');
+    if (statSync(full).isDirectory()) {
+      if (rel === 'app/__tests__' || rel.startsWith('theme')) continue;
+      collect(full, out);
+    } else if (/\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name)) {
+      out.push(rel);
     }
-  );
+  }
+  return out;
+}
+
+describe('global token guard', () => {
+  const files = [...collect(join(SRC_ROOT, 'app')), ...collect(join(SRC_ROOT, 'components'))].filter((f) => !ALLOWLIST.includes(f));
+
+  it('scans a meaningful set of files', () => {
+    expect(files.length).toBeGreaterThan(30);
+  });
+
+  it('no app or component file uses a hard-coded colour, legacy class, off-scale size or bare ui barrel', () => {
+    const hits: string[] = [];
+    for (const f of files) {
+      const code = readFileSync(join(SRC_ROOT, f), 'utf8');
+      for (const [label, re] of FORBIDDEN) if (re.test(code)) hits.push(`${f}: ${label}`);
+    }
+    expect(hits).toEqual([]);
+  });
 });

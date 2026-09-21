@@ -8,12 +8,12 @@ import { ThemeProvider } from '../theme/ThemeProvider';
  * mock next/navigation's usePathname, e.g. vi.mock('next/navigation', () => ({ usePathname: () => '/' })),
  * because vi.mock is hoisted per file.
  */
-export function renderWithTheme(ui: ReactElement, migratedRoutes: readonly string[] = ['/']) {
+export function renderWithTheme(ui: ReactElement) {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches: true,
     media: query,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   })) as unknown as typeof window.matchMedia;
-  return render(<ThemeProvider migratedRoutes={migratedRoutes}>{ui}</ThemeProvider>);
+  return render(<ThemeProvider>{ui}</ThemeProvider>);
 }

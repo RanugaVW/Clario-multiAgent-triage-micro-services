@@ -18,7 +18,7 @@ beforeEach(() => {
 
 const setup = () =>
   render(
-    <ThemeProvider migratedRoutes={['/design']}>
+    <ThemeProvider>
       <DesignShowcase />
     </ThemeProvider>
   );

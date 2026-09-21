@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parsePreference, resolveMode } from './mode';
 import { buildThemeScript } from './ThemeScript';
 
-const ROUTES = ['/', '/design'];
-
-function run(script: string, opts: { pathname: string; stored: string | null; systemDark: boolean; storageThrows?: boolean }) {
+function run(script: string, opts: { stored: string | null; systemDark: boolean; storageThrows?: boolean }) {
   const attrs: Record<string, string> = {};
   const documentStub = { documentElement: { setAttribute: (k: string, v: string) => (attrs[k] = v) } };
   const localStorageStub = {
@@ -15,7 +13,7 @@ function run(script: string, opts: { pathname: string; stored: string | null; sy
   };
   new Function('document', 'location', 'localStorage', 'matchMedia', script)(
     documentStub,
-    { pathname: opts.pathname },
+    { pathname: '/admin' },
     localStorageStub,
     () => ({ matches: opts.systemDark })
   );
@@ -23,32 +21,26 @@ function run(script: string, opts: { pathname: string; stored: string | null; sy
 }
 
 describe('buildThemeScript', () => {
-  const script = buildThemeScript(ROUTES);
+  const script = buildThemeScript();
 
   it('always agrees with resolveMode', () => {
-    for (const pathname of ['/', '/design', '/design/x', '/login', '/designer']) {
-      for (const stored of [null, 'light', 'dark', 'system', 'garbage']) {
-        for (const systemDark of [true, false]) {
-          const expected = resolveMode({
-            pathname,
-            preference: parsePreference(stored),
-            systemDark,
-            migratedRoutes: ROUTES,
-          });
-          expect(run(script, { pathname, stored, systemDark }), `${pathname} ${stored} ${systemDark}`).toBe(expected);
-        }
+    for (const stored of [null, 'light', 'dark', 'system', 'garbage']) {
+      for (const systemDark of [true, false]) {
+        const expected = resolveMode({ preference: parsePreference(stored), systemDark });
+        expect(run(script, { stored, systemDark }), `${stored} ${systemDark}`).toBe(expected);
       }
     }
+  });
+
+  it('does not look at the path: a stored light preference wins on any route', () => {
+    expect(run(script, { stored: 'light', systemDark: true })).toBe('light');
+    expect(script).not.toMatch(/pathname|routes/);
   });
 
   // A throwing localStorage.getItem must behave like ThemeProvider.readPreference: preference 'system', so the
   // system setting still decides. Landing on dark here would flash the wrong theme before hydration.
   it.each([true, false])('treats blocked storage as the system preference (systemDark=%s)', (systemDark) => {
-    const expected = resolveMode({ pathname: '/design', preference: 'system', systemDark, migratedRoutes: ROUTES });
-    expect(run(script, { pathname: '/design', stored: 'light', systemDark, storageThrows: true })).toBe(expected);
-  });
-
-  it('still forces dark on a non-migrated route when storage is blocked', () => {
-    expect(run(script, { pathname: '/login', stored: null, systemDark: false, storageThrows: true })).toBe('dark');
+    const expected = resolveMode({ preference: 'system', systemDark });
+    expect(run(script, { stored: 'light', systemDark, storageThrows: true })).toBe(expected);
   });
 });

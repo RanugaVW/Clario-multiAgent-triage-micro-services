@@ -21,7 +21,7 @@ vi.mock('../../lib/supabase', () => ({
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/reset-password' }));
 
-const renderReset = () => renderWithTheme(<ResetPassword />, ['/reset-password']);
+const renderReset = () => renderWithTheme(<ResetPassword />);
 
 function fire(event: string, session: unknown = null) {
   act(() => authCallback(event, session));

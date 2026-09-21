@@ -49,9 +49,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (currentUser) {
         setRoleLoading(true);
-        const r = await fetchUserRole();
-        setRole(r);
-        setRoleLoading(false);
+        try {
+          setRole(await fetchUserRole());
+        } catch (err) {
+          console.error('Role fetch failed:', err instanceof Error ? err.message : err);
+        } finally {
+          // Always clear the flag, even when the lookup throws (role then stays as it was, null on first load).
+          setRoleLoading(false);
+        }
       } else {
         setRole(null);
         setRoleLoading(false);
@@ -66,9 +71,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (currentUser) {
         setRoleLoading(true);
-        const r = await fetchUserRole();
-        setRole(r);
-        setRoleLoading(false);
+        try {
+          setRole(await fetchUserRole());
+        } catch (err) {
+          console.error('Role fetch failed:', err instanceof Error ? err.message : err);
+        } finally {
+          // Always clear the flag, even when the lookup throws (role then stays as it was, null on first load).
+          setRoleLoading(false);
+        }
       } else {
         setRole(null);
         setRoleLoading(false);

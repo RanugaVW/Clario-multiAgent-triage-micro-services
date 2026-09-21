@@ -134,16 +134,14 @@ describe('AppShell (UR-001 shared navigation layout)', () => {
 describe('AppShell theme toggle and token styling', () => {
   it('shows the colour theme toggle once when a ThemeProvider is present', () => {
     renderWithTheme(
-      <AppShell brand={{ icon: <svg />, title: 'T', subtitle: 'S' }} nav={[]} onSignOut={vi.fn()}>x</AppShell>,
-      ['/dashboard']
+      <AppShell brand={{ icon: <svg />, title: 'T', subtitle: 'S' }} nav={[]} onSignOut={vi.fn()}>x</AppShell>
     );
     expect(screen.getAllByRole('group', { name: 'Color theme' })).toHaveLength(1);
   });
 
   it('lets the footer wrap below lg instead of clipping the toggle', () => {
     renderWithTheme(
-      <AppShell brand={{ icon: <svg />, title: 'T', subtitle: 'S' }} nav={[]} email="a@b.co" links={[{ key: 'x', href: '/x', label: 'Back', icon: <svg /> }]} onSignOut={vi.fn()}>x</AppShell>,
-      ['/dashboard']
+      <AppShell brand={{ icon: <svg />, title: 'T', subtitle: 'S' }} nav={[]} email="a@b.co" links={[{ key: 'x', href: '/x', label: 'Back', icon: <svg /> }]} onSignOut={vi.fn()}>x</AppShell>
     );
     const actions = screen.getByRole('button', { name: 'Sign out' }).parentElement as HTMLElement;
     const tokens = actions.className.split(' ');

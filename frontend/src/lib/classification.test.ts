@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { categoryDomain, priorityClass, priorityColor, sentimentClass, sentimentColor, splitCategories } from './classification';
+import { categoryDomain, priorityClass, sentimentClass, splitCategories } from './classification';
 
 describe('splitCategories', () => {
   it('splits a comma-joined multi-label category and trims each label', () => {
@@ -36,25 +36,6 @@ describe('categoryDomain', () => {
     expect(categoryDomain('Billing')).toBe('billing');
     expect(categoryDomain('account')).toBe('billing');
     expect(categoryDomain('Technical')).toBe('technical');
-  });
-});
-
-describe('priorityColor', () => {
-  it('highlights critical and high, leaves the rest at the default', () => {
-    expect(priorityColor('Critical')).toBeDefined();
-    expect(priorityColor('High')).toBeDefined();
-    expect(priorityColor('critical')).not.toBe(priorityColor('low'));
-    expect(priorityColor('Medium')).toBeUndefined();
-    expect(priorityColor(null)).toBeUndefined();
-  });
-});
-
-describe('sentimentColor', () => {
-  it('highlights frustrated and negative, leaves neutral at the default', () => {
-    expect(sentimentColor('Frustrated')).toBeDefined();
-    expect(sentimentColor('negative')).toBeDefined();
-    expect(sentimentColor('Neutral')).toBeUndefined();
-    expect(sentimentColor(undefined)).toBeUndefined();
   });
 });
 

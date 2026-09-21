@@ -58,9 +58,7 @@ describe('cx', () => {
   });
 
   it('leaves project-specific non-Tailwind classes untouched', () => {
-    expect(cx('rise-in', 'demo-step', 'glow-blob', 'animate-fade-in')).toBe(
-      'rise-in demo-step glow-blob animate-fade-in'
-    );
+    expect(cx('rise-in', 'demo-step', 'glow-blob')).toBe('rise-in demo-step glow-blob');
   });
 
   it('keeps opacity modifiers and arbitrary values', () => {

@@ -28,11 +28,6 @@
   --color-focus: var(--c-focus);
   --color-glow: var(--c-glow);
 
-  /* Names the legacy pages still use, until Phase 6 removes them */
-  --color-background: var(--c-canvas);
-  --color-foreground: var(--c-fg);
-  --color-foreground-muted: var(--c-fg-muted);
-
   /* Fonts */
   --font-sans: var(--f-sans);
   --font-mono: var(--f-mono);
@@ -103,36 +98,6 @@
   --default-transition-timing-function: var(--m-ease-out);
 }
 
-@layer utilities {
-  /* No border-radius here on purpose: this custom utilities block is emitted
-     after Tailwind's generated utilities, so a radius baked in here would
-     silently beat any `rounded-*` class applied alongside it in JSX (this is
-     why the old flat panels rendered square despite `rounded-3xl` in their
-     className). Every call site sets its own explicit `rounded-*` class. */
-  .glass-panel {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .glass-input {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #ECECEC;
-    transition: all 0.2s ease;
-  }
-
-  .glass-input:focus {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: #E8A33D;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(232, 163, 61, 0.15);
-  }
-}
-
 @layer base {
   *,
   ::before,
@@ -189,25 +154,6 @@ input:-webkit-autofill:active {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 2s infinite ease-in-out;
 }
 
 /*

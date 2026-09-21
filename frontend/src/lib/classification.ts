@@ -35,30 +35,12 @@ export function categoryDomain(category: string | null | undefined): CategoryDom
   return 'other';
 }
 
-/** Text colour for a priority value; undefined means "use the default colour". */
-export function priorityColor(priority: string | null | undefined): string | undefined {
-  switch (priority?.toLowerCase()) {
-    case 'critical': return '#FB7185';
-    case 'high': return '#FB923C';
-    default: return undefined;
-  }
-}
-
 /** Theme text-colour class for a priority; '' means "use the default colour". */
 export function priorityClass(priority: string | null | undefined): string {
   switch (priority?.toLowerCase()) {
     case 'critical': return 'text-danger';
     case 'high': return 'text-warning';
     default: return '';
-  }
-}
-
-/** Text colour for a sentiment value; undefined means "use the default colour". */
-export function sentimentColor(sentiment: string | null | undefined): string | undefined {
-  switch (sentiment?.toLowerCase()) {
-    case 'frustrated':
-    case 'negative': return '#FB7185';
-    default: return undefined;
   }
 }
 

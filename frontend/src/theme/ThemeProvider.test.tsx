@@ -33,7 +33,7 @@ function Probe() {
 const attr = () => document.documentElement.getAttribute('data-theme');
 const renderProvider = () =>
   render(
-    <ThemeProvider migratedRoutes={['/design']}>
+    <ThemeProvider>
       <Probe />
     </ThemeProvider>
   );
@@ -46,7 +46,7 @@ beforeEach(() => {
 });
 
 describe('ThemeProvider', () => {
-  it('applies the stored preference on a migrated route', () => {
+  it('applies the stored preference', () => {
     localStorage.setItem('theme-preference', 'light');
     renderProvider();
     expect(attr()).toBe('light');
@@ -68,11 +68,11 @@ describe('ThemeProvider', () => {
     expect(localStorage.getItem('theme-preference')).toBe('light');
   });
 
-  it('forces dark on a route that is not migrated but keeps the stored preference', () => {
-    nav.pathname = '/login';
+  it('follows the stored light preference on a formerly gated route', () => {
+    nav.pathname = '/admin';
     localStorage.setItem('theme-preference', 'light');
     renderProvider();
-    expect(attr()).toBe('dark');
+    expect(attr()).toBe('light');
     expect(screen.getByTestId('pref')).toHaveTextContent('light');
   });
 
@@ -144,43 +144,6 @@ describe('ThemeProvider', () => {
         setItem.mockRestore();
       }
     });
-  });
-});
-
-describe('ThemeProvider default migratedRoutes', () => {
-  // No migratedRoutes prop: proves the real MIGRATED_ROUTES list is what the provider uses at runtime.
-  const renderDefault = () =>
-    render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>
-    );
-
-  it('honours the stored light preference on a migrated route', () => {
-    nav.pathname = '/design';
-    localStorage.setItem('theme-preference', 'light');
-    renderDefault();
-    expect(attr()).toBe('light');
-  });
-
-  it('reports locked only on a route that is not migrated', () => {
-    nav.pathname = '/legacy-only-route';
-    const seen: boolean[] = [];
-    const Spy = () => { seen.push(useTheme().locked); return null; };
-    const { unmount } = render(<ThemeProvider><Spy /></ThemeProvider>);
-    expect(seen.at(-1)).toBe(true);
-    unmount();
-    nav.pathname = '/design';
-    render(<ThemeProvider><Spy /></ThemeProvider>);
-    expect(seen.at(-1)).toBe(false);
-  });
-
-  it('forces dark on a route that is not migrated', () => {
-    // any path that is not in MIGRATED_ROUTES; deliberately made up so migrating real routes never breaks this test
-    nav.pathname = '/legacy-only-route';
-    localStorage.setItem('theme-preference', 'light');
-    renderDefault();
-    expect(attr()).toBe('dark');
   });
 });
 

@@ -11,7 +11,7 @@ vi.mock('../../lib/supabase', () => ({
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/forgot-password' }));
 
-const renderForgot = () => renderWithTheme(<ForgotPassword />, ['/forgot-password']);
+const renderForgot = () => renderWithTheme(<ForgotPassword />);
 
 describe('Forgot password page', () => {
   beforeEach(() => {
