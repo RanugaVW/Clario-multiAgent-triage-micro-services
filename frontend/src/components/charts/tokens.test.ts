@@ -14,14 +14,22 @@ const contrast = (a: string, b: string) => {
 };
 
 // OKLab lightness (Ottosson) - the space the dataviz validator measures step gaps in.
-const oklabL = (hex: string) => {
+const oklab = (hex: string): [number, number, number] => {
   const n = parseInt(hex.slice(1), 16);
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => lin(v / 255));
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
   const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  return 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ];
 };
+const oklabL = (hex: string) => oklab(hex)[0];
+const oklabDist = (a: string, b: string) => Math.hypot(...oklab(a).map((v, i) => v - oklab(b)[i]));
+// Status vs series: the largest round threshold reachable in both modes without touching SERIES (measured min: dark 0.091, light 0.103).
+const STATUS_SERIES_MIN_DIST = 0.09;
 
 const MODES = ['dark', 'light'] as const;
 const sorted = (a: number[], dir: 1 | -1) => [...a].sort((x, y) => dir * (x - y));
@@ -40,10 +48,12 @@ describe.each(MODES)('chart palette contract, %s mode (re-checked so it cannot d
     for (const [name, hex] of Object.entries(p.series)) expect(contrast(hex, surface), name).toBeGreaterThanOrEqual(3);
   });
   // Light mode only: the dark series are validated verbatim on colour-vision distance (equal lightness by design).
-  it.runIf(mode === 'light')('the four series are distinguishable by lightness as well as hue', () => {
-    const ls = Object.values(p.series).map(oklabL).sort((a, b) => a - b);
-    for (let i = 1; i < ls.length; i++) expect(ls[i] - ls[i - 1]).toBeGreaterThanOrEqual(0.05);
-  });
+  if (mode === 'light') {
+    it('the four series are distinguishable by lightness as well as hue', () => {
+      const ls = Object.values(p.series).map(oklabL).sort((a, b) => a - b);
+      for (let i = 1; i < ls.length; i++) expect(ls[i] - ls[i - 1]).toBeGreaterThanOrEqual(0.05);
+    });
+  }
   it('body text tokens clear WCAG AA (4.5:1) on the surface', () => {
     for (const [name, hex] of Object.entries(p.ink)) expect(contrast(hex, surface), name).toBeGreaterThanOrEqual(4.5);
   });
@@ -76,10 +86,10 @@ describe.each(MODES)('chart palette contract, %s mode (re-checked so it cannot d
     expect(l).toEqual(sorted(l, dir));
     expect(p.emptyCell.toLowerCase()).not.toBe(p.sequential[0].toLowerCase());
   });
-  it('status colours clear 3:1, are distinct from every series colour, and de-emphasis clears 3:1', () => {
+  it('status colours clear 3:1 and sit perceptually apart from every series colour (OKLab distance)', () => {
     for (const [name, hex] of Object.entries(p.status)) {
       expect(contrast(hex, surface), name).toBeGreaterThanOrEqual(3);
-      expect(Object.values(p.series), name).not.toContain(hex);
+      for (const [sn, sh] of Object.entries(p.series)) expect(oklabDist(hex, sh), `${name} vs ${sn}`).toBeGreaterThanOrEqual(STATUS_SERIES_MIN_DIST);
     }
     expect(contrast(p.deemphasis, surface)).toBeGreaterThanOrEqual(3);
   });

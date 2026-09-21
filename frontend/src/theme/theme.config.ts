@@ -91,7 +91,7 @@ export const theme: Theme = {
       sequential: ['#0d366b', '#104281', '#184f95', '#1c5cab', '#256abf', '#2a78d6', '#3987e5', '#5598e7', '#6da7ec', '#86b6ef'],
       emptyCell: '#1a1b21',
       deemphasis: '#60646d',
-      status: { good: '#0ca30c', warning: '#fab219', serious: '#ec835a', critical: '#d03b3b' },
+      status: { good: '#0ca30c', warning: '#fbbf24', serious: '#f4926e', critical: '#e0284a' },
     },
     light: {
       ink: { primary: '#0E1020', secondary: '#3E4360', muted: '#5A6080' },
@@ -101,7 +101,7 @@ export const theme: Theme = {
       sequential: ['#DCE8FB', '#C6D9F7', '#AFCAF3', '#98BAEE', '#7FA8E7', '#6595DF', '#4C82D6', '#376DC7', '#2857AD', '#173F86'],
       emptyCell: '#F1F3F9',
       deemphasis: '#7A8098',
-      status: { good: '#15803D', warning: '#B45309', serious: '#EA580C', critical: '#B91C1C' },
+      status: { good: '#15803D', warning: '#7A4E00', serious: '#F26A2E', critical: '#B0173A' },
     },
   },
 
