@@ -3,7 +3,7 @@ import ExcelJS from 'exceljs';
 import { PDFDocument } from 'pdf-lib';
 import { inflateSync } from 'node:zlib';
 import { buildSections, toCsv, toXlsx, toPdf, neutraliseFormula, parseFormat, renderReport, type ReportBundle } from './reportExport';
-import { aiPerformance, ticketAnalytics, type ReportTicket } from './reports';
+import { aiPerformance, comparePeriods, parseDateRange, ticketAnalytics, type ReportTicket } from './reports';
 
 const none = { from: null, to: null };
 const tickets: ReportTicket[] = [
@@ -20,6 +20,7 @@ const bundle = (over: Partial<ReportBundle> = {}): ReportBundle => ({
   range: '2026-09-01 to 2026-09-30',
   analytics: ticketAnalytics(tickets, none),
   ai: aiPerformance(tickets, none),
+  comparison: null,
   ...over,
 });
 
@@ -38,6 +39,41 @@ describe('buildSections - the single definition of report content', () => {
     const ai = s.find((x) => x.title === 'AI performance')!;
     expect(ai.rows.find((r) => r[0] === 'Median processing time (ms)')![1]).toBeNull();
     expect(s.find((x) => x.title === 'Ticket summary')!.rows.find((r) => r[0] === 'Resolution rate (%)')![1]).toBeNull();
+  });
+});
+
+describe('chart data is exported too - the file matches the dashboard', () => {
+  const week = parseDateRange('2026-09-01', '2026-09-07');
+  if (!week.ok) throw new Error('range');
+  const withComparison = bundle({
+    analytics: ticketAnalytics(tickets, week.range),
+    ai: aiPerformance(tickets, week.range),
+    comparison: comparePeriods(tickets, week.range),
+  });
+  const sections = Object.fromEntries(buildSections(withComparison).map((x) => [x.title, x]));
+
+  it('includes the previous-period comparison, row for row, when there is one', () => {
+    const c = Object.values(sections).find((x) => x.title.startsWith('Comparison with the previous period'))!;
+    expect(c.title).toContain('2026-08-25 to 2026-08-31');
+    expect(c.columns).toEqual(['Metric', 'This period', 'Previous period', 'Change']);
+    expect(c.rows[0].slice(0, 3)).toEqual(['Tickets received (change in %)', 2, 0]);
+    expect(c.rows[2][0]).toContain('Resolution rate');
+  });
+  it('omits the comparison for an open-ended range', () => {
+    expect(buildSections(bundle()).some((x) => x.title.startsWith('Comparison'))).toBe(false);
+  });
+  it('exports the arrivals heatmap as weekday and hour totals that add up to the ticket count', () => {
+    const total = withComparison.analytics.total;
+    const weekdayTotal = sections['Arrivals by weekday (UTC)'].rows.reduce((s, r) => s + (r[1] as number), 0);
+    const hourTotal = sections['Arrivals by hour (UTC)'].rows.reduce((s, r) => s + (r[1] as number), 0);
+    expect(sections['Arrivals by weekday (UTC)'].rows).toHaveLength(7);
+    expect(sections['Arrivals by hour (UTC)'].rows).toHaveLength(24);
+    expect([weekdayTotal, hourTotal]).toEqual([total, total]);
+  });
+  it('exports the processing-time distribution', () => {
+    const rows = sections['Processing time distribution'].rows;
+    expect(rows.map((r) => r[0])).toEqual(['<1 s', '1–2 s', '2–5 s', '5–10 s', '10–30 s', '30 s+']);
+    expect(rows.reduce((s, r) => s + (r[1] as number), 0)).toBe(withComparison.ai.latencyBuckets.reduce((s, b) => s + b.count, 0));
   });
 });
 

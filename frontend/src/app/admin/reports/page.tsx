@@ -8,12 +8,11 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { supabase } from '../../../lib/supabase';
 import { fetchJson } from '../../../lib/fetchJson';
 import { EXPORT_FORMATS, type ExportFormat } from '../../../lib/reportFormats';
-import type { AiPerformance, CountRow, TicketAnalytics } from '../../../lib/reports';
+import type { AiPerformance, PeriodComparison, TicketAnalytics } from '../../../lib/reports';
+import { ReportDashboard } from '../../../components/charts/ReportDashboard';
 
-type AnalyticsResponse = { range: string; analytics: TicketAnalytics; ai: AiPerformance };
+type AnalyticsResponse = { range: string; analytics: TicketAnalytics; ai: AiPerformance; comparison: PeriodComparison | null };
 
-const pct = (x: number | null) => (x === null ? '—' : `${Math.round(x * 100)}%`);
-const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 
 const today = () => new Date().toISOString().slice(0, 10);
 const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 3600_000).toISOString().slice(0, 10);
@@ -116,18 +115,18 @@ export default function AdminReports() {
 
   const a = report?.analytics;
   const ai = report?.ai;
+  const cmp = report?.comparison ?? null;
   const invalidRange = !!from && !!to && from > to;
 
   return (
     <AdminShell active="reports">
-    <div className="max-w-6xl space-y-8">
+    <div className="space-y-8">
       <header>
-        <div>
-          <h1 className="text-2xl font-bold text-[#ECECEC]">Reports</h1>
-          <p className="text-sm text-[#8A8F98]">Ticket analytics for a chosen period</p>
-        </div>
+        <h1 className="text-2xl font-bold text-[#ECECEC]">Reports</h1>
+        <p className="text-sm text-[#8A8F98]">Ticket analytics and AI performance for a chosen period</p>
       </header>
 
+      {/* One filter row above everything it scopes: every figure and chart below is the same slice. */}
       <form
         onSubmit={(e) => { e.preventDefault(); if (!invalidRange) apply(); }}
         className="glass-panel rounded-[28px] p-6 flex flex-wrap items-end gap-4"
@@ -147,6 +146,7 @@ export default function AdminReports() {
         <div className="flex flex-wrap gap-2 ml-auto" role="group" aria-label="Quick ranges">
           <button type="button" onClick={() => preset(daysAgo(6), today())} className="text-xs px-3 py-1.5 rounded-full bg-white/[0.06] text-[#8A8F98] hover:text-[#ECECEC]">Last 7 days</button>
           <button type="button" onClick={() => preset(daysAgo(29), today())} className="text-xs px-3 py-1.5 rounded-full bg-white/[0.06] text-[#8A8F98] hover:text-[#ECECEC]">Last 30 days</button>
+          <button type="button" onClick={() => preset(daysAgo(89), today())} className="text-xs px-3 py-1.5 rounded-full bg-white/[0.06] text-[#8A8F98] hover:text-[#ECECEC]">Last 90 days</button>
           <button type="button" onClick={() => preset('', '')} className="text-xs px-3 py-1.5 rounded-full bg-white/[0.06] text-[#8A8F98] hover:text-[#ECECEC]">All time</button>
         </div>
         {invalidRange && <p role="alert" className="w-full text-sm text-[#FB7185]">“From” must not be after “To”.</p>}
@@ -160,10 +160,13 @@ export default function AdminReports() {
 
       {busy && !a && <div className="flex justify-center py-12" role="status" aria-label="Generating report"><Loader2 className="w-6 h-6 animate-spin text-[#E8A33D]" /></div>}
 
-      {a && (
+      {/* Refetch keeps the frame: the previous render stays, dimmed, until the new one lands. */}
+      {a && ai && (
         <div className={busy ? 'opacity-60 transition-opacity' : ''} aria-busy={busy}>
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <p className="text-sm text-[#8A8F98]">Period: <span className="text-[#ECECEC]">{report.range}</span></p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <p className="text-sm text-[#8A8F98]">Period: <span className="text-[#ECECEC]">{report.range}</span>
+              {cmp && <span className="ml-3 text-xs">Compared with {cmp.previousLabel}</span>}
+            </p>
             <div className="flex items-center gap-2" role="group" aria-label="Export report">
               <span className="text-xs text-[#8A8F98] flex items-center gap-1"><Download className="w-3.5 h-3.5" aria-hidden="true" /> Export</span>
               {(Object.keys(EXPORT_FORMATS) as ExportFormat[]).map((f) => (
@@ -188,96 +191,11 @@ export default function AdminReports() {
           {a.total === 0 ? (
             <div className="glass-panel rounded-[28px] p-12 text-center text-[#8A8F98]">No tickets were received in this period.</div>
           ) : (
-            <div className="space-y-8">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Stat label="Tickets received" value={a.total} />
-                <Stat label="Resolved" value={a.resolved} sub={a.resolutionRate === null ? undefined : `${Math.round(a.resolutionRate * 100)}% of received`} />
-                <Stat label="Awaiting human review" value={a.awaitingHuman} />
-                <Stat label="In progress" value={a.inProgress} />
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Breakdown title="By category" rows={a.byCategory} total={a.total} note="A ticket with several categories counts once under each." />
-                <Breakdown title="By priority" rows={a.byPriority} total={a.total} />
-                <Breakdown title="By sentiment" rows={a.bySentiment} total={a.total} />
-                <Breakdown title="By status" rows={a.byStatus} total={a.total} />
-              </div>
-
-              {ai && <AiSection ai={ai} />}
-
-              <section className="glass-panel rounded-[28px] p-6" aria-labelledby="daily-volume">
-                <h2 id="daily-volume" className="text-sm font-semibold text-[#8A8F98] mb-4">Daily volume</h2>
-                <table className="w-full text-sm">
-                  <thead><tr className="text-left text-[#8A8F98]"><th className="pb-2 font-medium">Date</th><th className="pb-2 font-medium text-right">Tickets</th></tr></thead>
-                  <tbody className="divide-y divide-white/5">
-                    {a.dailyVolume.map((d) => (
-                      <tr key={d.date}><td className="py-1.5 text-[#ECECEC]">{d.date}</td><td className="py-1.5 text-right text-[#ECECEC]">{d.count}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </section>
-            </div>
+            <ReportDashboard analytics={a} ai={ai} comparison={cmp} />
           )}
         </div>
       )}
     </div>
     </AdminShell>
-  );
-}
-
-function Stat({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
-  return (
-    <div className="glass-panel rounded-[28px] p-5">
-      <p className="text-xs font-medium text-[#8A8F98]">{label}</p>
-      <p className="text-3xl font-bold text-[#ECECEC] mt-1">{value}</p>
-      {sub && <p className="text-xs text-[#8A8F98] mt-1">{sub}</p>}
-    </div>
-  );
-}
-
-function Breakdown({ title, rows, total, note }: { title: string; rows: CountRow[]; total: number; note?: string }) {
-  return (
-    <section className="glass-panel rounded-[28px] p-6" aria-label={title}>
-      <h2 className="text-sm font-semibold text-[#8A8F98] mb-4">{title}</h2>
-      <ul className="space-y-3">
-        {rows.map((r) => (
-          <li key={r.label}>
-            <div className="flex justify-between text-sm text-[#ECECEC] mb-1"><span>{r.label}</span><span>{r.count}</span></div>
-            <div className="h-1.5 rounded-full bg-white/[0.06]" aria-hidden="true">
-              <div className="h-full rounded-full bg-[#2DD4BF]" style={{ width: `${Math.max(2, (r.count / total) * 100)}%` }} />
-            </div>
-          </li>
-        ))}
-      </ul>
-      {note && <p className="text-xs text-[#8A8F98] mt-4">{note}</p>}
-    </section>
-  );
-}
-
-function AiSection({ ai }: { ai: AiPerformance }) {
-  const p = ai.processingTime;
-  return (
-    <section aria-labelledby="ai-performance" className="space-y-4">
-      <h2 id="ai-performance" className="text-lg font-semibold text-[#ECECEC]">AI performance</h2>
-      {ai.ticketsProcessed === 0 ? (
-        <div className="glass-panel rounded-[28px] p-8 text-center text-[#8A8F98]">The AI pipeline has not processed any tickets in this period.</div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Stat label="Median processing time" value={p ? seconds(p.medianMs) : '—'} sub={p ? `p95 ${seconds(p.p95Ms)} · ${p.samples} measured` : 'no latency recorded'} />
-            <Stat label="Escalation rate" value={pct(ai.escalation.rate)} sub={`${ai.escalation.escalated} of ${ai.ticketsProcessed} processed`} />
-            <Stat label="Validation pass rate" value={pct(ai.validation.passRate)} sub={`${ai.validation.passed} passed · ${ai.validation.failed} failed`} />
-            <Stat label="Mean judge score" value={ai.judgeScores.meanOverall === null ? '—' : `${ai.judgeScores.meanOverall.toFixed(2)} / 5`} sub={`${ai.judgeScores.evaluated} evaluated`} />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {ai.escalation.reasons.length > 0 && <Breakdown title="Escalation reasons" rows={ai.escalation.reasons} total={Math.max(1, ai.escalation.escalated)} />}
-            {ai.validation.failureTypes.length > 0 && <Breakdown title="Validation failures" rows={ai.validation.failureTypes} total={Math.max(1, ai.validation.failed)} />}
-          </div>
-          <p className="text-xs text-[#8A8F98]">
-            Average effort per resolution: {ai.avgLlmCalls === null ? '—' : ai.avgLlmCalls.toFixed(1)} LLM calls, {ai.avgReflections === null ? '—' : ai.avgReflections.toFixed(1)} reflection rounds.
-          </p>
-        </>
-      )}
-    </section>
   );
 }

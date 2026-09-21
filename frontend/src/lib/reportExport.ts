@@ -3,14 +3,46 @@
 // (buildSections) rather than three renderers that could drift apart.
 import ExcelJS from 'exceljs';
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
-import type { AiPerformance, CountRow, TicketAnalytics } from './reports';
+import type { AiPerformance, CountRow, PeriodComparison, TicketAnalytics } from './reports';
 
 export type Cell = string | number | null;
 export type Section = { title: string; columns: string[]; rows: Cell[][] };
-export type ReportBundle = { range: string; analytics: TicketAnalytics; ai: AiPerformance };
+export type ReportBundle = { range: string; analytics: TicketAnalytics; ai: AiPerformance; comparison: PeriodComparison | null };
 
 export { EXPORT_FORMATS, parseFormat, type ExportFormat } from './reportFormats';
 import type { ExportFormat } from './reportFormats';
+
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const pct = (x: number | null): number | null => (x === null ? null : Number((x * 100).toFixed(1)));
+
+/** The on-screen comparison, row for row: this period, the previous one, and the change. */
+function comparisonSection(c: PeriodComparison): Section {
+  const row = (label: string, d: PeriodComparison['tickets'], asRate = false, digits = 0): Cell[] => [
+    label,
+    asRate ? pct(d.current) : round(d.current, digits),
+    asRate ? pct(d.previous) : round(d.previous, digits),
+    asRate ? pct(d.change) : round(d.changePct, 1),
+  ];
+  return {
+    title: `Comparison with the previous period (${c.previousLabel})`,
+    columns: ['Metric', 'This period', 'Previous period', 'Change'],
+    rows: [
+      row('Tickets received (change in %)', c.tickets),
+      row('Resolved (change in %)', c.resolved),
+      row('Resolution rate (% / change in points)', c.resolutionRate, true),
+      row('Escalation rate (% / change in points)', c.escalationRate, true),
+      row('Validation pass rate (% / change in points)', c.validationPassRate, true),
+      row('Median processing time, ms (change in %)', c.medianProcessingMs),
+      [
+        'Mean judge score (change in points)',
+        round(c.judgeScore.current, 2),
+        round(c.judgeScore.previous, 2),
+        round(c.judgeScore.change, 2),
+      ],
+    ],
+  };
+}
 
 const round = (x: number | null, digits = 1): number | null => (x === null ? null : Number(x.toFixed(digits)));
 const rows = (r: CountRow[]): Cell[][] => r.map((x) => [x.label, x.count]);
@@ -33,11 +65,14 @@ export function buildSections(b: ReportBundle): Section[] {
         ['Resolution rate (%)', a.resolutionRate === null ? null : round(a.resolutionRate * 100)],
       ],
     },
+    ...(b.comparison ? [comparisonSection(b.comparison)] : []),
     { title: 'Tickets by category', columns: ['Category', 'Tickets'], rows: rows(a.byCategory) },
     { title: 'Tickets by priority', columns: ['Priority', 'Tickets'], rows: rows(a.byPriority) },
     { title: 'Tickets by sentiment', columns: ['Sentiment', 'Tickets'], rows: rows(a.bySentiment) },
     { title: 'Tickets by status', columns: ['Status', 'Tickets'], rows: rows(a.byStatus) },
     { title: 'Daily volume', columns: ['Date', 'Tickets'], rows: a.dailyVolume.map((d) => [d.date, d.count]) },
+    { title: 'Arrivals by weekday (UTC)', columns: ['Weekday', 'Tickets'], rows: WEEKDAYS.map((day, i) => [day, a.arrivals[i].reduce((x, y) => x + y, 0)]) },
+    { title: 'Arrivals by hour (UTC)', columns: ['Hour', 'Tickets'], rows: Array.from({ length: 24 }, (_, h) => [`${String(h).padStart(2, '0')}:00`, a.arrivals.reduce((sum, day) => sum + day[h], 0)]) },
     {
       title: 'AI performance',
       columns: ['Metric', 'Value'],
@@ -60,6 +95,7 @@ export function buildSections(b: ReportBundle): Section[] {
         ['Mean judge score (out of 5)', round(ai.judgeScores.meanOverall, 2)],
       ],
     },
+    { title: 'Processing time distribution', columns: ['Band', 'Tickets'], rows: rows(ai.latencyBuckets) },
     { title: 'Escalation reasons', columns: ['Reason', 'Tickets'], rows: rows(ai.escalation.reasons) },
     { title: 'Validation failure types', columns: ['Failure type', 'Validations'], rows: rows(ai.validation.failureTypes) },
     { title: 'Judge score distribution', columns: ['Score', 'Responses'], rows: rows(ai.judgeScores.distribution) },

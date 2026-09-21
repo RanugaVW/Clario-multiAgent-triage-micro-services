@@ -82,6 +82,8 @@ export type TicketAnalytics = {
   byPriority: CountRow[];
   bySentiment: CountRow[];
   dailyVolume: { date: string; count: number }[]; // every day in the observed span, zero-filled
+  /** Tickets received by UTC weekday (0 = Monday .. 6 = Sunday) and hour (0-23): `arrivals[weekday][hour]`. */
+  arrivals: number[][];
 };
 
 const UNKNOWN = 'Unclassified';
@@ -140,7 +142,64 @@ export function ticketAnalytics(allTickets: ReportTicket[], range: DateRange): T
     byPriority: tally(tickets.map((t) => t.ticket_classifications?.[0]?.priority?.trim() || UNKNOWN)),
     bySentiment: tally(tickets.map((t) => t.ticket_classifications?.[0]?.sentiment?.trim() || UNKNOWN)),
     dailyVolume,
+    arrivals: arrivalGrid(tickets),
   };
+}
+
+/** 7 x 24 grid of ticket arrivals by UTC weekday (Monday first) and hour. */
+export function arrivalGrid(tickets: { created_at: string }[]): number[][] {
+  const grid = Array.from({ length: 7 }, () => new Array<number>(24).fill(0));
+  for (const t of tickets) {
+    const d = new Date(t.created_at);
+    if (Number.isNaN(d.getTime())) continue;
+    grid[(d.getUTCDay() + 6) % 7][d.getUTCHours()] += 1;
+  }
+  return grid;
+}
+
+export type VolumePoint = {
+  date: string;
+  label: string;
+  count: number;
+  average: number | null;
+  /** Days the point covers: 1 for a day, up to 7 for a week (fewer for the final, incomplete week). */
+  days: number;
+};
+export type VolumeSeries = { granularity: 'day' | 'week'; points: VolumePoint[] };
+
+/**
+ * Chart-ready volume series. Up to `maxDays` days are plotted daily with a trailing 7-day average; a longer span is
+ * grouped into 7-day buckets counted from the FIRST day of the range, so every bucket is a full week except possibly the
+ * last (whose `days` says how many days it really covers - the chart flags it instead of letting it read as a collapse).
+ * Calendar-aligned weeks would make the first bucket partial too, and a partial first point falsely looks like a dive.
+ */
+export function volumeSeries(daily: { date: string; count: number }[], maxDays = 92): VolumeSeries {
+  if (daily.length <= maxDays) {
+    const points = daily.map((d, i) => {
+      const window = daily.slice(Math.max(0, i - 6), i + 1);
+      return {
+        date: d.date,
+        label: d.date,
+        count: d.count,
+        days: 1,
+        // No average until a full 7 days exist: a partial window would understate the trend at the start.
+        average: i >= 6 ? window.reduce((sum, w) => sum + w.count, 0) / 7 : null,
+      };
+    });
+    return { granularity: 'day', points };
+  }
+  const points: VolumePoint[] = [];
+  for (let i = 0; i < daily.length; i += 7) {
+    const chunk = daily.slice(i, i + 7);
+    points.push({
+      date: chunk[0].date,
+      label: `Week of ${chunk[0].date}`,
+      count: chunk.reduce((sum, d) => sum + d.count, 0),
+      days: chunk.length,
+      average: null,
+    });
+  }
+  return { granularity: 'week', points };
 }
 
 // ---------------------------------------------------------------- AI performance (FR-052)
@@ -163,7 +222,24 @@ export type AiPerformance = {
     judged: number; // validations where the LLM judge actually ran
   };
   judgeScores: { evaluated: number; meanOverall: number | null; distribution: CountRow[] }; // 5..1
+  /** How processing times are spread: fixed, human-meaningful bands so two periods are directly comparable. */
+  latencyBuckets: CountRow[];
 };
+
+const LATENCY_BANDS: { label: string; upToMs: number }[] = [
+  { label: '<1 s', upToMs: 1_000 },
+  { label: '1–2 s', upToMs: 2_000 },
+  { label: '2–5 s', upToMs: 5_000 },
+  { label: '5–10 s', upToMs: 10_000 },
+  { label: '10–30 s', upToMs: 30_000 },
+  { label: '30 s+', upToMs: Infinity },
+];
+
+export function latencyBuckets(latenciesMs: number[]): CountRow[] {
+  const counts = LATENCY_BANDS.map((b) => ({ label: b.label, count: 0 }));
+  for (const ms of latenciesMs) counts[LATENCY_BANDS.findIndex((b) => ms < b.upToMs)].count += 1;
+  return counts;
+}
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null);
 const finite = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
@@ -235,5 +311,63 @@ export function aiPerformance(allTickets: ReportTicket[], range: DateRange): AiP
       meanOverall: mean(scores),
       distribution: [5, 4, 3, 2, 1].map((n) => ({ label: String(n), count: scores.filter((s) => Math.round(s) === n).length })),
     },
+    latencyBuckets: latencyBuckets(latencies),
+  };
+}
+
+// ---------------------------------------------------------------- previous-period comparison
+
+/** The window of equal length that ends the millisecond before `range` starts. Needs both bounds. */
+export function previousRange(range: DateRange): DateRange | null {
+  if (!range.from || !range.to) return null;
+  const length = range.to.getTime() - range.from.getTime() + 1;
+  return { from: new Date(range.from.getTime() - length), to: new Date(range.from.getTime() - 1) };
+}
+
+/** A figure for this period next to the same figure for the previous one. */
+export type Delta = {
+  current: number | null;
+  previous: number | null;
+  /** Relative change in % for counts and durations; null when there is nothing to compare against. */
+  changePct: number | null;
+  /** Absolute change: percentage points for rates, score points for the judge score. */
+  change: number | null;
+};
+
+const delta = (current: number | null, previous: number | null): Delta => ({
+  current,
+  previous,
+  changePct: current !== null && previous !== null && previous !== 0 ? ((current - previous) / previous) * 100 : null,
+  change: current !== null && previous !== null ? current - previous : null,
+});
+
+export type PeriodComparison = {
+  previousLabel: string;
+  tickets: Delta;
+  resolved: Delta;
+  resolutionRate: Delta;
+  escalationRate: Delta;
+  validationPassRate: Delta;
+  medianProcessingMs: Delta;
+  judgeScore: Delta;
+};
+
+/** Compares the report period with the equal-length period before it. Null for an open-ended range. */
+export function comparePeriods(tickets: ReportTicket[], range: DateRange): PeriodComparison | null {
+  const previous = previousRange(range);
+  if (!previous) return null;
+  const a = ticketAnalytics(tickets, range);
+  const b = ticketAnalytics(tickets, previous);
+  const x = aiPerformance(tickets, range);
+  const y = aiPerformance(tickets, previous);
+  return {
+    previousLabel: rangeLabel(previous),
+    tickets: delta(a.total, b.total),
+    resolved: delta(a.resolved, b.resolved),
+    resolutionRate: delta(a.resolutionRate, b.resolutionRate),
+    escalationRate: delta(x.escalation.rate, y.escalation.rate),
+    validationPassRate: delta(x.validation.passRate, y.validation.passRate),
+    medianProcessingMs: delta(x.processingTime?.medianMs ?? null, y.processingTime?.medianMs ?? null),
+    judgeScore: delta(x.judgeScores.meanOverall, y.judgeScores.meanOverall),
   };
 }

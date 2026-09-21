@@ -82,7 +82,8 @@ describe('GET /api/reports (FR-051)', () => {
     expect(res.status).toBe(200);
     expect(body.range).toBe('2026-09-01 to 2026-09-30');
     expect(body.analytics.total).toBe(2);
-    expect(filters).toEqual({ gte: '2026-09-01T00:00:00.000Z', lte: '2026-09-30T23:59:59.999Z' });
+    // The query also covers the equal-length period before the range (2026-08-02..2026-08-31) for the comparison.
+    expect(filters).toEqual({ gte: '2026-08-02T00:00:00.000Z', lte: '2026-09-30T23:59:59.999Z' });
   });
 
   it('asks the database for every relation the reports read - a missing one would silently zero a report', async () => {
