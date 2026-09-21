@@ -10,6 +10,10 @@ import { fetchJson } from '../../../lib/fetchJson';
 import { EXPORT_FORMATS, type ExportFormat } from '../../../lib/reportFormats';
 import type { AiPerformance, PeriodComparison, TicketAnalytics } from '../../../lib/reports';
 import { ReportDashboard } from '../../../components/charts/ReportDashboard';
+import { Button } from '../../../components/ui/Button';
+import { Card } from '../../../components/ui/Card';
+import { Input } from '../../../components/ui/Input';
+import { Notice } from '../../../components/ui/Notice';
 
 type AnalyticsResponse = { range: string; analytics: TicketAnalytics; ai: AiPerformance; comparison: PeriodComparison | null };
 
@@ -107,8 +111,8 @@ export default function AdminReports() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#E8A33D]" />
+      <div className="min-h-dvh flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand" />
       </div>
     );
   }
@@ -122,74 +126,74 @@ export default function AdminReports() {
     <AdminShell active="reports">
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-bold text-[#ECECEC]">Reports</h1>
-        <p className="text-sm text-[#8A8F98]">Ticket analytics and AI performance for a chosen period</p>
+        <h1 className="text-h2 text-fg">Reports</h1>
+        <p className="text-app text-fg-muted">Ticket analytics and AI performance for a chosen period</p>
       </header>
 
       {/* One filter row above everything it scopes: every figure and chart below is the same slice. */}
       <form
         onSubmit={(e) => { e.preventDefault(); if (!invalidRange) apply(); }}
-        className="glass-panel rounded-[28px] p-6 flex flex-wrap items-end gap-4"
+        className="flex flex-wrap items-end gap-4 rounded-xl border border-border bg-surface p-card"
         aria-label="Report period"
       >
         <div>
-          <label htmlFor="report-from" className="block text-xs font-medium text-[#8A8F98] mb-1">From</label>
-          <input id="report-from" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="glass-input rounded-xl px-3 py-2 text-sm" />
+          <label htmlFor="report-from" className="mb-1 block text-caption font-medium text-fg-muted">From</label>
+          <Input id="report-from" type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className="w-auto" />
         </div>
         <div>
-          <label htmlFor="report-to" className="block text-xs font-medium text-[#8A8F98] mb-1">To</label>
-          <input id="report-to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="glass-input rounded-xl px-3 py-2 text-sm" />
+          <label htmlFor="report-to" className="mb-1 block text-caption font-medium text-fg-muted">To</label>
+          <Input id="report-to" type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="w-auto" />
         </div>
-        <button type="submit" disabled={busy || invalidRange} className="rounded-xl px-5 py-2 text-sm font-semibold bg-gradient-to-r from-[#E8A33D] to-[#F4B856] text-[#08090D] disabled:opacity-50">
+        <Button type="submit" disabled={busy || invalidRange}>
           {busy ? 'Generating…' : 'Apply'}
-        </button>
+        </Button>
         <div className="flex flex-wrap gap-2 ml-auto" role="group" aria-label="Quick ranges">
-          <button type="button" onClick={() => preset(daysAgo(6), today())} className="text-xs px-3 py-1.5 rounded-full bg-white/[0.06] text-[#8A8F98] hover:text-[#ECECEC]">Last 7 days</button>
-          <button type="button" onClick={() => preset(daysAgo(29), today())} className="text-xs px-3 py-1.5 rounded-full bg-white/[0.06] text-[#8A8F98] hover:text-[#ECECEC]">Last 30 days</button>
-          <button type="button" onClick={() => preset(daysAgo(89), today())} className="text-xs px-3 py-1.5 rounded-full bg-white/[0.06] text-[#8A8F98] hover:text-[#ECECEC]">Last 90 days</button>
-          <button type="button" onClick={() => preset('', '')} className="text-xs px-3 py-1.5 rounded-full bg-white/[0.06] text-[#8A8F98] hover:text-[#ECECEC]">All time</button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => preset(daysAgo(6), today())}>Last 7 days</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => preset(daysAgo(29), today())}>Last 30 days</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => preset(daysAgo(89), today())}>Last 90 days</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => preset('', '')}>All time</Button>
         </div>
-        {invalidRange && <p role="alert" className="w-full text-sm text-[#FB7185]">“From” must not be after “To”.</p>}
+        {invalidRange && <Notice tone="danger" role="alert" className="w-full">“From” must not be after “To”.</Notice>}
       </form>
 
       {error && (
-        <div role="alert" className="bg-[#FB7185]/10 border border-[#FB7185]/30 text-[#FB7185] text-sm p-4 rounded-2xl">
+        <Notice tone="danger" role="alert">
           Could not generate the report: {error}
-        </div>
+        </Notice>
       )}
 
-      {busy && !a && <div className="flex justify-center py-12" role="status" aria-label="Generating report"><Loader2 className="w-6 h-6 animate-spin text-[#E8A33D]" /></div>}
+      {busy && !a && <div className="flex justify-center py-12" role="status" aria-label="Generating report"><Loader2 className="w-6 h-6 animate-spin text-brand" /></div>}
 
       {/* Refetch keeps the frame: the previous render stays, dimmed, until the new one lands. */}
       {a && ai && (
         <div className={busy ? 'opacity-60 transition-opacity' : ''} aria-busy={busy}>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <p className="text-sm text-[#8A8F98]">Period: <span className="text-[#ECECEC]">{report.range}</span>
-              {cmp && <span className="ml-3 text-xs">Compared with {cmp.previousLabel}</span>}
+            <p className="text-app text-fg-muted">Period: <span className="text-fg">{report.range}</span>
+              {cmp && <span className="ml-3 text-caption">Compared with {cmp.previousLabel}</span>}
             </p>
             <div className="flex items-center gap-2" role="group" aria-label="Export report">
-              <span className="text-xs text-[#8A8F98] flex items-center gap-1"><Download className="w-3.5 h-3.5" aria-hidden="true" /> Export</span>
+              <span className="text-caption text-fg-muted flex items-center gap-1"><Download className="w-3.5 h-3.5" aria-hidden="true" /> Export</span>
               {(Object.keys(EXPORT_FORMATS) as ExportFormat[]).map((f) => (
-                <button
+                <Button
                   key={f}
-                  type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => exportReport(f)}
                   disabled={exporting !== null || busy}
-                  className="text-xs px-3 py-1.5 rounded-full bg-white/[0.06] text-[#ECECEC] hover:bg-white/[0.12] disabled:opacity-50"
                 >
                   {exporting === f ? 'Preparing…' : EXPORT_FORMATS[f].label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
           {exportError && (
-            <div role="alert" className="mb-4 bg-[#FB7185]/10 border border-[#FB7185]/30 text-[#FB7185] text-sm p-3 rounded-xl">
+            <Notice tone="danger" role="alert" className="mb-4">
               Export failed: {exportError}
-            </div>
+            </Notice>
           )}
 
           {a.total === 0 ? (
-            <div className="glass-panel rounded-[28px] p-12 text-center text-[#8A8F98]">No tickets were received in this period.</div>
+            <Card className="p-12 text-center text-fg-muted">No tickets were received in this period.</Card>
           ) : (
             <ReportDashboard analytics={a} ai={ai} comparison={cmp} />
           )}

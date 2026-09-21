@@ -6,7 +6,11 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { supabase } from '../../../lib/supabase';
 import { fetchJson } from '../../../lib/fetchJson';
-import { ConfirmDialog, StatusBadge } from '../../../components/ui';
+import { ConfirmDialog } from '../../../components/ui/Modal';
+import { Badge } from '../../../components/ui/Badge';
+import { Button } from '../../../components/ui/Button';
+import { Card } from '../../../components/ui/Card';
+import { Notice } from '../../../components/ui/Notice';
 import { AdminShell } from '../AdminShell';
 import { ROLES, STATUSES, type AccountStatus, type ManagedUser, type Role } from '../../../lib/userManagement';
 
@@ -15,6 +19,8 @@ async function authHeaders(): Promise<Record<string, string>> {
   const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
+
+const SELECT = 'rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-app text-fg disabled:opacity-50';
 
 const STATUS_TONE = { active: 'success', suspended: 'warning', deactivated: 'danger' } as const;
 
@@ -81,8 +87,8 @@ export default function AdminUsers() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#E8A33D]" />
+      <div className="min-h-dvh flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand" />
       </div>
     );
   }
@@ -100,46 +106,46 @@ export default function AdminUsers() {
         />
 
         <header>
-          <h1 className="text-2xl font-bold text-[#ECECEC]">Users</h1>
-          <p className="text-sm text-[#8A8F98]">Change roles and manage account access. Every change is recorded in the audit log.</p>
+          <h1 className="text-h2 text-fg">Users</h1>
+          <p className="text-app text-fg-muted">Change roles and manage account access. Every change is recorded in the audit log.</p>
         </header>
 
         {notice && (
-          <div role={notice.tone === 'error' ? 'alert' : 'status'} className={`text-sm p-3 rounded-xl border ${notice.tone === 'error' ? 'bg-[#FB7185]/10 border-[#FB7185]/30 text-[#FB7185]' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'}`}>
+          <Notice tone={notice.tone === 'error' ? 'danger' : 'success'} role={notice.tone === 'error' ? 'alert' : 'status'} className="p-3">
             {notice.text}
-          </div>
+          </Notice>
         )}
 
         {loadError && (
-          <div role="alert" className="bg-[#FB7185]/10 border border-[#FB7185]/30 text-[#FB7185] text-sm p-4 rounded-2xl">
+          <Notice tone="danger" role="alert">
             {loadError}
-            <button onClick={() => { setFetching(true); load(); }} className="ml-3 underline underline-offset-4">Try again</button>
-          </div>
+            <Button variant="secondary" size="sm" className="ml-3" onClick={() => { setFetching(true); load(); }}>Try again</Button>
+          </Notice>
         )}
 
         {fetching && !loadError && (
-          <div className="flex justify-center py-12" role="status" aria-label="Loading users"><Loader2 className="w-6 h-6 animate-spin text-[#E8A33D]" /></div>
+          <div className="flex justify-center py-12" role="status" aria-label="Loading users"><Loader2 className="w-6 h-6 animate-spin text-brand" /></div>
         )}
 
         {!fetching && !loadError && (
-          <div className="glass-panel rounded-[28px] overflow-x-auto">
-            <table className="w-full text-sm">
+          <Card flush className="overflow-x-auto">
+            <table className="w-full text-app">
               <thead>
-                <tr className="text-left text-[#8A8F98] border-b border-white/10">
+                <tr className="border-b border-border text-left text-caption text-fg-muted">
                   <th className="p-4 font-medium">Email</th>
                   <th className="p-4 font-medium">Role</th>
                   <th className="p-4 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-border">
                 {users.map((u) => {
                   const isSelf = u.id === user?.id;
                   const busy = savingId === u.id;
                   return (
                     <tr key={u.id}>
-                      <td className="p-4 text-[#ECECEC]">
+                      <td className="p-4 text-fg">
                         {u.email}
-                        {isSelf && <span className="ml-2 text-xs text-[#8A8F98]">(you)</span>}
+                        {isSelf && <span className="ml-2 text-caption text-fg-muted">(you)</span>}
                       </td>
                       <td className="p-4">
                         <label className="sr-only" htmlFor={`role-${u.id}`}>Role for {u.email}</label>
@@ -149,14 +155,14 @@ export default function AdminUsers() {
                           disabled={isSelf || busy}
                           title={isSelf ? 'You cannot change your own role' : undefined}
                           onChange={(e) => request(u, { role: e.target.value as Role })}
-                          className="glass-input rounded-xl px-3 py-1.5 disabled:opacity-50"
+                          className={SELECT}
                         >
                           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                         </select>
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <StatusBadge label={u.status} tone={STATUS_TONE[u.status] ?? 'neutral'} />
+                          <Badge tone={STATUS_TONE[u.status] ?? 'neutral'}>{u.status}</Badge>
                           <label className="sr-only" htmlFor={`status-${u.id}`}>Account status for {u.email}</label>
                           <select
                             id={`status-${u.id}`}
@@ -164,11 +170,11 @@ export default function AdminUsers() {
                             disabled={isSelf || busy}
                             title={isSelf ? 'You cannot change your own account status' : undefined}
                             onChange={(e) => request(u, { status: e.target.value as AccountStatus })}
-                            className="glass-input rounded-xl px-3 py-1.5 disabled:opacity-50"
+                            className={SELECT}
                           >
                             {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                           </select>
-                          {busy && <Loader2 className="w-4 h-4 animate-spin text-[#E8A33D]" aria-label="Saving" />}
+                          {busy && <Loader2 className="w-4 h-4 animate-spin text-brand" aria-label="Saving" />}
                         </div>
                       </td>
                     </tr>
@@ -176,8 +182,8 @@ export default function AdminUsers() {
                 })}
               </tbody>
             </table>
-            {users.length === 0 && <p className="p-8 text-center text-[#8A8F98]">No users found.</p>}
-          </div>
+            {users.length === 0 && <p className="p-8 text-center text-fg-muted">No users found.</p>}
+          </Card>
         )}
       </div>
     </AdminShell>

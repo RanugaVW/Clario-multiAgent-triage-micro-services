@@ -73,6 +73,17 @@ describe('Admin users page (FR-042 / FR-043)', () => {
     expect(screen.getByLabelText('Account status for agent@example.com')).toHaveValue('active');
   });
 
+  it('the suspend confirmation is an accessible dialog with a described message and Cancel focused', async () => {
+    mockApi(() => ({ body: { data: USERS } }));
+    const user = userEvent.setup();
+    render(<AdminUsers />);
+
+    await user.selectOptions(await screen.findByLabelText('Account status for agent@example.com'), 'suspended');
+    const dialog = await screen.findByRole('dialog', { name: 'Suspend this account?' });
+    expect(dialog).toHaveAccessibleDescription(/agent@example.com will be signed out/);
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  });
+
   it('suspends after confirmation', async () => {
     mockApi((_u, init) => init?.method === 'PATCH' ? { body: { user: { ...USERS[1], status: 'suspended' } } } : { body: { data: USERS } });
     const user = userEvent.setup();
