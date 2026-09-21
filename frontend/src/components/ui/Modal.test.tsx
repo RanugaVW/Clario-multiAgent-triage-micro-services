@@ -205,3 +205,44 @@ describe('ConfirmDialog', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('Modal description and initial focus', () => {
+  it('links aria-describedby to the described element', () => {
+    render(
+      <Modal open onClose={() => {}} title="T" describedBy="why">
+        <p id="why">Because.</p>
+      </Modal>
+    );
+    expect(screen.getByRole('dialog', { name: 'T' })).toHaveAttribute('aria-describedby', 'why');
+  });
+
+  it('omits aria-describedby when none is given', () => {
+    render(
+      <Modal open onClose={() => {}} title="T">
+        <p>Body</p>
+      </Modal>
+    );
+    expect(screen.getByRole('dialog', { name: 'T' })).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('focuses the [data-autofocus] element instead of the panel', () => {
+    render(
+      <Modal open onClose={() => {}} title="T">
+        <button>First</button>
+        <button data-autofocus>Second</button>
+      </Modal>
+    );
+    expect(screen.getByRole('button', { name: 'Second' })).toHaveFocus();
+  });
+});
+
+describe('ConfirmDialog accessibility', () => {
+  it('describes the dialog by its message and starts on Cancel, not the destructive button', () => {
+    render(
+      <ConfirmDialog open title="Delete?" message="This cannot be undone." confirmLabel="Delete" onConfirm={() => {}} onCancel={() => {}} />
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Delete?' });
+    expect(dialog).toHaveAccessibleDescription('This cannot be undone.');
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  });
+});

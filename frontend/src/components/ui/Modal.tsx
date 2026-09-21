@@ -11,11 +11,13 @@ export function Modal({
   open,
   onClose,
   title,
+  describedBy,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  describedBy?: string;
   children: ReactNode;
 }) {
   const titleId = useId();
@@ -33,7 +35,8 @@ export function Modal({
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
+    const initial = panelRef.current;
+    (initial?.querySelector<HTMLElement>('[data-autofocus]') ?? initial)?.focus();
 
     function onKeyDown(e: globalThis.KeyboardEvent) {
       const panel = panelRef.current;
@@ -87,6 +90,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={describedBy}
         tabIndex={-1}
         className="relative w-full max-w-md rounded-xl border border-border bg-surface-raised p-8 shadow-raised outline-none max-h-[calc(100dvh-2rem)] overflow-y-auto"
       >
@@ -127,11 +131,12 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const messageId = useId();
   return (
-    <Modal open={open} onClose={onCancel} title={title}>
-      <p className="mb-8 text-app text-fg-muted">{message}</p>
+    <Modal open={open} onClose={onCancel} title={title} describedBy={messageId}>
+      <p id={messageId} className="mb-8 text-app text-fg-muted">{message}</p>
       <div className="flex justify-end gap-3">
-        <Button variant="secondary" onClick={onCancel}>
+        <Button variant="secondary" onClick={onCancel} data-autofocus>
           {cancelLabel}
         </Button>
         <Button variant="destructive" onClick={onConfirm}>
