@@ -62,6 +62,23 @@ export interface ChartPalette {
   status: { good: string; warning: string; serious: string; critical: string };
 }
 
+export interface HorizonPalette {
+  /** Hot centre line of the ring and the sweep highlight. */
+  core: string;
+  /** Main ring and horizon line. */
+  ring: string;
+  /** Inner ring (a second accent hue). */
+  ringAlt: string;
+  /** Soft halo behind the ring (may be translucent). */
+  halo: string;
+  /** Fill inside the inner ring (the "void"). */
+  void: string;
+  /** Stars and the faint outer arcs. */
+  star: string;
+  /** Opacity 0..1 of the glow reflected onto the card below, as a string. */
+  reflect: string;
+}
+
 export interface Theme {
   brand: {
     name: string;
@@ -75,6 +92,8 @@ export interface Theme {
   shadows: { light: Shadows; dark: Shadows };
   /** Data-viz palettes per mode, emitted as --ch-* variables and read by components/charts/tokens.ts. */
   charts: { light: ChartPalette; dark: ChartPalette };
+  /** Landing hero event horizon palettes per mode, emitted as --hz-* variables. */
+  horizon: { light: HorizonPalette; dark: HorizonPalette };
   /** CSS fallback stacks that follow the next/font face declared in fonts.ts. */
   fontStacks: { sans: string; mono: string };
   type: Record<TypeRole, TypeStyle>;

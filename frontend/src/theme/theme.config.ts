@@ -105,6 +105,27 @@ export const theme: Theme = {
     },
   },
 
+  horizon: {
+    dark: {
+      core: '#F4F1FF',
+      ring: '#8B8BFF',
+      ringAlt: '#22D3EE',
+      halo: 'rgba(124, 124, 255, 0.55)',
+      void: '#05060F',
+      star: 'rgba(200, 205, 255, 0.75)',
+      reflect: '0.5',
+    },
+    light: {
+      core: '#8B8BFF',
+      ring: '#5B5BF0',
+      ringAlt: '#0E7490',
+      halo: 'rgba(91, 91, 240, 0.22)',
+      void: 'rgba(91, 91, 240, 0.06)',
+      star: 'rgba(91, 91, 240, 0.35)',
+      reflect: '0',
+    },
+  },
+
   fontStacks: {
     sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',

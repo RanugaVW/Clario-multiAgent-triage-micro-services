@@ -77,3 +77,35 @@ describe('chart palettes', () => {
     for (const v of all) expect(v).toMatch(/^#[0-9a-fA-F]{6}$/);
   });
 });
+
+describe('horizon palettes', () => {
+  it.each(MODES)('%s mode has horizon palette', (mode) => {
+    expect(theme.horizon[mode]).toBeTruthy();
+  });
+
+  it.each(MODES)('%s mode horizon values are valid CSS colors (except reflect)', (mode) => {
+    const h = theme.horizon[mode];
+    const hexOrRgba = /^(#[0-9a-fA-F]{6}|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[0-9.]+\s*\))$/;
+    expect(h.core).toMatch(hexOrRgba);
+    expect(h.ring).toMatch(hexOrRgba);
+    expect(h.ringAlt).toMatch(hexOrRgba);
+    expect(h.halo).toMatch(hexOrRgba);
+    expect(h.void).toMatch(hexOrRgba);
+    expect(h.star).toMatch(hexOrRgba);
+  });
+
+  it.each(MODES)('%s mode horizon reflect parses to a number in [0, 1]', (mode) => {
+    const h = theme.horizon[mode];
+    const reflect = Number(h.reflect);
+    expect(reflect).toBeGreaterThanOrEqual(0);
+    expect(reflect).toBeLessThanOrEqual(1);
+  });
+
+  it('dark ring is not equal to light ring', () => {
+    expect(theme.horizon.dark.ring).not.toBe(theme.horizon.light.ring);
+  });
+
+  it('light reflect is "0"', () => {
+    expect(theme.horizon.light.reflect).toBe('0');
+  });
+});
