@@ -69,4 +69,23 @@ describe('Hero', () => {
     expect(reflection).not.toBeNull();
     expect(reflection).toHaveAttribute('aria-hidden', 'true');
   });
+
+  it('keeps the headline, lead and buttons above the horizon glow in paint order', () => {
+    const { container } = render(<Hero />);
+    const horizon = container.querySelector('.hz') as HTMLElement;
+    const blocks = [
+      screen.getByRole('heading', { level: 1 }),
+      screen.getByText(hero.lead),
+      screen.getByRole('link', { name: hero.primary.label }).parentElement as HTMLElement,
+    ];
+    for (const block of blocks) {
+      expect(block).toHaveClass('relative', 'z-10');
+      expect(block.contains(horizon)).toBe(false);
+    }
+    expect(blocks[2]).toContainElement(screen.getByRole('link', { name: hero.secondary.label }));
+    // the demo wrapper (which holds the horizon) must not be stacked above them
+    const demoWrapper = horizon.parentElement as HTMLElement;
+    expect(demoWrapper).not.toHaveClass('z-10');
+    expect(screen.getByRole('group', { name: demo.ariaLabel })).not.toHaveClass('z-10');
+  });
 });
