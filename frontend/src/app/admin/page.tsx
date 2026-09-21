@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
+import { Input, Textarea } from '../../components/ui/Input';
 import { ConfirmDialog } from '../../components/ui/Modal';
 import { Notice } from '../../components/ui/Notice';
 import { AdminShell } from './AdminShell';
@@ -22,7 +23,7 @@ import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 import ShakeButton from '../../components/ShakeButton';
 import { formatDate, formatDateTime, formatElapsed, formatDuration, formatRelative, formatTime } from '../../lib/datetime';
 import { fetchJson } from '../../lib/fetchJson';
-import { categoryDomain, priorityClass, priorityColor, sentimentColor, splitCategories } from '../../lib/classification';
+import { categoryDomain, priorityClass, sentimentClass, splitCategories } from '../../lib/classification';
 import { cx } from '../../lib/cx';
 import RotateButton from '../../components/RotateButton';
 
@@ -673,6 +674,7 @@ function HumanReviewTabs({ humanReviewTickets, onDelete }: { humanReviewTickets:
 export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'agent' | 'human' | 'all', onDelete?: (id: string) => void }) {
   const { user: adminUser } = useAuth();
   const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const [fullData, setFullData] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   // Tracks "a fetch is already in flight" without being a render-triggering
@@ -759,11 +761,12 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   }, [expanded, fullData, fetchFullData]);
 
   // Status mapping
-  let statusColor = '#8A8F98';
+  let statusText = 'text-fg-muted';
+  let statusDot = 'bg-fg-subtle';
   let statusLabel = 'Pending';
   let statusTone: 'neutral' | 'warning' | 'success' = 'neutral';
-  if (isEscalated) { statusColor = '#FB923C'; statusLabel = 'Needs review'; statusTone = 'warning'; }
-  else if (isResolved) { statusColor = '#34D399'; statusLabel = 'Resolved'; statusTone = 'success'; }
+  if (isEscalated) { statusText = 'text-warning'; statusDot = 'bg-warning'; statusLabel = 'Needs review'; statusTone = 'warning'; }
+  else if (isResolved) { statusText = 'text-success'; statusDot = 'bg-success'; statusLabel = 'Resolved'; statusTone = 'success'; }
 
   // Extract snippet
   const textParts = ticket.raw_text.split('[OCR EXTRACTED TEXT FROM ATTACHMENT]');
@@ -854,46 +857,49 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   };
 
   return (
-    <div className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] mb-2 transition-all duration-200 hover:border-white/20 overflow-hidden">
-      {/* Unexpanded Row (Clickable) */}
-      <div
-        className="flex items-center justify-between p-4 cursor-pointer select-none"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-center space-x-6 flex-1 min-w-0">
-          <div className="flex items-center space-x-3 w-36 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
-            <span className="text-xs font-mono text-[#8A8F98] truncate">{ticket.id.split('-')[0]}</span>
-          </div>
-          <div className="w-28 shrink-0 leading-tight" title={"Submitted " + formatDateTime(ticket.created_at)}>
-            <span className="text-[11px] text-[#ECECEC] font-mono block">{formatDate(ticket.created_at)}</span>
-            <span className="text-[11px] text-[#8A8F98] font-mono block">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
-          </div>
+    <Card flush className="mb-2 overflow-hidden transition-colors hover:border-border-strong">
+      {/* Summary row: the expand control is a real button; the badge and delete action sit outside it */}
+      <div className="flex items-center gap-2 p-4">
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={expanded ? detailsId : undefined}
+          onClick={() => setExpanded(!expanded)}
+          className="flex min-w-0 flex-1 items-center gap-4 rounded-md text-left"
+        >
+          {expanded ? <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden="true" />}
+          <span className="flex w-28 shrink-0 items-center gap-3">
+            <span className={cx('h-1.5 w-1.5 rounded-full', statusDot)} aria-hidden="true" />
+            <span className="truncate font-mono text-caption text-fg-muted">{ticket.id.split('-')[0]}</span>
+          </span>
+          <span className="hidden w-28 shrink-0 leading-tight md:block" title={"Submitted " + formatDateTime(ticket.created_at)}>
+            <span className="block font-mono text-caption text-fg">{formatDate(ticket.created_at)}</span>
+            <span className="block font-mono text-caption text-fg-muted">{formatTime(ticket.created_at)} · {formatRelative(ticket.created_at)}</span>
+          </span>
           {ticket.raw_graph_payload?.processing_time_ms && (
-             <span className="text-[11px] text-[#2DD4BF] font-mono w-20 shrink-0 bg-[#2DD4BF]/10 px-1.5 py-0.5 rounded-full text-center truncate">
-               {(ticket.raw_graph_payload.processing_time_ms / 1000).toFixed(2)}s
-             </span>
+            <Badge tone="accent" className="hidden w-20 shrink-0 justify-center truncate font-mono lg:inline-flex">
+              {(ticket.raw_graph_payload.processing_time_ms / 1000).toFixed(2)}s
+            </Badge>
           )}
-          <span className="text-sm text-[#ECECEC] truncate font-sans">{issueSnippet}</span>
-        </div>
+          <span className="truncate text-app text-fg">{issueSnippet}</span>
+        </button>
 
-        <div className="flex items-center space-x-6 shrink-0 pl-4">
+        <div className="flex shrink-0 items-center gap-3 pl-2">
           <Badge tone={statusTone}>{statusLabel}</Badge>
           {onDelete && (
-            <ShakeButton onDelete={(e) => { e.stopPropagation(); onDelete(ticket.id); }} />
+            <ShakeButton onDelete={() => onDelete(ticket.id)} />
           )}
-          {expanded ? <ChevronUp className="w-4 h-4 text-[#8A8F98]" /> : <ChevronDown className="w-4 h-4 text-[#8A8F98]" />}
         </div>
       </div>
 
       {/* Expanded Grid */}
       {expanded && (
-        <div className="border-t border-white/10 p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div id={detailsId} className="grid grid-cols-1 gap-8 border-t border-border p-6 lg:grid-cols-2">
 
           {/* Metadata strip: everything about the ticket that is not its body */}
-          <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <span className="text-xs text-[#8A8F98] block mb-3">Ticket details</span>
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-x-6 gap-y-4">
+          <div className="rounded-lg border border-border bg-surface-raised p-4 lg:col-span-2">
+            <span className="mb-3 block text-caption text-fg-muted">Ticket details</span>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
               <MetaItem label="Ticket ID" value={ticket.id} mono title={ticket.id} />
               <MetaItem label="Subject" value={ticket.subject || fullData?.subject || 'No subject'} />
               <MetaItem
@@ -901,13 +907,13 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                 value={ticket.customer_email || fullData?.customer_email || fullData?.users?.email || 'Anonymous'}
                 title={ticket.customer_email || fullData?.customer_email || fullData?.users?.email || undefined}
               />
-              <MetaItem label="Status" value={statusLabel} color={statusColor} />
+              <MetaItem label="Status" value={statusLabel} toneClass={statusText} />
               <MetaItem label="Submitted" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
               <MetaItem label="Last update" value={formatDateTime(updatedAt)} hint={updatedAt ? formatRelative(updatedAt) : undefined} />
               <MetaItem
                 label="Resolved at"
                 value={resolution?.resolved_at ? formatDateTime(resolution.resolved_at) : (isEscalated ? 'Awaiting human review' : 'In progress')}
-                color={resolution?.resolved_at ? '#34D399' : statusColor}
+                toneClass={resolution?.resolved_at ? 'text-success' : statusText}
               />
               <MetaItem
                 label={resolution?.resolved_at ? 'Turnaround' : 'Open for'}
@@ -923,7 +929,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                     ? formatDuration(fullData?.raw_graph_payload?.processing_time_ms ?? ticket.raw_graph_payload?.processing_time_ms)
                     : (resolution?.total_latency_ms != null ? formatDuration(resolution.total_latency_ms) : '—')
                 }
-                color="#2DD4BF"
+                toneClass="text-accent"
               />
               <MetaItem label="Reflections" value={String(resolution?.total_reflection_count ?? draft?.reflection_attempt ?? 0)} />
               <MetaItem label="LLM calls" value={resolution?.total_llm_calls != null ? String(resolution.total_llm_calls) : '—'} />
@@ -931,22 +937,22 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
             </div>
 
             {escalationReasons.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-white/10">
-                <span className="text-xs text-[#FB923C] block mb-2">Escalation reasons</span>
+              <div className="mt-4 border-t border-border pt-3">
+                <span className="mb-2 block text-caption text-warning">Escalation reasons</span>
                 <div className="flex flex-wrap gap-2">
                   {escalationReasons.map((reason, i) => (
-                    <span key={i} className="text-xs font-mono bg-[#FB923C]/10 border border-[#FB923C]/30 text-[#FB923C] px-2 py-1 rounded-full">
+                    <Badge key={i} tone="warning" className="font-mono">
                       {reason}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>
             )}
 
             {humanReviewNotes && (
-              <div className="mt-4 pt-3 border-t border-white/10">
-                <span className="text-xs text-[#FB923C] block mb-2">Why this needs review</span>
-                <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">{humanReviewNotes}</p>
+              <div className="mt-4 border-t border-border pt-3">
+                <span className="mb-2 block text-caption text-warning">Why this needs review</span>
+                <p className="whitespace-pre-wrap text-app leading-relaxed text-fg">{humanReviewNotes}</p>
               </div>
             )}
           </div>
@@ -954,96 +960,97 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
           {/* Left Column: Issue & OCR */}
           <div className="space-y-6">
             <div>
-              <span className="text-xs text-[#2DD4BF] block mb-2">Original message</span>
-              <p className="text-sm text-[#ECECEC] leading-relaxed font-sans whitespace-pre-wrap">&quot;{textParts[0].trim()}&quot;</p>
+              <span className="mb-2 block text-caption text-accent">Original message</span>
+              <p className="whitespace-pre-wrap text-app leading-relaxed text-fg">&quot;{textParts[0].trim()}&quot;</p>
             </div>
 
             {textParts.length > 1 && (
-              <div className="border-l border-[#2DD4BF] pl-4 py-1">
-                <span className="text-xs text-[#2DD4BF] block mb-2 flex items-center">
-                  <ImageIcon className="w-3 h-3 mr-1.5" /> Text extracted from image
+              <div className="border-l border-accent py-1 pl-4">
+                <span className="mb-2 flex items-center text-caption text-accent">
+                  <ImageIcon className="mr-1.5 h-3 w-3" aria-hidden="true" /> Text extracted from image
                 </span>
-                <pre className="text-xs text-[#8A8F98] whitespace-pre-wrap font-mono bg-white/[0.03] rounded-xl p-3 border border-white/10">
+                <pre className="whitespace-pre-wrap rounded-lg border border-border bg-surface-raised p-3 font-mono text-caption text-fg-muted">
                   {textParts[1].trim()}
                 </pre>
               </div>
             )}
 
             {signedImageUrl && (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <span className="text-xs text-[#8A8F98] block mb-3">Attached screenshot</span>
-                <img src={signedImageUrl} alt="Customer's attached screenshot" className="max-w-full rounded-lg border border-white/10" />
+              <div className="rounded-lg border border-border bg-surface-raised p-4">
+                <span className="mb-3 block text-caption text-fg-muted">Attached screenshot</span>
+                <img src={signedImageUrl} alt="Customer's attached screenshot" className="max-w-full rounded-lg border border-border" />
               </div>
             )}
 
             {/* Signature Element: Telemetry Track */}
             {classification && (
-              <div className="mt-6 pt-4 border-t border-white/10">
-                <span className="text-xs text-[#8A8F98] block mb-2">Pipeline telemetry</span>
+              <div className="mt-6 border-t border-border pt-4">
+                <span className="mb-2 block text-caption text-fg-muted">Pipeline telemetry</span>
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#ECECEC]">Category: {classification.category || 'unknown'}</span>
-                  <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: priorityColor(classification.priority) ?? '#8A8F98' }}>Priority: {classification.priority}</span>
+                  <Badge className="font-mono text-fg">Category: {classification.category || 'unknown'}</Badge>
+                  <Badge className={cx('font-mono', priorityClass(classification.priority))}>Priority: {classification.priority}</Badge>
                   {classification.sentiment && (
-                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full" style={{ color: sentimentColor(classification.sentiment) ?? '#8A8F98' }}>Sentiment: {classification.sentiment}</span>
+                    <Badge className={cx('font-mono', sentimentClass(classification.sentiment))}>Sentiment: {classification.sentiment}</Badge>
                   )}
                   {classification.confidence != null && (
-                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#2DD4BF]">Confidence: {(classification.confidence * 100).toFixed(0)}%</span>
+                    <Badge tone="accent" className="font-mono">Confidence: {(classification.confidence * 100).toFixed(0)}%</Badge>
                   )}
                   {draft?.rag_top_score != null && (
-                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#8A8F98]">RAG score: {draft.rag_top_score.toFixed(3)}</span>
+                    <Badge className="font-mono">RAG score: {draft.rag_top_score.toFixed(3)}</Badge>
                   )}
                   {draft?.low_relevance && (
-                    <span className="text-xs font-mono bg-[#FB7185]/10 border border-[#FB7185]/30 px-2 py-1 rounded-full text-[#FB7185]">Low relevance</span>
+                    <Badge tone="danger" className="font-mono">Low relevance</Badge>
                   )}
                   {retrievedSources.length > 0 && (
-                    <span className="text-xs font-mono bg-white/[0.03] border border-white/10 px-2 py-1 rounded-full text-[#8A8F98]">Sources: {retrievedSources.length}</span>
+                    <Badge className="font-mono">Sources: {retrievedSources.length}</Badge>
                   )}
                 </div>
               </div>
             )}
 
             {fullData?.raw_graph_payload && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <span className="text-xs text-[#8A8F98] block mb-2">Raw pipeline payload</span>
-                <pre className="text-[10px] text-[#8A8F98] overflow-x-auto font-mono max-h-32">
+              <div className="mt-4 rounded-lg border border-border bg-surface-raised p-3">
+                <span className="mb-2 block text-caption text-fg-muted">Raw pipeline payload</span>
+                <pre className="max-h-32 overflow-x-auto font-mono text-caption text-fg-muted">
                   {JSON.stringify(fullData.raw_graph_payload, null, 2)}
                 </pre>
               </div>
             )}
 
             {isLoading && (
-              <div className="mt-4 flex items-center text-xs text-[#8A8F98]">
-                <Loader2 className="w-3 h-3 animate-spin mr-2 text-[#2DD4BF]" /> Loading full details…
+              <div className="mt-4 flex items-center text-caption text-fg-muted">
+                <Loader2 className="mr-2 h-3 w-3 animate-spin text-accent" aria-hidden="true" /> Loading full details…
               </div>
             )}
           </div>
 
           {/* Right Column: AI Processing / Resolution */}
-          <div className="space-y-6 flex flex-col h-full">
+          <div className="flex h-full flex-col space-y-6">
             <div className="flex-1">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-[#34D399]">Resolution</span>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-caption text-success">Resolution</span>
                 <div className="flex items-center gap-3">
                   {draft?.rag_top_score != null && (
-                    <span className="text-xs text-[#8A8F98]">RAG score: {draft.rag_top_score.toFixed(3)}</span>
+                    <span className="text-caption text-fg-muted">RAG score: {draft.rag_top_score.toFixed(3)}</span>
                   )}
                   {evaluation && (
-                    <span className="flex items-center gap-1.5 text-xs text-[#E8A33D]">
+                    <span className="flex items-center gap-1.5 text-caption text-brand">
                       Judge score: {effectiveJudgeScore}/5
                       {latestOverride && (
-                        <span className="text-[#8A8F98]" title={`Overridden by admin: ${latestOverride.override_reason}`}>(edited)</span>
+                        <span className="text-fg-muted" title={`Overridden by admin: ${latestOverride.override_reason}`}>(edited)</span>
                       )}
                       <button
+                        type="button"
                         onClick={openScoreEditor}
-                        className="text-[#8A8F98] hover:text-[#E8A33D] transition-colors"
+                        className="rounded-sm text-fg-muted transition-colors hover:text-brand"
                         aria-label="Edit judge score"
                       >
-                        <Pencil className="w-3 h-3" />
+                        <Pencil className="h-3 w-3" aria-hidden="true" />
                       </button>
                     </span>
                   )}
                   {customerFeedback && (
-                    <span className="text-xs text-[#2DD4BF]">
+                    <span className="text-caption text-accent">
                       Customer rating: {customerFeedback.score}/5
                     </span>
                   )}
@@ -1051,50 +1058,62 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
               </div>
 
               {isEditingScore && (
-                <div className="mb-4 rounded-2xl border border-[#E8A33D]/30 bg-[#E8A33D]/[0.04] p-4 space-y-3">
+                <div className="mb-4 space-y-3 rounded-lg border border-brand/40 bg-surface p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-[#8A8F98]">Override judge score</span>
+                    <span className="text-caption text-fg-muted">Override judge score</span>
                     <div className="flex gap-1.5">
                       {[1, 2, 3, 4, 5].map(n => (
                         <button
                           key={n}
+                          type="button"
                           onClick={() => setScoreDraft(n)}
-                          className={`w-7 h-7 rounded-lg text-xs font-semibold transition-colors ${scoreDraft === n ? 'bg-[#E8A33D] text-[#08090D]' : 'bg-white/[0.04] text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.08]'}`}
+                          className={cx(
+                            'h-7 w-7 rounded-md text-caption font-semibold transition-colors',
+                            scoreDraft === n ? 'bg-brand text-brand-fg' : 'bg-surface-raised text-fg-muted hover:text-fg'
+                          )}
                         >
                           {n}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <textarea
-                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl text-[#ECECEC] text-sm p-3 font-sans focus:outline-none focus:border-[#E8A33D] resize-none"
+                  <Textarea
+                    className="min-h-0 resize-none"
                     rows={2}
                     placeholder="Reason for override (required)"
+                    aria-label="Reason for override"
                     value={scoreReason}
                     onChange={(e) => setScoreReason(e.target.value)}
                     disabled={isSavingScore}
                   />
-                  {scoreError && <p className="text-xs text-[#FB7185]">{scoreError}</p>}
+                  {scoreError && (
+                    <Notice tone="danger" role="alert" className="p-3">
+                      <span className="text-caption">{scoreError}</span>
+                    </Notice>
+                  )}
                   <div className="flex gap-2">
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => setIsEditingScore(false)}
                       disabled={isSavingScore}
-                      className="flex-1 border border-white/10 bg-transparent text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.06] transition-colors rounded-xl py-2 text-xs font-medium disabled:opacity-50"
+                      className="flex-1"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      size="sm"
                       onClick={handleSaveScore}
                       disabled={!scoreReason.trim() || isSavingScore}
-                      className="flex-1 bg-[#E8A33D] text-[#08090D] hover:bg-[#F4B856] transition-colors rounded-xl py-2 text-xs font-semibold disabled:opacity-50"
+                      className="flex-1"
                     >
                       {isSavingScore ? 'Saving…' : 'Save override'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
 
-              <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 min-h-[150px] font-sans text-sm text-[#ECECEC]">
+              <div className="min-h-[150px] rounded-lg border border-border bg-surface-raised p-4 text-app text-fg">
                  {resolution?.final_response
                     ? parseAdminResponse(resolution.final_response)
                     : (draft?.draft_text
@@ -1110,27 +1129,26 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
 
             {/* Human Review Override Actions */}
             {(role === 'human' || (role === 'all' && isEscalated)) && !isReplying && (
-              <button
-                onClick={() => setIsReplying(true)}
-                className="w-full bg-transparent border border-[#2DD4BF] text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-[#08090D] transition-colors rounded-2xl py-3 text-sm font-medium">
+              <Button variant="secondary" onClick={() => setIsReplying(true)} className="w-full">
                 Claim this ticket
-              </button>
+              </Button>
             )}
 
             {(role === 'human' || (role === 'all' && isEscalated)) && isReplying && (
               <div className="space-y-3">
-                <textarea
-                  className="w-full bg-white/[0.03] border border-[#FB923C]/50 rounded-2xl text-[#ECECEC] text-sm p-3 font-sans focus:outline-none focus:border-[#FB923C] resize-none"
+                <Textarea
+                  className="border-warning/50 hover:border-warning focus-visible:border-warning resize-none"
                   rows={4}
+                  aria-label="Resolution reply"
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   disabled={isSubmitting}
                 />
                 <div className="flex gap-2">
-                  <button onClick={() => setIsReplying(false)} className="flex-1 border border-white/10 bg-transparent text-[#8A8F98] hover:text-[#ECECEC] hover:bg-white/[0.06] transition-colors rounded-2xl py-3 text-sm font-medium">Cancel</button>
-                  <button onClick={handleResolve} disabled={!replyText.trim() || isSubmitting} className="flex-1 bg-[#FB923C] text-[#08090D] hover:bg-[#fdba74] transition-colors rounded-2xl py-3 text-sm font-semibold disabled:opacity-50">
+                  <Button variant="secondary" onClick={() => setIsReplying(false)} className="flex-1">Cancel</Button>
+                  <Button onClick={handleResolve} disabled={!replyText.trim() || isSubmitting} className="flex-1">
                     {isSubmitting ? 'Sending…' : 'Send resolution'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -1138,7 +1156,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1149,20 +1167,19 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
 // ─── Helper Components ────────────────────────────────────────────────────────
 
 /** One label/value pair in the expanded ticket metadata grid. */
-function MetaItem({ label, value, hint, color, mono, title }: {
-  label: string; value: string; hint?: string; color?: string; mono?: boolean; title?: string;
+function MetaItem({ label, value, hint, toneClass, mono, title }: {
+  label: string; value: string; hint?: string; toneClass?: string; mono?: boolean; title?: string;
 }) {
   return (
     <div className="min-w-0">
-      <span className="text-xs text-[#8A8F98] block mb-1">{label}</span>
+      <span className="mb-1 block text-caption text-fg-muted">{label}</span>
       <span
-        className={`text-sm block truncate ${mono ? 'font-mono' : 'font-sans'}`}
-        style={{ color: color || '#ECECEC' }}
+        className={cx('block truncate text-app', mono ? 'font-mono' : 'font-sans', toneClass ?? 'text-fg')}
         title={title || value}
       >
         {value}
       </span>
-      {hint && <span className="text-xs text-[#8A8F98] block mt-0.5">{hint}</span>}
+      {hint && <span className="mt-0.5 block text-caption text-fg-muted">{hint}</span>}
     </div>
   );
 }

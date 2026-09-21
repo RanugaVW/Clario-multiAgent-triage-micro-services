@@ -67,6 +67,7 @@ describe('UR-001 - shared design system usage', () => {
     'agent/AgentShell.tsx',
     'admin/reports/page.tsx',
     'admin/users/page.tsx',
+    'admin/page.tsx',
     'admin/AdminShell.tsx',
   ])('%s uses theme tokens only (no hex, rgb(), white/NN or glass classes)', (file) => {
     const code = src(file);
@@ -79,8 +80,12 @@ describe('UR-001 - shared design system usage', () => {
     expect(src(file)).not.toMatch(/from '(\.\.\/)+components\/ui'/);
   });
 
-  it.each(['admin/reports/page.tsx', 'admin/users/page.tsx'])('%s imports primitives by file path, never the legacy ui.tsx barrel', (file) => {
+  it.each(['admin/reports/page.tsx', 'admin/users/page.tsx', 'admin/page.tsx'])('%s imports primitives by file path, never the legacy ui.tsx barrel', (file) => {
     expect(src(file)).not.toMatch(/from '(\.\.\/)+components\/ui'/);
+  });
+
+  it('the admin console carries no legacy colour helpers or inline status hex', () => {
+    expect(src('admin/page.tsx')).not.toMatch(/statusColor|priorityColor|sentimentColor/);
   });
 
   it('the dashboard imports primitives by file path, never the legacy ui.tsx barrel', () => {

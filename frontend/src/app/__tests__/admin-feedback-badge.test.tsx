@@ -44,3 +44,27 @@ describe('TicketRow customer rating badge', () => {
     expect(screen.queryByText(/Customer rating/i)).not.toBeInTheDocument();
   });
 });
+
+describe('TicketRow accessibility', () => {
+  const escalated = { ...baseTicket, status: 'escalated', resolutions: [], customer_feedback: null } as unknown as Ticket;
+
+  it('expands from a real button that does not contain the row actions', () => {
+    render(<TicketRow ticket={escalated} role="human" onDelete={vi.fn()} />);
+    const toggle = screen.getByRole('button', { expanded: false });
+    expect(toggle.tagName).toBe('BUTTON');
+    expect(toggle).toHaveTextContent('Cannot log in');
+    expect(toggle.querySelector('button')).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAttribute('aria-controls');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('labels the reply textarea', () => {
+    render(<TicketRow ticket={escalated} role="human" />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByRole('button', { name: 'Claim this ticket' }));
+    expect(screen.getByRole('textbox', { name: 'Resolution reply' })).toBeInTheDocument();
+  });
+});
