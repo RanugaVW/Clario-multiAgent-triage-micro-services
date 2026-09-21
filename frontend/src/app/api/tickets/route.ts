@@ -33,6 +33,22 @@ const MISSING_KEY_RESPONSE = () =>
     { status: 500 }
   );
 
+const CUSTOMER_MARKER = '[CUSTOMER RESPONSE]';
+const normalizeWs = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+function customerSection(draft: string): string {
+  const idx = draft.lastIndexOf(CUSTOMER_MARKER);
+  return idx === -1 ? draft : draft.slice(idx + CUSTOMER_MARKER.length);
+}
+
+// An agent who sends the AI draft (or just its customer-facing section) as-is
+// approved it; anything else is an edit worth learning from.
+function isUnchangedDraft(finalResponse: string, originalDraft: string | null): boolean {
+  if (!originalDraft) return false;
+  const final = normalizeWs(finalResponse);
+  return final === normalizeWs(originalDraft) || final === normalizeWs(customerSection(originalDraft));
+}
+
 // The subset of the real Redis client's surface this route actually calls -
 // kept minimal rather than pulling in the full `redis` package's generic
 // client type, since getRedisClient() below never actually constructs one.
@@ -178,7 +194,7 @@ export async function PUT(request: Request) {
   // overwrite an earlier answer, so look at the ticket before writing anything.
   const { data: ticket, error: lookupError } = await supabase
     .from('tickets')
-    .select('id, status, resolutions ( id, escalated )')
+    .select('id, status, resolutions ( id, escalated ), human_reviews ( id, original_draft, decision )')
     .eq('id', id)
     .maybeSingle();
   if (lookupError) {
@@ -218,6 +234,28 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
+  // Learning signal, best-effort: record what the human actually sent so the
+  // agent-edit job can learn from it. Never fails or delays the resolution.
+  const pendingReview = (ticket.human_reviews ?? []).find(
+    (r: { decision: string | null }) => r.decision === 'pending'
+  );
+  if (pendingReview) {
+    try {
+      const { error: reviewError } = await supabase
+        .from('human_reviews')
+        .update({
+          final_draft: finalResponse,
+          reviewer_id: staff.user.id,
+          reviewed_at: new Date().toISOString(),
+          decision: isUnchangedDraft(finalResponse, pendingReview.original_draft) ? 'approved_unchanged' : 'edited',
+        })
+        .eq('id', pendingReview.id);
+      if (reviewError) console.error('human_reviews update failed', reviewError.message);
+    } catch (e) {
+      console.error('human_reviews update threw', e);
+    }
+  }
+
   // Invalidate cache
   const redis = await getRedisClient();
   if (redis) {
@@ -228,6 +266,6 @@ export async function PUT(request: Request) {
       console.error("Redis del error", e);
     }
   }
-  
+
   return NextResponse.json({ success: true });
 }

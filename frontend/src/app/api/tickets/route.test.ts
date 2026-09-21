@@ -106,14 +106,21 @@ describe('/api/tickets - staff-only authorization', () => {
     let calls: string[];
     let insertedRow: Record<string, unknown> | undefined;
     let deletedResolutionId: string | undefined;
+    let reviewUpdate: { id: string; row: Record<string, unknown> } | undefined;
 
     // Builds a `from()` fake for the three writes PUT performs and records the
     // order they happen in, so the tests can assert ordering and compensation.
     function stubTables(opts: {
-      ticket?: { id: string; status: string; resolutions: { id: string; escalated: boolean }[] } | null;
+      ticket?: {
+        id: string;
+        status: string;
+        resolutions: { id: string; escalated: boolean }[];
+        human_reviews?: { id: string; original_draft: string | null; decision: string | null }[];
+      } | null;
       lookupError?: string;
       insertError?: string;
       updateError?: string;
+      reviewError?: string;
     }) {
       mockFrom.mockImplementation((table: string) => {
         if (table === 'tickets') {
@@ -159,6 +166,17 @@ describe('/api/tickets - staff-only authorization', () => {
             }),
           };
         }
+        if (table === 'human_reviews') {
+          return {
+            update: (row: Record<string, unknown>) => ({
+              eq: async (_col: string, value: string) => {
+                calls.push('update-review');
+                reviewUpdate = { id: value, row };
+                return { error: opts.reviewError ? { message: opts.reviewError } : null };
+              },
+            }),
+          };
+        }
         throw new Error(`unexpected table ${table}`);
       });
     }
@@ -170,6 +188,7 @@ describe('/api/tickets - staff-only authorization', () => {
       calls = [];
       insertedRow = undefined;
       deletedResolutionId = undefined;
+      reviewUpdate = undefined;
       mockGetUser.mockResolvedValue({ data: { user: { id: 'agent-7', email: 'a@example.com' } }, error: null });
       mockRpc.mockResolvedValue({ data: 'agent', error: null });
     });
@@ -264,6 +283,75 @@ describe('/api/tickets - staff-only authorization', () => {
 
       expect(res.status).toBe(400);
       expect(dataQueries()).toEqual([]);
+    });
+
+    describe('recording the human review (learning signal)', () => {
+      const pendingReview = [{ id: 'hr-1', original_draft: 'Try resetting your password.', decision: 'pending' }];
+      const escalated = (human_reviews: { id: string; original_draft: string | null; decision: string | null }[]) => ({
+        id: 't1', status: 'escalated', resolutions: [], human_reviews,
+      });
+
+      it('marks a changed reply as edited and stores the final draft, reviewer and time', async () => {
+        stubTables({ ticket: escalated(pendingReview) });
+        const res = await put({ id: 't1', final_response: 'Please reset your password from the login page.' });
+
+        expect(res.status).toBe(200);
+        expect(reviewUpdate?.id).toBe('hr-1');
+        expect(reviewUpdate?.row).toMatchObject({
+          decision: 'edited',
+          final_draft: 'Please reset your password from the login page.',
+          reviewer_id: 'agent-7',
+        });
+        expect(typeof reviewUpdate?.row.reviewed_at).toBe('string');
+      });
+
+      it('marks a reply that differs only by whitespace as approved_unchanged', async () => {
+        stubTables({ ticket: escalated(pendingReview) });
+        await put({ id: 't1', final_response: '  Try   resetting your\npassword.  ' });
+        expect(reviewUpdate?.row.decision).toBe('approved_unchanged');
+      });
+
+      it('marks a reply equal to the [CUSTOMER RESPONSE] section of the draft as approved_unchanged', async () => {
+        stubTables({
+          ticket: escalated([{
+            id: 'hr-1',
+            original_draft: '[INTERNAL TECHNICAL REPORT]\nroot cause X\n\n[CUSTOMER RESPONSE]\nHello, please restart the app.',
+            decision: 'pending',
+          }]),
+        });
+        await put({ id: 't1', final_response: 'Hello, please restart the app.' });
+        expect(reviewUpdate?.row.decision).toBe('approved_unchanged');
+      });
+
+      it('writes nothing to human_reviews when there is no pending review', async () => {
+        stubTables({ ticket: escalated([{ id: 'hr-0', original_draft: 'x', decision: 'edited' }]) });
+        const res = await put({ id: 't1', final_response: 'ok' });
+
+        expect(res.status).toBe(200);
+        expect(calls).not.toContain('update-review');
+      });
+
+      it('still resolves the ticket when the human_reviews update fails', async () => {
+        stubTables({ ticket: escalated(pendingReview), reviewError: 'db hiccup' });
+        const res = await put({ id: 't1', final_response: 'A different answer.' });
+
+        expect(res.status).toBe(200);
+        expect(calls).toContain('update-review');
+      });
+
+      it('writes the review only after the status flip succeeded', async () => {
+        stubTables({ ticket: escalated(pendingReview) });
+        await put({ id: 't1', final_response: 'A different answer.' });
+        expect(calls).toEqual(['lookup', 'insert-resolution', 'update-status', 'update-review']);
+      });
+
+      it('does not touch human_reviews when the status update fails and the resolution is rolled back', async () => {
+        stubTables({ ticket: escalated(pendingReview), updateError: 'db down' });
+        const res = await put({ id: 't1', final_response: 'A different answer.' });
+
+        expect(res.status).toBe(500);
+        expect(calls).not.toContain('update-review');
+      });
     });
   });
 });
