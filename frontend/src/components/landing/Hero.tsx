@@ -28,7 +28,7 @@ export function Hero() {
             {hero.secondary.label}
           </ButtonLink>
         </div>
-        <div className="rise-in relative mt-40 w-full max-w-3xl sm:mt-56" style={at(3)}>
+        <div className="rise-in relative mt-28 w-full max-w-3xl sm:mt-44" style={at(3)}>
           <EventHorizon />
           <TriageDemo />
           <EventHorizonReflection />

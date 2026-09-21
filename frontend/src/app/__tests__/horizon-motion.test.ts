@@ -38,9 +38,19 @@ function declaredProps(body: string): string[] {
 }
 
 describe('landing event horizon CSS', () => {
-  it('has the marked block', () => {
+  it('has the marked block, with every layer the component styles', () => {
     expect(markerAt).toBeGreaterThan(-1);
-    expect(region).toContain('.hz-ring');
+    for (const selector of ['.hz {', '.hz-svg {', '.hz-overlay {', '.hz-breathe {', '.hz-shimmer {', '.hz-stars {', '.hz-reflect {']) {
+      expect(region).toContain(selector);
+    }
+  });
+
+  it('keeps the blurred composition static: nothing inside .hz-svg is animated', () => {
+    // An animation on a group inside the filtered SVG makes the browser re-run every feGaussianBlur
+    // per frame. Only the wrapper and the two filter-free overlays may animate.
+    const animated = [...region.matchAll(/(^|\n)(\.[\w-]+)[^{]*\{[^}]*animation:/g)].map((m) => m[2]);
+    expect(animated.length).toBeGreaterThan(0);
+    expect(animated.every((sel) => ['.hz-breathe', '.hz-shimmer', '.hz-stars', '.hz-reflect'].includes(sel))).toBe(true);
   });
 
   it('defines at least 4 hz keyframes and animates only transform and opacity', () => {
