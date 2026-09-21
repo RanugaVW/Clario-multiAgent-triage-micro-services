@@ -635,18 +635,24 @@ function HumanReviewTabs({ humanReviewTickets, onDelete }: { humanReviewTickets:
     <div className="flex flex-col space-y-4">
       <div className="flex space-x-2 border-b border-border pb-4">
         <button
+          type="button"
+          aria-current={activeSubTab === 'billing' ? 'true' : undefined}
           onClick={() => setActiveSubTab('billing')}
           className={`px-4 py-2 text-app font-medium transition-colors ${activeSubTab === 'billing' ? 'text-accent border-b-2 border-accent' : 'text-fg-muted hover:text-fg'}`}
         >
           Billing ({billingTickets.length})
         </button>
         <button
+          type="button"
+          aria-current={activeSubTab === 'technical' ? 'true' : undefined}
           onClick={() => setActiveSubTab('technical')}
           className={`px-4 py-2 text-app font-medium transition-colors ${activeSubTab === 'technical' ? 'text-danger border-b-2 border-danger' : 'text-fg-muted hover:text-fg'}`}
         >
           Technical ({technicalTickets.length})
         </button>
         <button
+          type="button"
+          aria-current={activeSubTab === 'other' ? 'true' : undefined}
           onClick={() => setActiveSubTab('other')}
           className={`px-4 py-2 text-app font-medium transition-colors ${activeSubTab === 'other' ? 'text-warning border-b-2 border-warning' : 'text-fg-muted hover:text-fg'}`}
         >

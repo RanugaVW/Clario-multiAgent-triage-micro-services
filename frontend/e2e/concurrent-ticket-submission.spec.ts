@@ -56,8 +56,17 @@ test.afterAll(async () => {
   if (customer2) await supabase.auth.admin.deleteUser(customer2.id);
 });
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * The expand/collapse control of a ticket row: a `<button aria-expanded>`
+ * whose accessible name includes the 8-char id prefix and the issue snippet
+ * (the run marker leads the ticket text). One ticket, one such button.
+ */
 function ticketRow(page: Page, marker: string): Locator {
-  return page.locator('div.cursor-pointer', { hasText: marker });
+  return page.getByRole('button', { name: new RegExp(escapeRegExp(marker), 'i') });
 }
 
 async function submitTicketConcurrently(page: Page, marker: string): Promise<string> {

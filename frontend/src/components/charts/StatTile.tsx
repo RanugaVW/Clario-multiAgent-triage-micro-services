@@ -1,5 +1,6 @@
 'use client';
 
+import { cx } from '../../lib/cx';
 import type { DeltaView } from '../../lib/reportCharts';
 import { INK, SERIES, STATUS, SURFACE } from './tokens';
 
@@ -47,11 +48,11 @@ export function StatTile({
   hero?: boolean;
 }) {
   return (
-    <div className={`rounded-xl border border-border bg-surface ${hero ? 'p-7' : 'p-5'} flex flex-col justify-between gap-3 min-w-0`}>
+    <div className={cx('rounded-xl border border-border bg-surface flex flex-col justify-between gap-3 min-w-0', hero ? 'p-7' : 'p-5')}>
       <p className="text-caption font-medium text-fg-muted">{label}</p>
       <div className="flex items-end justify-between gap-3">
         <p
-          className={`font-semibold leading-none tracking-tight text-fg ${hero ? 'text-h1' : 'text-h2'}`}
+          className={cx('font-semibold leading-none tracking-tight text-fg', hero ? 'text-h1' : 'text-h2')}
           aria-label={`${label}: ${value}`}
         >
           {value}

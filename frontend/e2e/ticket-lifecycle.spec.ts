@@ -33,8 +33,17 @@ async function openHistoryTab(page: Page) {
   await page.getByRole('button', { name: /my tickets/i }).click();
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * The expand/collapse control of a ticket row: a `<button aria-expanded>`
+ * whose accessible name includes the 8-char id prefix and the issue snippet
+ * (the run marker leads the ticket text). One ticket, one such button.
+ */
 function ticketRow(page: Page, marker: string): Locator {
-  return page.locator('div.cursor-pointer', { hasText: marker });
+  return page.getByRole('button', { name: new RegExp(escapeRegExp(marker), 'i') });
 }
 
 async function waitForTerminalState(page: Page, marker: string): Promise<{ row: Locator; outcome: Outcome }> {
@@ -48,10 +57,13 @@ async function waitForTerminalState(page: Page, marker: string): Promise<{ row: 
     const row = ticketRow(page, marker);
     await expect(row).toBeVisible({ timeout: 30_000 }).catch(() => {});
     if (!(await row.isVisible())) continue;
-    if (await row.getByText('Resolved', { exact: true }).isVisible().catch(() => false)) {
+    // The status badge sits beside the expand button (not inside it), so read
+    // it from the summary row that contains both.
+    const summary = row.locator('xpath=..');
+    if (await summary.getByText('Resolved', { exact: true }).isVisible().catch(() => false)) {
       return { row, outcome: 'resolved' };
     }
-    if (await row.getByText('Needs review', { exact: true }).isVisible().catch(() => false)) {
+    if (await summary.getByText('Needs review', { exact: true }).isVisible().catch(() => false)) {
       return { row, outcome: 'escalated' };
     }
     if (Date.now() > deadline) {
@@ -148,7 +160,7 @@ test.describe.serial('customer submits, and admin reviews, one real ticket', () 
     await page.getByRole('button', { name: /all tickets/i }).click();
     await page.getByPlaceholder('Search by ticket ID…').fill(trackingId);
 
-    const row = page.locator('div.cursor-pointer', { hasText: trackingId.split('-')[0] });
+    const row = page.getByRole('button', { name: new RegExp(trackingId.split('-')[0], 'i') });
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.click();
 

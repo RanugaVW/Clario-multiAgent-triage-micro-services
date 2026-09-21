@@ -100,4 +100,31 @@ describe('Admin console inside the shared navigation shell', () => {
     await user.click(screen.getByRole('button', { name: 'critical' }));
     expect(screen.getByRole('button', { name: 'critical' })).toHaveClass('text-danger');
   });
+
+  it('marks the active human-review sub-tab with aria-current and moves it on click', async () => {
+    const user = userEvent.setup();
+    const escalated = {
+      id: 't1', raw_text: 'x', subject: 's', customer_email: null, status: 'escalated',
+      created_at: '2026-01-01T00:00:00Z', ticket_drafts: [], ticket_classifications: [],
+      resolutions: [{ id: 'r1', final_response: null, escalated: true, escalation_reasons: null, resolved_at: '2026-01-01T00:00:00Z', total_reflection_count: 0, ticket_id: 't1' }],
+      human_reviews: [], response_evaluations: [], customer_feedback: null,
+    };
+    global.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ data: [escalated] }), { status: 200, headers: { 'content-type': 'application/json' } })
+    ) as unknown as typeof fetch;
+    render(<AdminDashboard />);
+    const nav = await screen.findByRole('navigation', { name: 'Main' });
+    await user.click(await within(nav).findByRole('button', { name: /Human Review Queue/ }));
+    const billing = await screen.findByRole('button', { name: /^Billing \(/ });
+    const technical = screen.getByRole('button', { name: /^Technical \(/ });
+    const other = screen.getByRole('button', { name: /^Other \/ uncategorized \(/ });
+    for (const b of [billing, technical, other]) expect(b).toHaveAttribute('type', 'button');
+    const current = () => [billing, technical, other].map(b => b.getAttribute('aria-current'));
+    // The escalated ticket has no classification, so it lands in Other and the default sub-tab is Other.
+    expect(current()).toEqual([null, null, 'true']);
+    await user.click(billing);
+    expect(current()).toEqual(['true', null, null]);
+    await user.click(technical);
+    expect(current()).toEqual([null, 'true', null]);
+  });
 });

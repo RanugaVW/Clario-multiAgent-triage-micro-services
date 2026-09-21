@@ -16,11 +16,10 @@ const RESULTS_DIR = path.join(__dirname, 'a11y-results');
 mkdirSync(RESULTS_DIR, { recursive: true });
 
 async function scan(page: Page, name: string) {
-  // Let the page's staggered CSS fade-in animations (globals.css
-  // `.animate-fade-in`, up to a 0.4s `animationDelay` + 0.3s duration on
-  // some pages) finish before scanning - otherwise axe can sample the DOM
-  // mid-animation and report a text/background pair that never exists in
-  // the page's resting state as a false "color-contrast" violation.
+  // Let async data loads and route transitions settle before scanning -
+  // otherwise axe can sample the DOM mid-render and report a text/background
+  // pair that never exists in the page's resting state as a false
+  // "color-contrast" violation. (Kept as a fixed wait; not proven removable.)
   await page.waitForTimeout(1000);
 
   const results = await new AxeBuilder({ page })

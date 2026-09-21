@@ -61,6 +61,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setRole(null);
         setRoleLoading(false);
       }
+    }).catch((err) => {
+      // A rejected getSession must not leave the app stuck loading: behave as signed out.
+      console.error('Session fetch failed:', err instanceof Error ? err.message : err);
+      setUser(null);
+      setRole(null);
+      setLoading(false);
+      setRoleLoading(false);
     });
 
     // Listen for future auth state changes (login / logout)

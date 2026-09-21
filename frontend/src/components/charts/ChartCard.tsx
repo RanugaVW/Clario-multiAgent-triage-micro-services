@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, useState, type ReactNode } from 'react';
+import { cx } from '../../lib/cx';
 
 export type TableData = { columns: string[]; rows: (string | number | null)[][] };
 
@@ -34,7 +35,7 @@ export function ChartCard({
   const headingId = useId();
 
   return (
-    <section aria-labelledby={headingId} className={`rounded-xl border border-border bg-surface p-5 flex flex-col ${className}`}>
+    <section aria-labelledby={headingId} className={cx('rounded-xl border border-border bg-surface p-5 flex flex-col', className)}>
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="min-w-0">
           <h3 id={headingId} className="text-app font-semibold text-fg">{title}</h3>
@@ -48,9 +49,10 @@ export function ChartCard({
                 type="button"
                 aria-pressed={view === v}
                 onClick={() => setView(v)}
-                className={`px-3 py-1 rounded-full capitalize transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                className={cx(
+                  'px-3 py-1 rounded-full capitalize transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand',
                   view === v ? 'bg-brand-soft text-fg' : 'text-fg-muted hover:text-fg'
-                }`}
+                )}
               >
                 {v}
               </button>
@@ -84,7 +86,7 @@ export function DataTable({ data, caption }: { data: TableData; caption: string 
         <thead>
           <tr className="text-left text-fg-muted">
             {data.columns.map((c, i) => (
-              <th key={c} scope="col" className={`pb-2 font-medium ${i > 0 ? 'text-right' : ''}`}>{c}</th>
+              <th key={c} scope="col" className={cx('pb-2 font-medium', i > 0 && 'text-right')}>{c}</th>
             ))}
           </tr>
         </thead>
@@ -92,7 +94,7 @@ export function DataTable({ data, caption }: { data: TableData; caption: string 
           {data.rows.map((row, r) => (
             <tr key={r}>
               {row.map((cell, i) => (
-                <td key={i} className={`py-1.5 text-fg ${i > 0 ? 'text-right tabular-nums' : ''}`}>
+                <td key={i} className={cx('py-1.5 text-fg', i > 0 && 'text-right tabular-nums')}>
                   {cell === null ? '—' : typeof cell === 'number' ? cell.toLocaleString('en-US') : cell}
                 </td>
               ))}

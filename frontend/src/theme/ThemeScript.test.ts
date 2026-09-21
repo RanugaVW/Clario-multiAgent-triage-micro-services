@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parsePreference, resolveMode } from './mode';
 import { buildThemeScript } from './ThemeScript';
 
-function run(script: string, opts: { stored: string | null; systemDark: boolean; storageThrows?: boolean }) {
+function run(script: string, opts: { stored: string | null; systemDark: boolean; storageThrows?: boolean; matchMedia?: 'throws' | 'undefined' }) {
   const attrs: Record<string, string> = {};
   const documentStub = { documentElement: { setAttribute: (k: string, v: string) => (attrs[k] = v) } };
   const localStorageStub = {
@@ -15,7 +15,12 @@ function run(script: string, opts: { stored: string | null; systemDark: boolean;
     documentStub,
     { pathname: '/admin' },
     localStorageStub,
-    () => ({ matches: opts.systemDark })
+    opts.matchMedia === 'undefined'
+      ? undefined
+      : () => {
+          if (opts.matchMedia === 'throws') throw new Error('unavailable');
+          return { matches: opts.systemDark };
+        }
   );
   return attrs['data-theme'];
 }
@@ -42,5 +47,15 @@ describe('buildThemeScript', () => {
   it.each([true, false])('treats blocked storage as the system preference (systemDark=%s)', (systemDark) => {
     const expected = resolveMode({ preference: 'system', systemDark });
     expect(run(script, { stored: 'light', systemDark, storageThrows: true })).toBe(expected);
+  });
+
+  // The outer catch must still honour a stored light/dark preference; it only falls back to dark otherwise.
+  it.each(['throws', 'undefined'] as const)('honours a stored light preference when matchMedia %s', (matchMedia) => {
+    expect(run(script, { stored: 'light', systemDark: true, matchMedia })).toBe('light');
+    expect(run(script, { stored: 'dark', systemDark: false, matchMedia })).toBe('dark');
+  });
+
+  it.each(['system', null, 'garbage'])('falls back to dark for stored %s when matchMedia throws', (stored) => {
+    expect(run(script, { stored, systemDark: false, matchMedia: 'throws' })).toBe('dark');
   });
 });

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
 
 const h = vi.hoisted(() => ({
+  sessionRejects: false,
   session: null as { user: { id: string } } | null,
   rpc: vi.fn(),
   authCb: null as null | ((event: string, session: { user: { id: string } } | null) => Promise<void> | void),
@@ -12,7 +13,7 @@ vi.mock('../lib/supabase', () => ({
   supabase: {
     rpc: (...args: unknown[]) => h.rpc(...args),
     auth: {
-      getSession: () => Promise.resolve({ data: { session: h.session } }),
+      getSession: () => (h.sessionRejects ? Promise.reject(new Error('auth unreachable')) : Promise.resolve({ data: { session: h.session } })),
       onAuthStateChange: (cb: typeof h.authCb) => {
         h.authCb = cb;
         return { data: { subscription: { unsubscribe: vi.fn() } } };
@@ -34,6 +35,7 @@ const state = () => screen.getByTestId('state').textContent;
 
 beforeEach(() => {
   h.session = null;
+  h.sessionRejects = false;
   h.rpc.mockReset();
   h.authCb = null;
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -63,6 +65,12 @@ describe('AuthProvider role loading', () => {
     await act(async () => {
       await Promise.resolve(h.authCb!('SIGNED_IN', { user: { id: 'u2' } })).catch(() => {});
     });
+    await waitFor(() => expect(state()).toBe('false|false|none'));
+  });
+
+  it('stops loading and behaves as signed out when getSession rejects', async () => {
+    h.sessionRejects = true;
+    render(<AuthProvider><Probe /></AuthProvider>);
     await waitFor(() => expect(state()).toBe('false|false|none'));
   });
 });

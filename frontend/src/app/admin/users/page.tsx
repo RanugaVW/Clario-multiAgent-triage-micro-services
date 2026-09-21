@@ -127,6 +127,8 @@ export default function AdminUsers() {
           <div className="flex justify-center py-12" role="status" aria-label="Loading users"><Loader2 className="w-6 h-6 animate-spin text-brand" /></div>
         )}
 
+        {/* The Card's `relative` contains the sr-only table labels inside the scroll card; without it they escape
+            and widen the document at narrow widths. */}
         {!fetching && !loadError && (
           <Card flush className="relative overflow-x-auto">
             <table className="w-full text-app">

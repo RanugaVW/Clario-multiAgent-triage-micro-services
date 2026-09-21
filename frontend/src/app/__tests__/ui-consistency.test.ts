@@ -76,7 +76,9 @@ const FORBIDDEN: Array<[string, RegExp]> = [
   ['rgb()/rgba()', /rgba?\(/],
   ['white/NN', /white\//],
   ['glass-*', /glass-/],
-  ['text-[#...]', /text-\[#/],
+  ['arbitrary text size/colour (text-[...])', /text-\[/],
+  ['hsl/oklch/oklab/lab/lch colour function', /\b(?:hsla?|oklch|oklab|lab|lch)\(/],
+  ['black/NN opacity utility', /black\/\d/],
   ['off-scale text size', /text-(xs|sm|base|lg|xl|2xl|3xl)\b/],
   [
     'raw palette class',
@@ -94,7 +96,7 @@ function collect(dir: string, out: string[] = []): string[] {
     const full = join(dir, name);
     const rel = relative(SRC_ROOT, full).split('\\').join('/');
     if (statSync(full).isDirectory()) {
-      if (rel === 'app/__tests__' || rel.startsWith('theme')) continue;
+      if (rel === 'app/__tests__') continue;
       collect(full, out);
     } else if (/\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name)) {
       out.push(rel);
