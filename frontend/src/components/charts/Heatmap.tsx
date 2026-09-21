@@ -117,7 +117,7 @@ export function Heatmap({ grid, unit = 'ticket' }: { grid: number[][]; unit?: st
       </svg>
       </div>
 
-      <div className="mt-3 flex items-center justify-end gap-2 text-xs" style={{ color: INK.muted }} aria-hidden="true">
+      <div className="mt-3 flex items-center justify-end gap-2 text-caption text-fg-muted" aria-hidden="true">
         <span>0</span>
         <span className="h-2 w-40 rounded-full" style={{ background: `linear-gradient(to right, ${SEQUENTIAL[0]}, ${SEQUENTIAL[SEQUENTIAL.length - 1]})` }} />
         <span>{compactNumber(max)}</span>

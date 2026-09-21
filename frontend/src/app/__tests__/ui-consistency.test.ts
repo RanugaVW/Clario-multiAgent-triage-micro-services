@@ -79,4 +79,16 @@ describe('UR-001 - shared design system usage', () => {
   it('the dashboard imports primitives by file path, never the legacy ui.tsx barrel', () => {
     expect(src('dashboard/page.tsx')).not.toMatch(/from '\.\.\/\.\.\/components\/ui'/);
   });
+
+  it.each(['ChartCard', 'ChartTooltip', 'tip', 'Heatmap', 'ShareBar', 'StatTile', 'Meter', 'BarsChart', 'TrendChart', 'ReportDashboard'])(
+    'chart component %s takes its chrome from theme tokens (no hex, rgb, white/NN or off-scale type)',
+    (name) => {
+      const code = src(`../components/charts/${name}.tsx`);
+      expect(code).not.toMatch(/(?<![\w&])#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})(?![\w-])/);
+      expect(code).not.toMatch(/rgba?\(/);
+      expect(code).not.toMatch(/white\//);
+      expect(code).not.toMatch(/text-\[#/);
+      expect(code).not.toMatch(/text-(xs|sm|base|lg|xl|2xl|3xl)\b/);
+    }
+  );
 });

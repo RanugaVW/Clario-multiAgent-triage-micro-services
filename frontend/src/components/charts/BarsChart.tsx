@@ -73,7 +73,7 @@ export function BarsChart({
               <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={axisWidth(scale.max, 40)} tick={tickStyle} tickFormatter={(v: number) => compactNumber(v)} domain={[0, scale.max]} ticks={scale.ticks} />
             </>
           )}
-          <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={tooltip} />
+          <Tooltip cursor={{ fill: CHROME.grid }} content={tooltip} />
           <Bar
             dataKey="count"
             name={unit}

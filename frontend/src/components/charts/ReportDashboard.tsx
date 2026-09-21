@@ -12,7 +12,7 @@ import { ShareBar } from './ShareBar';
 import { Heatmap } from './Heatmap';
 import { TrendChart, TREND_LEGEND } from './TrendChart';
 import { BarsChart } from './BarsChart';
-import { DEEMPHASIS, INK, LIFECYCLE, PRIORITY_COLOR, SCORE_COLOR, SENTIMENT_COLOR, SERIES } from './tokens';
+import { DEEMPHASIS, LIFECYCLE, PRIORITY_COLOR, SCORE_COLOR, SENTIMENT_COLOR, SERIES } from './tokens';
 
 /** The last 7-day block of a long range can be short; say so, so the dip at the right edge is not read as a collapse. */
 export function partialWeekNote(series: ReturnType<typeof volumeSeries>): string {
@@ -37,7 +37,7 @@ export function ReportDashboard({ analytics, ai, comparison }: { analytics: Tick
 }
 
 function SectionHeading({ id, children }: { id: string; children: string }) {
-  return <h2 id={id} className="text-lg font-semibold mb-4" style={{ color: INK.primary }}>{children}</h2>;
+  return <h2 id={id} className="text-body-lg font-semibold mb-4 text-fg">{children}</h2>;
 }
 
 const rowsOf = (rows: { label: string; count: number }[]): TableData['rows'] => rows.map((r) => [r.label, r.count]);
@@ -159,7 +159,7 @@ function AiSection({ ai, cmp, versus }: { ai: AiPerformance; cmp: PeriodComparis
     return (
       <section aria-labelledby="ai-performance">
         <SectionHeading id="ai-performance">AI performance</SectionHeading>
-        <div className="glass-panel rounded-[28px] p-8 text-center text-[#8A8F98]">The AI pipeline has not processed any tickets in this period.</div>
+        <div className="rounded-xl border border-border bg-surface p-8 text-center text-fg-muted">The AI pipeline has not processed any tickets in this period.</div>
       </section>
     );
   }
@@ -186,7 +186,7 @@ function AiSection({ ai, cmp, versus }: { ai: AiPerformance; cmp: PeriodComparis
           deltaCaption={versus}
           hint={`${ai.judgeScores.evaluated} responses evaluated`}
         />
-        <div className="glass-panel rounded-[28px] p-5 sm:col-span-2 grid gap-5 sm:grid-cols-2">
+        <div className="rounded-xl border border-border bg-surface p-5 sm:col-span-2 grid gap-5 sm:grid-cols-2">
           <Meter
             label="Escalation rate"
             value={ai.escalation.rate}
@@ -247,7 +247,7 @@ function AiSection({ ai, cmp, versus }: { ai: AiPerformance; cmp: PeriodComparis
         </ChartCard>
       </div>
 
-      <p className="text-xs" style={{ color: INK.muted }}>
+      <p className="text-caption text-fg-muted">
         Average effort per resolution: {ai.avgLlmCalls === null ? '—' : ai.avgLlmCalls.toFixed(1)} LLM calls, {ai.avgReflections === null ? '—' : ai.avgReflections.toFixed(1)} reflection rounds.
       </p>
     </section>

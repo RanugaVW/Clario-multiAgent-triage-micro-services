@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useState, type ReactNode } from 'react';
-import { CHROME, INK } from './tokens';
 
 // A small tooltip for the hand-drawn charts (share bar, heatmap). It follows the pointer on hover and anchors to the mark
 // on keyboard focus, so the reader gets the same details either way. Tooltips enhance and never gate: every value shown
@@ -33,8 +32,8 @@ export function TipLayer({ tip }: { tip: TipState }) {
   return (
     <div
       role="tooltip"
-      className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-xl px-3 py-2 text-xs shadow-lg"
-      style={{ left: tip.x, top: tip.y - 10, background: '#1b1c22', border: `1px solid ${CHROME.axis}`, color: INK.secondary, whiteSpace: 'nowrap' }}
+      className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full bg-surface-raised border border-border text-fg shadow-raised rounded-lg px-3 py-2 text-caption"
+      style={{ left: tip.x, top: tip.y - 10, whiteSpace: 'nowrap' }}
     >
       {tip.content}
     </div>
@@ -46,7 +45,7 @@ export function TipRow({ swatch, label, value }: { swatch?: string; label: strin
   return (
     <div className="flex items-center gap-2">
       {swatch && <span aria-hidden="true" className="inline-block h-0.5 w-3 rounded-full" style={{ background: swatch }} />}
-      <span className="font-semibold" style={{ color: INK.primary }}>{value}</span>
+      <span className="font-semibold text-fg">{value}</span>
       <span>{label}</span>
     </div>
   );

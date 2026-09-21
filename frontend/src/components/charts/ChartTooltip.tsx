@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { CHROME, INK } from './tokens';
 
 type Row = { name?: string | number; value?: string | number | readonly (string | number)[]; color?: string; dataKey?: string | number };
 
@@ -34,12 +33,12 @@ export function ChartTooltip({
         .filter((p) => typeof p.value === 'number')
         .map((p) => ({ color: p.color, name: String(p.name ?? p.dataKey ?? ''), value: format(p.value as number) }));
   return (
-    <div className="rounded-xl px-3 py-2 text-xs shadow-lg" style={{ background: '#1b1c22', border: `1px solid ${CHROME.axis}`, color: INK.secondary }}>
-      <div className="mb-1" style={{ color: INK.muted }}>{title ? title(label, payload) : label}</div>
+    <div className="bg-surface-raised border border-border text-fg shadow-raised rounded-lg px-3 py-2 text-caption">
+      <div className="mb-1 text-fg-muted">{title ? title(label, payload) : label}</div>
       {list.map((r) => (
         <div key={r.name} className="flex items-center gap-2">
           {r.color && <span aria-hidden="true" className="inline-block h-0.5 w-3 rounded-full" style={{ background: r.color }} />}
-          <span className="font-semibold" style={{ color: INK.primary }}>{r.value}</span>
+          <span className="font-semibold text-fg">{r.value}</span>
           <span>{r.name}</span>
         </div>
       ))}

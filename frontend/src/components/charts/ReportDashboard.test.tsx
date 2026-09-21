@@ -42,8 +42,8 @@ describe('ReportDashboard', () => {
 
   it('leads with exactly one hero figure and compares it with the previous period', () => {
     const { container } = render(<ReportDashboard {...fixture()} />);
-    expect(container.querySelectorAll('.text-5xl')).toHaveLength(1);
-    expect(screen.getByLabelText('Tickets received: 3')).toHaveClass('text-5xl');
+    expect(container.querySelectorAll('.text-h1')).toHaveLength(1);
+    expect(screen.getByLabelText('Tickets received: 3')).toHaveClass('text-h1');
     // 3 this week vs 1 the week before: +200%, worded with an arrow and the comparison window.
     expect(screen.getByText('▲ 200%')).toBeInTheDocument();
     expect(screen.getAllByText('vs 2026-09-01 to 2026-09-07').length).toBeGreaterThan(0);

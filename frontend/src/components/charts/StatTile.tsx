@@ -45,19 +45,18 @@ export function StatTile({
   hero?: boolean;
 }) {
   return (
-    <div className={`glass-panel rounded-[28px] ${hero ? 'p-7' : 'p-5'} flex flex-col justify-between gap-3 min-w-0`}>
-      <p className="text-xs font-medium" style={{ color: INK.muted }}>{label}</p>
+    <div className={`rounded-xl border border-border bg-surface ${hero ? 'p-7' : 'p-5'} flex flex-col justify-between gap-3 min-w-0`}>
+      <p className="text-caption font-medium text-fg-muted">{label}</p>
       <div className="flex items-end justify-between gap-3">
         <p
-          className={`font-semibold leading-none tracking-tight ${hero ? 'text-5xl' : 'text-3xl'}`}
-          style={{ color: INK.primary }}
+          className={`font-semibold leading-none tracking-tight text-fg ${hero ? 'text-h1' : 'text-h2'}`}
           aria-label={`${label}: ${value}`}
         >
           {value}
         </p>
         {spark && <Sparkline values={spark} width={hero ? 168 : 96} height={hero ? 48 : 28} />}
       </div>
-      <div className="text-xs space-y-1" style={{ color: INK.muted }}>
+      <div className="text-caption space-y-1 text-fg-muted">
         {delta && (
           <p className="flex flex-wrap items-center gap-x-2">
             <span className="font-semibold" style={{ color: TONE_COLOR[delta.tone] }} data-tone={delta.tone}>{delta.text}</span>

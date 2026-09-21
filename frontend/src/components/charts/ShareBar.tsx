@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { compactNumber, formatPercent, withShares } from '../../lib/reportCharts';
-import { INK, SURFACE } from './tokens';
+import { EMPTY_CELL, SURFACE } from './tokens';
 import { TipLayer, TipRow, useTip } from './tip';
 
 export type ShareSegment = { label: string; count: number; color: string };
@@ -26,7 +26,7 @@ export function ShareBar({ segments, ariaLabel }: { segments: ShareSegment[]; ar
 
   return (
     <div ref={ref} className="relative">
-      <div role="group" aria-label={ariaLabel} className="flex h-6 w-full overflow-hidden rounded-[6px]" style={{ gap: 2, background: SURFACE }}>
+      <div role="group" aria-label={ariaLabel} className="flex h-6 w-full overflow-hidden rounded-md" style={{ gap: 2, background: SURFACE }}>
         {visible.map((s) => (
           <div
             key={s.label}
@@ -41,16 +41,16 @@ export function ShareBar({ segments, ariaLabel }: { segments: ShareSegment[]; ar
             onBlur={hide}
           />
         ))}
-        {visible.length === 0 && <div className="h-full w-full" style={{ background: '#1a1b21' }} />}
+        {visible.length === 0 && <div className="h-full w-full" style={{ background: EMPTY_CELL }} />}
       </div>
 
       <ul className="mt-4 grid gap-y-2.5">
         {segments.map((s, i) => (
           <li key={s.label} className="flex items-center gap-2 min-w-0">
-            <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: s.color }} />
-            <span className="text-xs truncate" style={{ color: INK.secondary }}>{s.label}</span>
-            <span className="ml-auto text-sm font-semibold tabular-nums" style={{ color: INK.primary }}>{compactNumber(s.count)}</span>
-            <span className="w-10 text-right text-xs tabular-nums" style={{ color: INK.muted }}>{formatPercent(shares[i].share)}</span>
+            <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: s.color }} />
+            <span className="text-caption truncate text-fg-muted">{s.label}</span>
+            <span className="ml-auto text-app font-semibold tabular-nums text-fg">{compactNumber(s.count)}</span>
+            <span className="w-10 text-right text-caption tabular-nums text-fg-muted">{formatPercent(shares[i].share)}</span>
           </li>
         ))}
       </ul>

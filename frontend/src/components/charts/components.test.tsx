@@ -104,9 +104,9 @@ describe('StatTile', () => {
 
   it('the hero figure is the largest, and only when asked', () => {
     const { rerender } = render(<StatTile label="L" value="715" hero />);
-    expect(screen.getByLabelText('L: 715')).toHaveClass('text-5xl');
+    expect(screen.getByLabelText('L: 715')).toHaveClass('text-h1');
     rerender(<StatTile label="L" value="715" />);
-    expect(screen.getByLabelText('L: 715')).toHaveClass('text-3xl');
+    expect(screen.getByLabelText('L: 715')).toHaveClass('text-h2');
   });
 
   it('the sparkline is decorative (hidden from assistive tech) and needs at least two points', () => {
