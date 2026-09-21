@@ -61,3 +61,12 @@ export function sentimentColor(sentiment: string | null | undefined): string | u
     default: return undefined;
   }
 }
+
+/** Theme text-colour class for a sentiment; '' means "use the default colour". */
+export function sentimentClass(sentiment: string | null | undefined): string {
+  switch (sentiment?.toLowerCase()) {
+    case 'frustrated':
+    case 'negative': return 'text-danger';
+    default: return '';
+  }
+}

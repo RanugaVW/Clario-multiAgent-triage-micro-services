@@ -10,7 +10,11 @@ import {
   CreditCard, Wrench, Brain, GitBranch, Eye, RotateCcw, ArrowRightLeft,
   Shield, Layers, CheckCircle2, Image as ImageIcon, Pencil,
 } from 'lucide-react';
-import { StatusBadge, ConfirmDialog } from '../../components/ui';
+import { Badge } from '../../components/ui/Badge';
+import { Card } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
+import { ConfirmDialog } from '../../components/ui/Modal';
+import { Notice } from '../../components/ui/Notice';
 import { AdminShell } from './AdminShell';
 import type { ShellNavItem } from '../../components/AppShell';
 import { supabase } from '../../lib/supabase';
@@ -19,6 +23,7 @@ import ShakeButton from '../../components/ShakeButton';
 import { formatDate, formatDateTime, formatElapsed, formatDuration, formatRelative, formatTime } from '../../lib/datetime';
 import { fetchJson } from '../../lib/fetchJson';
 import { categoryDomain, priorityColor, sentimentColor, splitCategories } from '../../lib/classification';
+import { cx } from '../../lib/cx';
 import RotateButton from '../../components/RotateButton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8600';
@@ -41,13 +46,13 @@ function parseAdminResponse(text: string | null | undefined): React.ReactNode {
 
     return (
       <div className="space-y-4">
-        <div className="bg-[#2DD4BF]/10 border border-[#2DD4BF]/20 p-3 rounded-xl">
-          <span className="text-xs uppercase tracking-wider text-[#2DD4BF] block mb-1 font-bold">Internal technical details</span>
-          <p className="text-[#99f6e4] text-sm">{techReport}</p>
+        <div className="bg-surface border border-accent/40 p-3 rounded-lg">
+          <span className="text-caption uppercase tracking-wider text-accent block mb-1 font-bold">Internal technical details</span>
+          <p className="text-fg text-app">{techReport}</p>
         </div>
-        <div className="bg-[#E8A33D]/10 border border-[#E8A33D]/20 p-3 rounded-xl">
-          <span className="text-xs uppercase tracking-wider text-[#E8A33D] block mb-1 font-bold">Customer-facing output</span>
-          <p className="text-[#fbd999] text-sm">{custResponse}</p>
+        <div className="bg-surface border border-brand/40 p-3 rounded-lg">
+          <span className="text-caption uppercase tracking-wider text-brand block mb-1 font-bold">Customer-facing output</span>
+          <p className="text-fg text-app">{custResponse}</p>
         </div>
       </div>
     );
@@ -165,7 +170,7 @@ const AI_AGENTS = [
     description: 'Handles billing, payments, refunds, account charges',
     icon: CreditCard,
     domain: 'billing',
-    color: 'emerald',
+    color: 'success',
     keywords: ['billing', 'account', 'payment', 'charge', 'refund', 'invoice'],
   },
   {
@@ -174,7 +179,7 @@ const AI_AGENTS = [
     description: 'Handles technical errors, crashes, login, system failures',
     icon: Wrench,
     domain: 'technical',
-    color: 'sky',
+    color: 'accent',
     keywords: ['technical', 'error', 'crash', 'login', 'bug', 'not working'],
   },
 ];
@@ -331,9 +336,9 @@ export default function AdminDashboard() {
 
   if (!isFullyLoaded) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="w-10 h-10 animate-spin text-[#E8A33D]" />
-        <p className="text-[#8A8F98] text-sm">Loading admin workspace...</p>
+      <div className="min-h-dvh flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-10 h-10 animate-spin text-brand" />
+        <p className="text-fg-muted text-app">Loading admin workspace...</p>
       </div>
     );
   }
@@ -359,81 +364,82 @@ export default function AdminDashboard() {
       />
 
         {/* ── System Status ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <SystemCard icon={<Server />} label="Spring Boot Gateway" status="Healthy" uptime="99.9%" color="emerald" />
-          <SystemCard icon={<Cpu />} label="ML Sidecar (FastAPI)" status="Healthy" uptime="99.8%" color="emerald" />
-          <SystemCard icon={<Database />} label="PostgreSQL (Supabase)" status="Healthy" uptime="99.9%" color="emerald" />
-          <SystemCard icon={<Database />} label="ChromaDB (50 docs)" status="Active" uptime="98.5%" color="sky" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <SystemCard icon={<Server />} label="Spring Boot Gateway" status="Healthy" uptime="99.9%" toneClass="text-success" />
+          <SystemCard icon={<Cpu />} label="ML Sidecar (FastAPI)" status="Healthy" uptime="99.8%" toneClass="text-success" />
+          <SystemCard icon={<Database />} label="PostgreSQL (Supabase)" status="Healthy" uptime="99.9%" toneClass="text-success" />
+          <SystemCard icon={<Database />} label="ChromaDB (50 docs)" status="Active" uptime="98.5%" toneClass="text-accent" />
         </div>
 
         {/* ── Stats Bar ──────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
-          <StatBadge label="Total tickets" value={allTickets.length} color="indigo" />
-          <StatBadge label="Auto-resolved" value={resolvedTickets.length} color="emerald" />
-          <StatBadge label="Human review" value={humanReviewTickets.length} color="amber" />
-          <StatBadge label="AI agents active" value={2} color="sky" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatBadge label="Total tickets" value={allTickets.length} toneClass="text-brand" />
+          <StatBadge label="Auto-resolved" value={resolvedTickets.length} toneClass="text-success" />
+          <StatBadge label="Human review" value={humanReviewTickets.length} toneClass="text-warning" />
+          <StatBadge label="AI agents active" value={2} toneClass="text-accent" />
         </div>
 
         {/* ── Debug ──────────────────────────────────────────────────────────── */}
         {debugInfo && (
-          <div className="mb-6 bg-[#FB7185]/10 border border-[#FB7185]/30 rounded-xl p-4 text-[#FB7185] text-sm">
+          <Notice tone="danger" role="alert" className="mb-6 font-mono text-mono text-fg-muted">
             <strong>Debug:</strong> {debugInfo}
-          </div>
+          </Notice>
         )}
 
         {/* ── AI Agents Tab ──────────────────────────────────────────────────── */}
       {activeTab === 'agents' && (
-        <section className="glass-panel rounded-[28px] overflow-hidden animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <div className="p-6 border-b border-white/10 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-[#ECECEC] flex items-center">
-              <Bot className="w-5 h-5 mr-2 text-[#2DD4BF]" /> AI agents
+        <section className="rounded-xl border border-border bg-surface shadow-card overflow-hidden">
+          <div className="p-6 border-b border-border flex justify-between items-center">
+            <h2 className="text-body-lg font-semibold text-fg flex items-center">
+              <Bot className="w-5 h-5 mr-2 text-accent" /> AI agents
             </h2>
             <RotateButton onClick={fetchData} isLoading={dataLoading} />
           </div>
 
           {dataLoading ? (
-            <div className="p-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#E8A33D]" /></div>
+            <div className="p-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand" /></div>
           ) : (
-            <div className="divide-y divide-white/10">
+            <div className="divide-y divide-border">
               {AI_AGENTS.map((agent) => {
                 const agentTickets = getAgentTickets(agent.domain);
                 const Icon = agent.icon;
                 const colorMap: Record<string, string> = {
-                  emerald: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/25',
-                  sky: 'text-[#2DD4BF] bg-[#2DD4BF]/15 border-[#2DD4BF]/25',
+                  success: 'text-success bg-surface-raised border-success/40',
+                  accent: 'text-accent bg-surface-raised border-accent/40',
                 };
+                const agentText = agent.color === 'success' ? 'text-success' : 'text-accent';
                 return (
                   <div key={agent.id} className="flex flex-col">
                     <div
-                      className="p-5 flex items-center justify-between cursor-pointer hover:bg-white/[0.04] transition-colors"
+                      className="p-5 flex items-center justify-between cursor-pointer hover:bg-surface-raised transition-colors"
                       onClick={() => setExpandedAgentId(prev => prev === agent.id ? null : agent.id)}
                     >
                       <div className="flex items-center space-x-4">
-                        <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center ${colorMap[agent.color]}`}>
+                        <div className={`w-12 h-12 rounded-xl border flex items-center justify-center ${colorMap[agent.color]}`}>
                           <Icon className="w-6 h-6" />
                         </div>
                         <div>
-                          <p className="font-semibold text-[#ECECEC] text-base">{agent.name}</p>
-                          <p className="text-xs text-[#8A8F98] mt-0.5">{agent.description}</p>
-                          <p className="text-xs mt-1 flex items-center">
-                            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse ${agent.color === 'emerald' ? 'bg-emerald-400' : 'bg-[#2DD4BF]'}`} />
-                            <span className={agent.color === 'emerald' ? 'text-emerald-400' : 'text-[#2DD4BF]'}>Active — RAG domain: <strong>{agent.domain}</strong></span>
+                          <p className="font-semibold text-fg text-body">{agent.name}</p>
+                          <p className="text-caption text-fg-muted mt-0.5">{agent.description}</p>
+                          <p className="text-caption mt-1 flex items-center">
+                            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse ${agent.color === 'success' ? 'bg-success' : 'bg-accent'}`} />
+                            <span className={agentText}>Active — RAG domain: <strong>{agent.domain}</strong></span>
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-6">
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-[#ECECEC]">{agentTickets.length}</p>
-                          <p className="text-xs text-[#8A8F98]">Tickets handled</p>
+                          <p className="text-h2 font-bold text-fg">{agentTickets.length}</p>
+                          <p className="text-caption text-fg-muted">Tickets handled</p>
                         </div>
-                        {expandedAgentId === agent.id ? <ChevronUp className="w-5 h-5 text-[#8A8F98]" /> : <ChevronDown className="w-5 h-5 text-[#8A8F98]" />}
+                        {expandedAgentId === agent.id ? <ChevronUp className="w-5 h-5 text-fg-muted" /> : <ChevronDown className="w-5 h-5 text-fg-muted" />}
                       </div>
                     </div>
 
                     {expandedAgentId === agent.id && (
-                      <div className="px-5 pb-5 border-t border-white/10">
+                      <div className="px-5 pb-5 border-t border-border">
                         {agentTickets.length === 0 ? (
-                          <p className="text-[#8A8F98] italic text-sm text-center py-8">No tickets handled by this agent yet. Submit a ticket to see it here.</p>
+                          <p className="text-fg-muted italic text-app text-center py-8">No tickets handled by this agent yet. Submit a ticket to see it here.</p>
                         ) : (
                           <div className="p-6">
                           <div className="flex flex-col">
@@ -455,69 +461,69 @@ export default function AdminDashboard() {
 
       {/* ── Pipeline Nodes Tab ──────────────────────────────────────────────── */}
       {activeTab === 'pipeline' && (
-        <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <div className="glass-panel rounded-[28px] p-6 mb-6">
-            <h2 className="text-base font-semibold text-[#ECECEC] mb-1 flex items-center">
-              <Layers className="w-4 h-4 mr-2 text-[#E8A33D]" /> LangGraph pipeline architecture
+        <section>
+          <Card className="mb-6">
+            <h2 className="text-body font-semibold text-fg mb-1 flex items-center">
+              <Layers className="w-4 h-4 mr-2 text-brand" /> LangGraph pipeline architecture
             </h2>
-            <p className="text-sm text-[#8A8F98]">All nodes run sequentially within the LangGraph state machine. The <code className="bg-white/[0.06] px-1 rounded text-[#E8A33D]">TicketState</code> blackboard is passed between nodes.</p>
-          </div>
+            <p className="text-app text-fg-muted">All nodes run sequentially within the LangGraph state machine. The <code className="bg-surface-raised px-1 rounded text-brand">TicketState</code> blackboard is passed between nodes.</p>
+          </Card>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {PIPELINE_NODES.map((node, i) => {
               const Icon = node.icon;
               return (
-                <div key={node.id} className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] p-5 relative overflow-hidden">
-                  <div className="absolute top-3 right-3 text-white/20 text-xs font-bold">#{i + 1}</div>
-                  <div className="bg-[#E8A33D]/15 border border-[#E8A33D]/25 w-10 h-10 rounded-xl flex items-center justify-center mb-3">
-                    <Icon className="w-5 h-5 text-[#E8A33D]" />
+                <Card key={node.id} className="relative overflow-hidden">
+                  <div className="absolute top-3 right-3 text-fg-subtle text-caption font-bold">#{i + 1}</div>
+                  <div className="bg-surface-raised border border-brand/40 w-10 h-10 rounded-lg flex items-center justify-center mb-3">
+                    <Icon className="w-5 h-5 text-brand" />
                   </div>
-                  <p className="font-semibold text-[#ECECEC] text-sm mb-1">{node.name}</p>
-                  <p className="text-xs text-[#8A8F98] leading-relaxed">{node.description}</p>
+                  <p className="font-semibold text-fg text-app mb-1">{node.name}</p>
+                  <p className="text-caption text-fg-muted leading-relaxed">{node.description}</p>
                   <div className="mt-3 flex items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
-                    <span className="text-xs text-emerald-400">Active</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-success mr-1.5 animate-pulse" />
+                    <span className="text-caption text-success">Active</span>
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>
-          <div className="mt-6 glass-panel rounded-2xl p-5">
-            <h3 className="text-sm font-semibold text-[#ECECEC] mb-3 flex items-center">
-              <BarChart2 className="w-4 h-4 mr-2 text-[#2DD4BF]" /> Processing stats
+          <Card className="mt-6">
+            <h3 className="text-app font-semibold text-fg mb-3 flex items-center">
+              <BarChart2 className="w-4 h-4 mr-2 text-accent" /> Processing stats
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="rounded-2xl bg-white/[0.03] p-3 text-center">
-                <p className="text-xl font-bold text-[#ECECEC]">{allTickets.length}</p>
-                <p className="text-xs text-[#8A8F98]">Total processed</p>
+              <div className="rounded-lg bg-surface-raised p-3 text-center">
+                <p className="text-h3 font-bold text-fg">{allTickets.length}</p>
+                <p className="text-caption text-fg-muted">Total processed</p>
               </div>
-              <div className="rounded-2xl bg-white/[0.03] p-3 text-center">
-                <p className="text-xl font-bold text-emerald-400">{resolvedTickets.length}</p>
-                <p className="text-xs text-[#8A8F98]">Auto-resolved</p>
+              <div className="rounded-lg bg-surface-raised p-3 text-center">
+                <p className="text-h3 font-bold text-success">{resolvedTickets.length}</p>
+                <p className="text-caption text-fg-muted">Auto-resolved</p>
               </div>
-              <div className="rounded-2xl bg-white/[0.03] p-3 text-center">
-                <p className="text-xl font-bold text-[#FB923C]">{humanReviewTickets.length}</p>
-                <p className="text-xs text-[#8A8F98]">Escalated</p>
+              <div className="rounded-lg bg-surface-raised p-3 text-center">
+                <p className="text-h3 font-bold text-warning">{humanReviewTickets.length}</p>
+                <p className="text-caption text-fg-muted">Escalated</p>
               </div>
-              <div className="rounded-2xl bg-white/[0.03] p-3 text-center">
-                <p className="text-xl font-bold text-[#2DD4BF]">
+              <div className="rounded-lg bg-surface-raised p-3 text-center">
+                <p className="text-h3 font-bold text-accent">
                   {allTickets.length > 0 ? Math.round((resolvedTickets.length / allTickets.length) * 100) : 0}%
                 </p>
-                <p className="text-xs text-[#8A8F98]">Auto-resolve rate</p>
+                <p className="text-caption text-fg-muted">Auto-resolve rate</p>
               </div>
             </div>
-          </div>
+          </Card>
         </section>
       )}
 
       {/* ── Human Review Tab ────────────────────────────────────────────────── */}
       {activeTab === 'human_review' && (
-        <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
+        <section>
           {humanReviewTickets.length === 0 ? (
-            <div className="glass-panel rounded-[28px] p-16 text-center">
-              <CheckCircle className="w-14 h-14 text-emerald-500/50 mx-auto mb-4" />
-              <p className="text-[#ECECEC] font-semibold text-lg">All caught up!</p>
-              <p className="text-[#8A8F98] text-sm mt-1">No tickets need human review right now.</p>
-            </div>
+            <Card className="p-16 text-center">
+              <CheckCircle className="w-14 h-14 text-success mx-auto mb-4" />
+              <p className="text-fg font-semibold text-body-lg">All caught up!</p>
+              <p className="text-fg-muted text-app mt-1">No tickets need human review right now.</p>
+            </Card>
           ) : (
             <HumanReviewTabs humanReviewTickets={humanReviewTickets} onDelete={handleDeleteTicket} />
           )}
@@ -526,13 +532,13 @@ export default function AdminDashboard() {
 
       {/* ── Resolved Tab ────────────────────────────────────────────────────── */}
       {activeTab === 'resolved' && (
-        <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
+        <section>
           {resolvedTickets.length === 0 ? (
-            <div className="glass-panel rounded-[28px] p-16 text-center">
-              <CheckCircle2 className="w-14 h-14 text-emerald-500/50 mx-auto mb-4" />
-              <p className="text-[#ECECEC] font-semibold text-lg">No resolved tickets yet</p>
-              <p className="text-[#8A8F98] text-sm mt-1">Tickets will appear here once they are resolved.</p>
-            </div>
+            <Card className="p-16 text-center">
+              <CheckCircle2 className="w-14 h-14 text-success mx-auto mb-4" />
+              <p className="text-fg font-semibold text-body-lg">No resolved tickets yet</p>
+              <p className="text-fg-muted text-app mt-1">Tickets will appear here once they are resolved.</p>
+            </Card>
           ) : (
             <div className="flex flex-col">
               {resolvedTickets.map(ticket => (
@@ -545,19 +551,19 @@ export default function AdminDashboard() {
 
       {/* ── All Tickets Tab ──────────────────────────────────────────────────── */}
       {activeTab === 'all_tickets' && (
-        <section className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <div className="glass-panel rounded-[28px] overflow-hidden">
-            <div className="p-6 border-b border-white/10 flex flex-wrap justify-between items-center gap-4">
-              <h2 className="text-lg font-semibold text-[#ECECEC] flex items-center">
-                <MessageSquare className="w-5 h-5 mr-2 text-[#E8A33D]" /> All tickets & responses
+        <section>
+          <div className="rounded-xl border border-border bg-surface shadow-card overflow-hidden">
+            <div className="p-6 border-b border-border flex flex-wrap justify-between items-center gap-4">
+              <h2 className="text-body-lg font-semibold text-fg flex items-center">
+                <MessageSquare className="w-5 h-5 mr-2 text-brand" /> All tickets & responses
               </h2>
               <div className="flex items-center space-x-3">
-                <input
+                <Input
                   type="text"
                   placeholder="Search by ticket ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="glass-input rounded-xl text-[#ECECEC] text-xs px-3 py-1.5 w-64"
+                  className="w-64"
                 />
                 <RotateButton onClick={fetchData} isLoading={dataLoading} />
               </div>
@@ -565,7 +571,7 @@ export default function AdminDashboard() {
 
             {/* Category tabs — derived from whatever categories are actually present */}
             {ticketCategories.length > 0 && (
-              <div className="px-6 pt-4 flex flex-wrap gap-2 border-b border-white/10 pb-4">
+              <div className="px-6 pt-4 flex flex-wrap gap-2 border-b border-border pb-4">
                 <CategoryPill active={categoryFilter === 'all'} onClick={() => setCategoryFilter('all')} label="All" count={allTickets.length} />
                 {ticketCategories.map(([category, count]) => (
                   <CategoryPill key={category} active={categoryFilter === category} onClick={() => setCategoryFilter(category)} label={category} count={count} />
@@ -575,25 +581,25 @@ export default function AdminDashboard() {
 
             {/* Priority filter */}
             <div className="px-6 pt-4 flex items-center gap-2">
-              <span className="text-xs text-[#8A8F98] mr-1">Priority:</span>
+              <span className="text-caption text-fg-muted mr-1">Priority:</span>
               {(['all', 'critical', 'high', 'medium', 'low'] as const).map(p => (
                 <PriorityPill key={p} active={priorityFilter === p} onClick={() => setPriorityFilter(p)} priority={p} />
               ))}
             </div>
 
             {dataLoading ? (
-              <div className="p-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#E8A33D]" /></div>
+              <div className="p-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand" /></div>
             ) : allTickets.length === 0 ? (
               <div className="p-16 text-center">
-                <MessageSquare className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                <p className="text-[#ECECEC] font-medium">No tickets yet</p>
-                <p className="text-[#8A8F98] text-sm mt-1">Submit a ticket from the Triage page to see it here.</p>
+                <MessageSquare className="w-12 h-12 text-fg-subtle mx-auto mb-4" />
+                <p className="text-fg font-medium">No tickets yet</p>
+                <p className="text-fg-muted text-app mt-1">Submit a ticket from the Triage page to see it here.</p>
               </div>
             ) : filteredAllTickets.length === 0 ? (
               <div className="p-16 text-center">
-                <MessageSquare className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                <p className="text-[#ECECEC] font-medium">No tickets match these filters</p>
-                <p className="text-[#8A8F98] text-sm mt-1">Try a different category, priority, or search term.</p>
+                <MessageSquare className="w-12 h-12 text-fg-subtle mx-auto mb-4" />
+                <p className="text-fg font-medium">No tickets match these filters</p>
+                <p className="text-fg-muted text-app mt-1">Try a different category, priority, or search term.</p>
               </div>
             ) : (
               <div className="flex flex-col p-6 pt-4">
@@ -624,22 +630,22 @@ function HumanReviewTabs({ humanReviewTickets, onDelete }: { humanReviewTickets:
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="flex space-x-2 border-b border-white/10 pb-4">
+      <div className="flex space-x-2 border-b border-border pb-4">
         <button
           onClick={() => setActiveSubTab('billing')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${activeSubTab === 'billing' ? 'text-[#2DD4BF] border-b-2 border-[#2DD4BF]' : 'text-[#8A8F98] hover:text-[#ECECEC]'}`}
+          className={`px-4 py-2 text-app font-medium transition-colors ${activeSubTab === 'billing' ? 'text-accent border-b-2 border-accent' : 'text-fg-muted hover:text-fg'}`}
         >
           Billing ({billingTickets.length})
         </button>
         <button
           onClick={() => setActiveSubTab('technical')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${activeSubTab === 'technical' ? 'text-[#FB7185] border-b-2 border-[#FB7185]' : 'text-[#8A8F98] hover:text-[#ECECEC]'}`}
+          className={`px-4 py-2 text-app font-medium transition-colors ${activeSubTab === 'technical' ? 'text-danger border-b-2 border-danger' : 'text-fg-muted hover:text-fg'}`}
         >
           Technical ({technicalTickets.length})
         </button>
         <button
           onClick={() => setActiveSubTab('other')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${activeSubTab === 'other' ? 'text-[#FB923C] border-b-2 border-[#FB923C]' : 'text-[#8A8F98] hover:text-[#ECECEC]'}`}
+          className={`px-4 py-2 text-app font-medium transition-colors ${activeSubTab === 'other' ? 'text-warning border-b-2 border-warning' : 'text-fg-muted hover:text-fg'}`}
         >
           Other / uncategorized ({otherTickets.length})
         </button>
@@ -647,7 +653,7 @@ function HumanReviewTabs({ humanReviewTickets, onDelete }: { humanReviewTickets:
 
       <div className="flex flex-col">
         {activeTickets.length === 0 ? (
-          <div className="rounded-2xl p-8 text-center border border-white/10 bg-white/[0.03] text-[#8A8F98] text-sm">
+          <div className="rounded-lg p-8 text-center border border-border bg-surface text-fg-muted text-app">
             No tickets in this category.
           </div>
         ) : (
@@ -870,7 +876,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
         </div>
 
         <div className="flex items-center space-x-6 shrink-0 pl-4">
-          <StatusBadge label={statusLabel} tone={statusTone} />
+          <Badge tone={statusTone}>{statusLabel}</Badge>
           {onDelete && (
             <ShakeButton onDelete={(e) => { e.stopPropagation(); onDelete(ticket.id); }} />
           )}
@@ -1166,77 +1172,67 @@ function CategoryPill({ active, onClick, label, count }: {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+      className={cx(
+        'flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-caption font-medium transition-colors border',
         active
-          ? 'bg-[#2DD4BF]/20 text-[#2DD4BF] border-[#2DD4BF]/40'
-          : 'bg-white/[0.03] text-[#8A8F98] border-white/10 hover:text-[#ECECEC] hover:bg-white/[0.06]'
-      }`}
+          ? 'bg-surface-raised text-accent border-accent/40'
+          : 'bg-surface text-fg-muted border-border hover:text-fg hover:bg-surface-raised'
+      )}
     >
       <span className="capitalize">{label}</span>
-      <span className={active ? 'text-[#2DD4BF]/70' : 'text-[#8A8F98]/70'}>{count}</span>
+      <span className={active ? 'text-accent' : 'text-fg-subtle'}>{count}</span>
     </button>
   );
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
-  critical: '#F43F5E',
-  high: '#FB7185',
-  medium: '#FB923C',
-  low: '#8A8F98',
+  critical: 'text-danger',
+  high: 'text-danger',
+  medium: 'text-warning',
+  low: 'text-fg-muted',
 };
 
 /** One priority pill in the All Tickets filter row. */
 function PriorityPill({ active, onClick, priority }: {
   active: boolean; onClick: () => void; priority: 'all' | 'low' | 'medium' | 'high' | 'critical';
 }) {
-  const color = PRIORITY_COLORS[priority];
+  const toneClass = PRIORITY_COLORS[priority];
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors border ${
+      className={cx(
+        'px-3 py-1 rounded-full text-caption font-medium capitalize transition-colors border',
         active
-          ? 'border-current'
-          : 'bg-white/[0.03] text-[#8A8F98] border-white/10 hover:text-[#ECECEC] hover:bg-white/[0.06]'
-      }`}
-      style={active ? { color: color || '#E8A33D', backgroundColor: `${color || '#E8A33D'}20` } : undefined}
+          ? cx('border-current bg-surface-raised', toneClass || 'text-brand')
+          : 'bg-surface text-fg-muted border-border hover:text-fg hover:bg-surface-raised'
+      )}
     >
       {priority}
     </button>
   );
 }
 
-/** Same nav semantics as TabBtn, laid out for the vertical sidebar rail. */
-function StatBadge({ label, value, color }: { label: string; value: number; color: string }) {
-  const colors: Record<string, string> = {
-    indigo: 'from-[#E8A33D]/10 to-[#E8A33D]/5 border-[#E8A33D]/20 text-[#E8A33D]',
-    amber: 'from-[#FB923C]/10 to-[#FB923C]/5 border-[#FB923C]/20 text-[#FB923C]',
-    emerald: 'from-emerald-500/10 to-emerald-500/5 border-emerald-500/20 text-emerald-300',
-    sky: 'from-[#2DD4BF]/10 to-[#2DD4BF]/5 border-[#2DD4BF]/20 text-[#2DD4BF]',
-  };
+/** One headline number in the stats bar; `toneClass` is a theme text-colour class for its label. */
+function StatBadge({ label, value, toneClass }: { label: string; value: number; toneClass: string }) {
   return (
-    <div className={`bg-gradient-to-br ${colors[color]} border rounded-2xl p-4`}>
-      <p className="text-3xl font-bold text-[#ECECEC]">{value}</p>
-      <p className={`text-xs font-medium mt-1`}>{label}</p>
+    <div className="bg-surface border border-border rounded-xl p-4">
+      <p className="text-h2 font-bold text-fg">{value}</p>
+      <p className={cx('text-caption font-medium mt-1', toneClass)}>{label}</p>
     </div>
   );
 }
 
-function SystemCard({ icon, label, status, uptime, color }: {
-  icon: React.ReactNode; label: string; status: string; uptime: string; color: string;
+function SystemCard({ icon, label, status, uptime, toneClass }: {
+  icon: React.ReactNode; label: string; status: string; uptime: string; toneClass: string;
 }) {
-  const colorMap: Record<string, string> = {
-    emerald: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/25',
-    amber: 'text-[#FB923C] bg-[#FB923C]/15 border-[#FB923C]/25',
-    sky: 'text-[#2DD4BF] bg-[#2DD4BF]/15 border-[#2DD4BF]/25',
-  };
   return (
-    <div className="rounded-2xl backdrop-blur-md bg-white/[0.03] border border-white/[0.08] p-5">
+    <div className="rounded-xl bg-surface border border-border p-5">
       <div className="flex justify-between items-start mb-3">
-        <div className={`p-2.5 rounded-xl border ${colorMap[color]}`}>{icon}</div>
-        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${colorMap[color]}`}>{status}</span>
+        <div className={cx('p-2.5 rounded-lg border border-border bg-surface-raised', toneClass)}>{icon}</div>
+        <span className={cx('text-caption font-bold px-2 py-0.5 rounded-full border border-border bg-surface-raised', toneClass)}>{status}</span>
       </div>
-      <h3 className="font-semibold text-[#ECECEC] text-sm">{label}</h3>
-      <p className="text-xs text-[#8A8F98] mt-0.5">Uptime: {uptime}</p>
+      <h3 className="font-semibold text-fg text-app">{label}</h3>
+      <p className="text-caption text-fg-muted mt-0.5">Uptime: {uptime}</p>
     </div>
   );
 }

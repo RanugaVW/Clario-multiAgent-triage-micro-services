@@ -70,4 +70,23 @@ describe('Admin console inside the shared navigation shell', () => {
     render(<AdminDashboard />);
     await waitFor(() => expect(push).toHaveBeenCalledWith('/login'));
   });
+
+  it('shows the human-review tab count and a warning-toned queue badge with theme tokens', async () => {
+    const escalated = {
+      id: 't1', raw_text: 'x', subject: 's', customer_email: null, status: 'escalated',
+      created_at: '2026-01-01T00:00:00Z', ticket_drafts: [], ticket_classifications: [],
+      resolutions: [{ id: 'r1', final_response: null, escalated: true, escalation_reasons: null, resolved_at: '2026-01-01T00:00:00Z', total_reflection_count: 0, ticket_id: 't1' }],
+      human_reviews: [], response_evaluations: [], customer_feedback: null,
+    };
+    global.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ data: [escalated] }), { status: 200, headers: { 'content-type': 'application/json' } })
+    ) as unknown as typeof fetch;
+    render(<AdminDashboard />);
+    const nav = await screen.findByRole('navigation', { name: 'Main' });
+    expect(await within(nav).findByRole('button', { name: 'Human Review Queue (1)' })).toBeInTheDocument();
+    const badge = screen.getByText('Human review');
+    expect(badge).toHaveClass('text-warning');
+    expect(badge.parentElement).toHaveClass('bg-surface', 'border-border');
+    expect(badge.parentElement?.className).not.toMatch(/gradient|#|white\//);
+  });
 });
