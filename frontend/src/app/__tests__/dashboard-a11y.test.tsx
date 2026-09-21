@@ -22,6 +22,28 @@ describe('customer dashboard - accessible structure', () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: [] }) }) as unknown as typeof fetch;
   });
 
+  it('previews a chosen screenshot and lets the customer remove it', async () => {
+    const created = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview-1');
+    const revoked = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const user = userEvent.setup();
+    render(<DashboardPage />);
+    const file = new File(['x'], 'shot.png', { type: 'image/png' });
+
+    await user.upload(screen.getByLabelText('Attach a screenshot (optional)'), file);
+
+    expect(created).toHaveBeenCalledWith(file);
+    expect(screen.getByAltText('Attached screenshot preview')).toHaveAttribute('src', 'blob:preview-1');
+    expect(screen.getByText('Attached: shot.png')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Remove attached screenshot' }));
+
+    expect(screen.queryByAltText('Attached screenshot preview')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Attached:/)).not.toBeInTheDocument();
+    expect(revoked).toHaveBeenCalledWith('blob:preview-1');
+    created.mockRestore();
+    revoked.mockRestore();
+  });
+
   it('binds every form label to its control', () => {
     render(<DashboardPage />);
     expect(screen.getByLabelText('Describe the issue')).toBeInstanceOf(HTMLTextAreaElement);

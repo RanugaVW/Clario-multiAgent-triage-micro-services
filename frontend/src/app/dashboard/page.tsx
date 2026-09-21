@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useId } from 'react';
-import { Bot, Send, Ticket, CheckCircle2, ShieldAlert, Cpu, History, Star } from 'lucide-react';
+import { useState, useEffect, useCallback, useId, useRef } from 'react';
+import { Bot, Send, Ticket, CheckCircle2, ShieldAlert, Cpu, History, Star, X } from 'lucide-react';
 
 import { formatDate, formatDateTime, formatElapsed, formatRelative, formatTime } from '../../lib/datetime';
 import { priorityClass } from '../../lib/classification';
@@ -120,6 +120,8 @@ export default function Home() {
   const [pastTickets, setPastTickets] = useState<TicketWithResolution[]>([]);
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [successModal, setSuccessModal] = useState<{show: boolean, trackingId: string}>({show: false, trackingId: ''});
   const [dataLoading, setDataLoading] = useState(false);
   const [ticketPendingDelete, setTicketPendingDelete] = useState<string | null>(null);
@@ -127,6 +129,12 @@ export default function Home() {
   const [historySearch, setHistorySearch] = useState('');
   const { user, role, loading, roleLoading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    };
+  }, [imagePreviewUrl]);
 
   const fetchHistory = useCallback(async () => {
     if (!user) return;
@@ -288,6 +296,7 @@ export default function Home() {
         setSuccessModal({ show: true, trackingId: ticketUuid });
         setTicketText('');
         setImageFile(null);
+        setImagePreviewUrl(null);
         if (user) fetchHistory();
         setActiveTab('history');
 
@@ -426,16 +435,42 @@ export default function Home() {
                 <>
                   <input
                     id={id}
+                    ref={imageInputRef}
                     type="file"
                     accept="image/*"
                     onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setImageFile(e.target.files[0]);
-                      }
+                      const file = e.target.files?.[0] ?? null;
+                      setImageFile(file);
+                      setImagePreviewUrl(file ? URL.createObjectURL(file) : null);
                     }}
                     className="w-full rounded-lg border border-border-strong bg-surface p-2 text-app text-fg-muted file:mr-4 file:rounded-md file:border file:border-border-strong file:bg-surface-raised file:px-3 file:py-1.5 file:text-small file:text-fg hover:file:bg-brand-soft"
                   />
-                  {imageFile && <p className="font-mono text-caption text-accent">Attached: {imageFile.name}</p>}
+                  {imageFile && (
+                    <div className="flex items-center gap-3">
+                      {imagePreviewUrl && (
+                        <img
+                          src={imagePreviewUrl}
+                          alt="Attached screenshot preview"
+                          className="max-h-24 max-w-32 rounded-lg border border-border object-contain"
+                        />
+                      )}
+                      <div className="flex items-center gap-2 font-mono text-caption text-accent">
+                        <span>Attached: {imageFile.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreviewUrl(null);
+                            if (imageInputRef.current) imageInputRef.current.value = '';
+                          }}
+                          className="rounded-md text-fg-muted transition-colors hover:text-danger"
+                          aria-label="Remove attached screenshot"
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </FormField>

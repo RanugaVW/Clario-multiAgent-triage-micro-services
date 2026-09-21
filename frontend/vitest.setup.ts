@@ -41,3 +41,9 @@ beforeAll(() => {
 afterAll(() => {
   console.error = originalError;
 });
+
+// jsdom has no object-URL support; stub it so components that preview a chosen file can render under test.
+if (typeof URL.createObjectURL !== 'function') {
+  URL.createObjectURL = () => 'blob:jsdom-preview';
+  URL.revokeObjectURL = () => {};
+}
