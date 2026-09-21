@@ -80,6 +80,31 @@ export const theme: Theme = {
     },
   },
 
+  // Data-viz palettes. Validated per mode by components/charts/tokens.test.ts (contrast, ordering, step gaps).
+  // Dark ramps brighten with severity/magnitude; light ramps darken. Emitted as --ch-* by css.ts.
+  charts: {
+    dark: {
+      ink: { primary: '#ECECEC', secondary: '#C3C2B7', muted: '#898781' },
+      chrome: { grid: '#2c2c2a', axis: '#383835' },
+      series: { blue: '#3987e5', orange: '#d95926', aqua: '#199e70', yellow: '#c98500' },
+      ordinal: ['#184f95', '#256abf', '#3987e5', '#86b6ef', '#b7d3f6'],
+      sequential: ['#0d366b', '#104281', '#184f95', '#1c5cab', '#256abf', '#2a78d6', '#3987e5', '#5598e7', '#6da7ec', '#86b6ef'],
+      emptyCell: '#1a1b21',
+      deemphasis: '#60646d',
+      status: { good: '#0ca30c', warning: '#fab219', serious: '#ec835a', critical: '#d03b3b' },
+    },
+    light: {
+      ink: { primary: '#0E1020', secondary: '#3E4360', muted: '#5A6080' },
+      chrome: { grid: '#E3E5F0', axis: '#C9CDE0' },
+      series: { blue: '#2A5FC0', orange: '#CC4A0E', aqua: '#0B5D57', yellow: '#B8860B' },
+      ordinal: ['#BBD1F5', '#86AEEB', '#4F86DD', '#2A5FB5', '#173F86'],
+      sequential: ['#DCE8FB', '#C6D9F7', '#AFCAF3', '#98BAEE', '#7FA8E7', '#6595DF', '#4C82D6', '#376DC7', '#2857AD', '#173F86'],
+      emptyCell: '#F1F3F9',
+      deemphasis: '#7A8098',
+      status: { good: '#15803D', warning: '#B45309', serious: '#EA580C', critical: '#B91C1C' },
+    },
+  },
+
   fontStacks: {
     sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',

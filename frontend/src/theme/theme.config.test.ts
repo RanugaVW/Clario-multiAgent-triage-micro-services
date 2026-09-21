@@ -66,3 +66,14 @@ describe.each(MODES)('%s mode contrast', (mode) => {
     });
   }
 });
+
+describe('chart palettes', () => {
+  it.each(MODES)('%s palette has 5 ordinal and 10 sequential hex steps, ordinal distinct', (mode) => {
+    const c = theme.charts[mode];
+    expect(c.ordinal).toHaveLength(5);
+    expect(c.sequential).toHaveLength(10);
+    expect(new Set(c.ordinal).size).toBe(5);
+    const all = [...Object.values(c.ink), ...Object.values(c.chrome), ...Object.values(c.series), ...c.ordinal, ...c.sequential, c.emptyCell, c.deemphasis, ...Object.values(c.status)];
+    for (const v of all) expect(v).toMatch(/^#[0-9a-fA-F]{6}$/);
+  });
+});

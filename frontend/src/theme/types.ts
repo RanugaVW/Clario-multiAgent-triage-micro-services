@@ -49,6 +49,19 @@ export interface Shadows {
   raised: string;
 }
 
+export interface ChartPalette {
+  ink: { primary: string; secondary: string; muted: string };
+  chrome: { grid: string; axis: string };
+  series: { blue: string; orange: string; aqua: string; yellow: string };
+  /** 5 steps, one hue. Dark: index 0 is nearest the surface (darkest) and severity climbs brighter. Light: index 0 is lightest and severity climbs DARKER. */
+  ordinal: [string, string, string, string, string];
+  /** 10 steps for magnitude (heatmap): more = more prominent against the surface. */
+  sequential: [string, string, string, string, string, string, string, string, string, string];
+  emptyCell: string;
+  deemphasis: string;
+  status: { good: string; warning: string; serious: string; critical: string };
+}
+
 export interface Theme {
   brand: {
     name: string;
@@ -60,6 +73,8 @@ export interface Theme {
   };
   colors: { light: ColorSet; dark: ColorSet };
   shadows: { light: Shadows; dark: Shadows };
+  /** Data-viz palettes per mode, emitted as --ch-* variables and read by components/charts/tokens.ts. */
+  charts: { light: ChartPalette; dark: ChartPalette };
   /** CSS fallback stacks that follow the next/font face declared in fonts.ts. */
   fontStacks: { sans: string; mono: string };
   type: Record<TypeRole, TypeStyle>;

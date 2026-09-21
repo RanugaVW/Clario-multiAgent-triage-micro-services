@@ -1,4 +1,4 @@
-import type { ColorSet, Shadows, Theme } from './types';
+import type { ChartPalette, ColorSet, Shadows, Theme } from './types';
 
 type Entry = [name: string, value: string | number];
 
@@ -19,9 +19,22 @@ function sharedEntries(t: Theme): Entry[] {
   return out;
 }
 
-function modeEntries(colors: ColorSet, shadows: Shadows, scheme: 'light' | 'dark'): Entry[] {
+function chartEntries(c: ChartPalette): Entry[] {
+  return [
+    ['--ch-ink-primary', c.ink.primary], ['--ch-ink-secondary', c.ink.secondary], ['--ch-ink-muted', c.ink.muted],
+    ['--ch-grid', c.chrome.grid], ['--ch-axis', c.chrome.axis],
+    ['--ch-blue', c.series.blue], ['--ch-orange', c.series.orange], ['--ch-aqua', c.series.aqua], ['--ch-yellow', c.series.yellow],
+    ...c.ordinal.map((v, i): Entry => [`--ch-ordinal-${i + 1}`, v]),
+    ...c.sequential.map((v, i): Entry => [`--ch-seq-${i + 1}`, v]),
+    ['--ch-empty', c.emptyCell], ['--ch-deemphasis', c.deemphasis],
+    ['--ch-good', c.status.good], ['--ch-warning', c.status.warning], ['--ch-serious', c.status.serious], ['--ch-critical', c.status.critical],
+  ];
+}
+
+function modeEntries(colors: ColorSet, shadows: Shadows, charts: ChartPalette, scheme: 'light' | 'dark'): Entry[] {
   const out: Entry[] = Object.entries(colors).map(([k, v]) => [`--c-${k}`, v]);
   out.push(['--sh-card', shadows.card], ['--sh-raised', shadows.raised], ['color-scheme', scheme]);
+  out.push(...chartEntries(charts));
   return out;
 }
 
@@ -32,7 +45,7 @@ function modeEntries(colors: ColorSet, shadows: Shadows, scheme: 'light' | 'dark
 export function themeToCss(t: Theme): string {
   return [
     `:root{${join(sharedEntries(t))}}`,
-    `:root,:root[data-theme="dark"]{${join(modeEntries(t.colors.dark, t.shadows.dark, 'dark'))}}`,
-    `:root[data-theme="light"]{${join(modeEntries(t.colors.light, t.shadows.light, 'light'))}}`,
+    `:root,:root[data-theme="dark"]{${join(modeEntries(t.colors.dark, t.shadows.dark, t.charts.dark, 'dark'))}}`,
+    `:root[data-theme="light"]{${join(modeEntries(t.colors.light, t.shadows.light, t.charts.light, 'light'))}}`,
   ].join('\n');
 }

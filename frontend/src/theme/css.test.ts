@@ -44,3 +44,16 @@ describe('themeToCss', () => {
     }
   });
 });
+
+describe('chart variables', () => {
+  it('emits the --ch-* palette in both mode rules', () => {
+    for (const rule of [dark, light]) {
+      for (const v of ['--ch-blue:', '--ch-ordinal-5:', '--ch-seq-10:', '--ch-empty:']) expect(rule).toContain(v);
+    }
+    expect(themeToCss(theme).split('\n')).toHaveLength(3);
+  });
+  it('takes each mode its own palette', () => {
+    expect(dark).toContain(`--ch-blue:${theme.charts.dark.series.blue}`);
+    expect(light).toContain(`--ch-blue:${theme.charts.light.series.blue}`);
+  });
+});
