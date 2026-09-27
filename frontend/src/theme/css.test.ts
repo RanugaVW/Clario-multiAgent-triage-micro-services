@@ -63,7 +63,7 @@ describe('horizon variables', () => {
     for (const rule of [dark, light]) {
       for (const v of [
         '--hz-core:', '--hz-glow-1:', '--hz-glow-2:', '--hz-glow-3:', '--hz-glow-4:',
-        '--hz-ring:', '--hz-ring-alt:', '--hz-flare:', '--hz-halo:', '--hz-disc:',
+        '--hz-ring:', '--hz-ring-alt:', '--hz-flare:', '--hz-line:', '--hz-halo:', '--hz-disc:',
         '--hz-disc-glow:', '--hz-void:', '--hz-star:', '--hz-reflect:',
       ]) {
         expect(rule).toContain(v);

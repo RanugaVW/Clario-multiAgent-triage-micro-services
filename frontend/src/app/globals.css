@@ -215,6 +215,8 @@ input:-webkit-autofill:active {
  * Landing event horizon. Every colour is a theme variable (--hz-*, see theme.horizon); only transform and
  * opacity are animated, and the reduced-motion block above collapses all of it to a static composition.
  * ---------------------------------------------------------------------------------------------- */
+/* The 150vw width deliberately overflows the viewport on narrow screens: the Hero section clips it
+   (overflow-hidden), so the dome keeps its proportions without adding horizontal page scroll. */
 .hz {
   position: absolute;
   left: 50%;
@@ -228,15 +230,36 @@ input:-webkit-autofill:active {
   position: absolute;
   inset: 0;
 }
+/* Light mode paints light as pigment: multiply lets the layers accumulate saturation instead of stacking
+   opaque discs on the pale canvas, and it makes the near-white band core read as a blown-out highlight. */
 :root[data-theme='light'] .hz {
-  mix-blend-mode: normal;
-  opacity: 0.75;
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+/* Multiply turns every layer into pigment, so the layers that only add bloom in dark mode would flood the
+   pale canvas: hold the wide bloom and the horizon bed back, and let the hairline carry the base instead. */
+:root[data-theme='light'] .hz-bloom {
+  opacity: 0.55;
+}
+:root[data-theme='light'] .hz-flares {
+  opacity: 0.4;
+}
+:root[data-theme='light'] .hz-halo {
+  opacity: 0.5;
 }
 .hz-svg {
   display: block;
   width: 100%;
   height: auto;
-  overflow: hidden;
+}
+
+/* Windows High Contrast repaints every fill and stroke with the forced palette, which would turn the whole
+   decoration into one solid CanvasText mass behind the CTAs. It carries no meaning, so drop it entirely. */
+@media (forced-colors: active) {
+  .hz,
+  .hz-reflect {
+    display: none;
+  }
 }
 
 @keyframes hz-breathe {

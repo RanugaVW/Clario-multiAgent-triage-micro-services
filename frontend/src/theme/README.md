@@ -34,15 +34,16 @@ The decorative lensed disc above the demo card is themed by `theme.horizon` in `
 | `glow4` | `--hz-glow-4` | The outermost dome, fading into the page |
 | `ring` | `--hz-ring` | The bright photon ring around the disc |
 | `ringAlt` | `--hz-ring-alt` | The inner photon ring (a second accent hue) |
-| `flare` | `--hz-flare` | The thin flares running along the horizon line |
+| `flare` | `--hz-flare` | The flares running along the horizon line, and the warm part of the streak |
+| `line` | `--hz-line` | The hot hairline of the horizon streak, where it lands on the card's top edge |
 | `halo` | `--hz-halo` | The soft halo dome behind everything |
 | `disc` | `--hz-disc` | The body of the dark disc inside the rings |
 | `discGlow` | `--hz-disc-glow` | The glow at the bottom of the disc, where it meets the horizon |
-| `void` | `--hz-void` | The deepest shadow, at the top of the disc |
+| `void` | `--hz-void` | The rim of the disc, its darkest point |
 | `star` | `--hz-star` | The stars, the faint outer arcs and their node dots |
 | `reflect` | `--hz-reflect` | Opacity `0`..`1` of the glow reflected onto the card, as a string |
 
-`core` -> `glow1` -> `glow2` -> `glow3` -> `glow4` must read as one continuous ramp from the hottest colour to the one that disappears into the canvas; in dark mode that is white -> pink -> magenta -> violet -> blue, in light mode it runs the other way (a saturated violet arch fading to pale). Set `reflect: '0'` to disable the card glow reflection entirely (the light theme does). The effect is decorative (`aria-hidden`, nothing focusable), animates only `transform` and `opacity`, and the global `prefers-reduced-motion` block collapses it to a complete static composition.
+`core` -> `glow1` -> `glow2` -> `glow3` -> `glow4` must read as one continuous ramp from the hottest colour to the one that disappears into the canvas; in dark mode that is white -> pink -> magenta -> violet -> blue on the near-black canvas; in light mode the layer is composited with `multiply`, so the same ramp runs from a near-white core (a no-op under multiply, which is what blows the centre of the band out) through violet to indigo pigment on the pale canvas. Set `reflect: '0'` to disable the card glow reflection entirely (the light theme does). The effect is decorative (`aria-hidden`, nothing focusable), animates only `transform` and `opacity`, and the global `prefers-reduced-motion` block collapses it to a complete static composition.
 
 ## Modes and charts
 

@@ -41,6 +41,7 @@ function horizonEntries(h: HorizonPalette): Entry[] {
     ['--hz-ring', h.ring],
     ['--hz-ring-alt', h.ringAlt],
     ['--hz-flare', h.flare],
+    ['--hz-line', h.line],
     ['--hz-halo', h.halo],
     ['--hz-disc', h.disc],
     ['--hz-disc-glow', h.discGlow],

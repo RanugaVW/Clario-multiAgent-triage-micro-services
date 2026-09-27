@@ -84,13 +84,15 @@ export interface HorizonPalette {
   ringAlt: string;
   /** Thin flares that run along the horizon line either side of the dome. */
   flare: string;
-  /** Soft halo behind everything, and the reflection on the card (may be translucent). */
+  /** Hottest point of the horizon streak: the hairline that lands on the card's top edge. */
+  line: string;
+  /** The widest, softest dome of light behind every other layer (may be translucent). */
   halo: string;
   /** Top of the dark disc inside the rings. */
   disc: string;
   /** Glow at the bottom of the disc, where it meets the horizon. */
   discGlow: string;
-  /** Deepest shadow: the core of the void and the vignette under the dome. */
+  /** The rim of the disc, its darkest point (near-black in dark mode). */
   void: string;
   /** Stars, the faint outer arcs and their node dots. */
   star: string;

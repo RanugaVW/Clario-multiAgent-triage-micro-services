@@ -30,9 +30,9 @@ const DOME = `${DOME_OPEN} Z`;
 
 /** Long, thin tapered flares running along the horizon, longer on the right (the reference is asymmetric). */
 const FLARE_WIDE =
-  'M 150 420 C 330 418 450 404 600 402 C 780 400 900 412 1078 420 Z';
+  'M 118 420 C 320 418 450 404 600 402 C 790 400 920 410 1132 420 Z';
 const FLARE_THIN =
-  'M 268 420 C 400 419 500 413 600 412 C 728 411 838 416 984 420 Z';
+  'M 238 420 C 396 419 500 413 600 412 C 736 411 856 415 1032 420 Z';
 
 /**
  * The bloom stack, outermost (widest, bluest, blurriest) first. `sx`/`sy` scale the dome about the
@@ -57,11 +57,14 @@ const BAND = [
   { key: 'b5', w: 5, grad: 'hzBandCore', blur: 'hzB2', o: 1 },
 ] as const;
 
-/** Faint concentric arcs above the horizon, with a node dot on each. */
+/**
+ * Faint concentric arcs above the horizon, with a node dot on each. They must stay barely-there: at 1600 px
+ * the widest one passes behind the lead paragraph, so it is thinner and fainter than a hairline stroke.
+ */
 const ARCS = [
-  { r: 214, o: 0.2, node: -58 },
-  { r: 306, o: 0.15, node: 34 },
-  { r: 402, o: 0.1, node: -22 },
+  { r: 214, o: 0.11, w: 0.8, node: -58 },
+  { r: 306, o: 0.08, w: 0.7, node: 34 },
+  { r: 402, o: 0.05, w: 0.6, node: -22 },
 ] as const;
 
 /** Stars: denser and brighter near the centre. x, y, radius, opacity. */
@@ -99,6 +102,11 @@ export function EventHorizon({ className }: { className?: string }) {
           browser only re-composites it. Scaling the filtered <g> elements instead costs ~2x the frame time. */}
       <div className="hz-breathe">
       <svg className="hz-svg" viewBox={`0 0 1200 ${HORIZON}`} preserveAspectRatio="xMidYMax meet" focusable="false">
+        {/*
+         * NOTE: these ids are global to the document. EventHorizon is rendered exactly once (in Hero);
+         * if it is ever rendered twice the ids must be prefixed per instance, or the second copy will
+         * reference the first one's gradients and filters.
+         */}
         <defs>
           {/* Blurs. The region is generous so the widest bloom is not clipped by its own filter box. */}
           {[2, 5, 10, 14, 28, 46].map((s) => (
@@ -106,8 +114,18 @@ export function EventHorizon({ className }: { className?: string }) {
               <feGaussianBlur stdDeviation={s} />
             </filter>
           ))}
+          {/*
+           * The same blurs for the FLAT shapes along the horizon (the flares and the line). Their bounding
+           * box is only a few user units tall, so a percentage filter region (-75% / 250% of the bbox) is
+           * a few units too and hard-clips the blur into a straight seam above the card. These use an
+           * explicit user-space region instead, with room for 3 x stdDeviation on every side.
+           */}
+          {[2, 5, 10, 28].map((s) => (
+            <filter key={s} id={`hzF${s}`} filterUnits="userSpaceOnUse" x={-40} y={260} width={1280} height={300} colorInterpolationFilters="sRGB">
+              <feGaussianBlur stdDeviation={s} />
+            </filter>
+          ))}
 
-          {/* Dome gradients, hottest first. userSpaceOnUse so they scale with each dome copy. */}
           {/* The hot interior under the arch: pink near the throat, cooling outward to magenta/violet. */}
           <radialGradient id="hzG1" gradientUnits="userSpaceOnUse" cx={CX} cy={RY} r={280}>
             <Stop offset="0" color="glow-1" opacity={0.55} />
@@ -116,7 +134,6 @@ export function EventHorizon({ className }: { className?: string }) {
             <Stop offset="0.8" color="glow-2" opacity={0.5} />
             <Stop offset="1" color="glow-3" opacity={0} />
           </radialGradient>
-
 
           {/* Band gradients: brightest at the peak of the arc, cooling toward the tails on the horizon. */}
           <linearGradient id="hzBandCore" gradientUnits="userSpaceOnUse" x1={CX} y1={252} x2={CX} y2={HORIZON}>
@@ -165,20 +182,38 @@ export function EventHorizon({ className }: { className?: string }) {
             <Stop offset="1" color="halo" opacity={0} />
           </radialGradient>
 
-          {/* Flares along the horizon: transparent at both ends, hottest just off centre. */}
-          <linearGradient id="hzFlare" gradientUnits="userSpaceOnUse" x1={150} y1={0} x2={1078} y2={0}>
+          {/*
+           * The horizon streak. Three gradients for three passes: a wide violet-magenta wash under the
+           * whole run, a saturated body, and the hot hairline that lands on the card's top edge. All three
+           * fade to nothing at the ends and carry the tail further right than left (asymmetry).
+           */}
+          <linearGradient id="hzFlare" gradientUnits="userSpaceOnUse" x1={118} y1={0} x2={1132} y2={0}>
             <Stop offset="0" color="flare" opacity={0} />
-            <Stop offset="0.2" color="flare" opacity={0.45} />
-            <Stop offset="0.45" color="glow-1" opacity={0.9} />
-            <Stop offset="0.62" color="flare" opacity={0.7} />
+            <Stop offset="0.18" color="glow-2" opacity={0.5} />
+            <Stop offset="0.42" color="flare" opacity={0.95} />
+            <Stop offset="0.52" color="glow-1" opacity={1} />
+            <Stop offset="0.66" color="flare" opacity={0.85} />
+            <Stop offset="0.86" color="glow-2" opacity={0.35} />
             <Stop offset="1" color="flare" opacity={0} />
           </linearGradient>
-          <linearGradient id="hzLine" gradientUnits="userSpaceOnUse" x1={200} y1={0} x2={1040} y2={0}>
-            <Stop offset="0" color="core" opacity={0} />
-            <Stop offset="0.28" color="glow-1" opacity={0.55} />
-            <Stop offset="0.48" color="core" opacity={1} />
-            <Stop offset="0.66" color="glow-1" opacity={0.6} />
-            <Stop offset="1" color="core" opacity={0} />
+          <linearGradient id="hzLineGlow" gradientUnits="userSpaceOnUse" x1={130} y1={0} x2={1140} y2={0}>
+            <Stop offset="0" color="glow-2" opacity={0} />
+            <Stop offset="0.16" color="glow-2" opacity={0.4} />
+            <Stop offset="0.36" color="flare" opacity={0.85} />
+            <Stop offset="0.5" color="glow-1" opacity={0.95} />
+            <Stop offset="0.68" color="flare" opacity={0.8} />
+            <Stop offset="0.88" color="glow-2" opacity={0.3} />
+            <Stop offset="1" color="glow-2" opacity={0} />
+          </linearGradient>
+          <linearGradient id="hzLine" gradientUnits="userSpaceOnUse" x1={168} y1={0} x2={1108} y2={0}>
+            <Stop offset="0" color="line" opacity={0} />
+            <Stop offset="0.14" color="glow-2" opacity={0.45} />
+            <Stop offset="0.3" color="flare" opacity={0.85} />
+            <Stop offset="0.46" color="line" opacity={1} />
+            <Stop offset="0.58" color="line" opacity={1} />
+            <Stop offset="0.72" color="flare" opacity={0.85} />
+            <Stop offset="0.9" color="glow-2" opacity={0.4} />
+            <Stop offset="1" color="line" opacity={0} />
           </linearGradient>
 
           {/* Photon rings: brightest at the top of the arc, fading toward the horizon. */}
@@ -200,10 +235,11 @@ export function EventHorizon({ className }: { className?: string }) {
            * seam here is the giveaway of a flat gradient, hence fx/fy rather than an offset centre.
            */}
           <radialGradient id="hzDisc" gradientUnits="userSpaceOnUse" cx={CX} cy={RY} r={R_DISC} fx={CX} fy={RY + 34}>
-            <Stop offset="0" color="disc-glow" opacity={0.5} />
-            <Stop offset="0.3" color="disc-glow" opacity={0.34} />
-            <Stop offset="0.58" color="disc" opacity={0.82} />
-            <Stop offset="0.8" color="disc" opacity={0.97} />
+            <Stop offset="0" color="disc-glow" opacity={0.92} />
+            <Stop offset="0.22" color="disc-glow" opacity={0.66} />
+            <Stop offset="0.46" color="disc-glow" opacity={0.3} />
+            <Stop offset="0.66" color="disc" opacity={0.88} />
+            <Stop offset="0.84" color="disc" opacity={0.98} />
             <Stop offset="1" color="void" opacity={1} />
           </radialGradient>
 
@@ -248,19 +284,19 @@ export function EventHorizon({ className }: { className?: string }) {
         <g className="hz-dome">
           <path d={DOME} fill="url(#hzG1)" filter="url(#hzB14)" opacity={0.95} transform={domeTransform(0.94, 0.92)} />
           <g mask="url(#hzTaper)">
-          {BAND.map((b) => (
-            <path
-              key={b.key}
-              d={DOME_OPEN}
-              fill="none"
-              stroke={`url(#${b.grad})`}
-              strokeWidth={b.w}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              filter={`url(#${b.blur})`}
-              opacity={b.o}
-            />
-          ))}
+            {BAND.map((b) => (
+              <path
+                key={b.key}
+                d={DOME_OPEN}
+                fill="none"
+                stroke={`url(#${b.grad})`}
+                strokeWidth={b.w}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter={`url(#${b.blur})`}
+                opacity={b.o}
+              />
+            ))}
           </g>
         </g>
 
@@ -275,21 +311,28 @@ export function EventHorizon({ className }: { className?: string }) {
 
         {/* 5. Flares along the horizon (behind the disc, so its silhouette stays clean) */}
         <g className="hz-flares">
-          <path d={FLARE_WIDE} fill="url(#hzFlare)" filter="url(#hzB28)" opacity={0.9} transform="translate(0 -14) scale(1 1.035)" />
-          <path d={FLARE_WIDE} fill="url(#hzFlare)" filter="url(#hzB10)" opacity={0.95} />
-          <path d={FLARE_THIN} fill="url(#hzFlare)" filter="url(#hzB5)" opacity={1} />
+          <path d={FLARE_WIDE} fill="url(#hzFlare)" filter="url(#hzF28)" opacity={0.9} transform="translate(0 -14) scale(1 1.035)" />
+          <path d={FLARE_WIDE} fill="url(#hzFlare)" filter="url(#hzF10)" opacity={0.95} />
+          <path d={FLARE_THIN} fill="url(#hzFlare)" filter="url(#hzF5)" opacity={1} />
         </g>
 
-        {/* 6. The dark disc, clipped by the circle itself (never a box), then the hot horizon line */}
+        {/* 6. The dark disc, clipped by the circle itself (never a box), then the horizon streak */}
         <circle className="hz-disc" cx={CX} cy={RY} r={R_DISC} fill="url(#hzDisc)" />
-        <rect className="hz-line" x={160} y={HORIZON - 4} width={920} height={4} fill="url(#hzLine)" filter="url(#hzB2)" />
+        {/* The streak: a soft coloured bed, then the hot hairline that lands on the card's top edge. */}
+        <g className="hz-line">
+          <rect x={130} y={HORIZON - 13} width={1010} height={14} fill="url(#hzLineGlow)" filter="url(#hzF10)" opacity={0.85} />
+          <rect x={168} y={HORIZON - 6} width={940} height={7} fill="url(#hzLine)" filter="url(#hzF5)" opacity={0.9} />
+          {/* Unblurred on purpose: this hairline is the base of the composition, and a blur of 2 over a
+              2 px rect dilutes it to nothing against the bloom (invisible in light mode especially). */}
+          <rect x={168} y={HORIZON - 4} width={940} height={2} fill="url(#hzLine)" />
+        </g>
 
         {/* 7. Faint arcs with node dots */}
         <g className="hz-arcs">
           {ARCS.map((a) => (
             <g key={a.r} opacity={a.o}>
-              <circle cx={CX} cy={HORIZON} r={a.r} fill="none" strokeWidth={1} style={{ stroke: v('star') } as CSSProperties} />
-              <circle cx={CX + a.node} cy={HORIZON - Math.sqrt(Math.max(a.r * a.r - a.node * a.node, 0))} r={3} fill="none" strokeWidth={1} style={{ stroke: v('star') } as CSSProperties} />
+              <circle cx={CX} cy={HORIZON} r={a.r} fill="none" strokeWidth={a.w} style={{ stroke: v('star') } as CSSProperties} />
+              <circle cx={CX + a.node} cy={HORIZON - Math.sqrt(Math.max(a.r * a.r - a.node * a.node, 0))} r={2.5} fill="none" strokeWidth={a.w} style={{ stroke: v('star') } as CSSProperties} />
             </g>
           ))}
         </g>
@@ -301,12 +344,12 @@ export function EventHorizon({ className }: { className?: string }) {
        * group inside the big blurred SVG makes the browser re-run every feGaussianBlur each frame
        * (measured: +11 ms per frame); these overlays cost nothing.
        */}
-      <svg className="hz-svg hz-overlay hz-shimmer" viewBox={`0 0 1200 ${HORIZON}`} preserveAspectRatio="xMidYMax meet" focusable="false" aria-hidden="true">
+      <svg className="hz-svg hz-overlay hz-shimmer" viewBox={`0 0 1200 ${HORIZON}`} preserveAspectRatio="xMidYMax meet" focusable="false">
         <circle cx={CX} cy={RY} r={R_OUT} fill="none" strokeWidth={2.5} style={{ stroke: v('core') } as CSSProperties} />
         <circle cx={CX} cy={RY} r={R_IN} fill="none" strokeWidth={3} style={{ stroke: v('ring') } as CSSProperties} />
       </svg>
 
-      <svg className="hz-svg hz-overlay hz-stars" viewBox={`0 0 1200 ${HORIZON}`} preserveAspectRatio="xMidYMax meet" focusable="false" aria-hidden="true">
+      <svg className="hz-svg hz-overlay hz-stars" viewBox={`0 0 1200 ${HORIZON}`} preserveAspectRatio="xMidYMax meet" focusable="false">
         {STARS.map(([x, y, r, o]) => (
           <circle key={`${x}-${y}`} cx={x} cy={y} r={r} opacity={o} style={{ fill: v('star') } as CSSProperties} />
         ))}
