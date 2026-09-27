@@ -210,3 +210,147 @@ input:-webkit-autofill:active {
   filter: blur(48px);
   animation: glow-drift 20s ease-in-out infinite alternate;
 }
+
+/* ------------------------------------------------------------------------------------------------
+ * Landing event horizon. Every colour is a theme variable (--hz-*, see theme.horizon); only transform and
+ * opacity are animated, and the reduced-motion block above collapses all of it to a static composition.
+ * ---------------------------------------------------------------------------------------------- */
+/* The 150vw width deliberately overflows the viewport on narrow screens: the Hero section clips it
+   (overflow-hidden), so the dome keeps its proportions without adding horizontal page scroll. */
+.hz {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 2px);
+  width: min(75rem, 150vw);
+  transform: translateX(-50%);
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.hz-overlay {
+  position: absolute;
+  inset: 0;
+}
+/* Light mode paints light as pigment: multiply lets the layers accumulate saturation instead of stacking
+   opaque discs on the pale canvas, and it makes the near-white band core read as a blown-out highlight. */
+:root[data-theme='light'] .hz {
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+/* Multiply turns every layer into pigment, so the layers that only add bloom in dark mode would flood the
+   pale canvas: hold the wide bloom and the horizon bed back, and let the hairline carry the base instead. */
+:root[data-theme='light'] .hz-bloom {
+  opacity: 0.55;
+}
+:root[data-theme='light'] .hz-flares {
+  opacity: 0.4;
+}
+:root[data-theme='light'] .hz-halo {
+  opacity: 0.5;
+}
+.hz-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Windows High Contrast repaints every fill and stroke with the forced palette, which would turn the whole
+   decoration into one solid CanvasText mass behind the CTAs. It carries no meaning, so drop it entirely. */
+@media (forced-colors: active) {
+  .hz,
+  .hz-reflect {
+    display: none;
+  }
+}
+
+@keyframes hz-breathe {
+  from { opacity: 0.88; }
+  to { opacity: 1; }
+}
+@keyframes hz-pulse {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.6; }
+}
+@keyframes hz-twinkle {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
+}
+/* Transform only: .hz-reflect carries its opacity from --hz-reflect, which is 0 in the light theme. */
+@keyframes hz-reflect-swell {
+  from { transform: translateX(-50%) scale(0.94, 0.9); }
+  to { transform: translateX(-50%) scale(1.06, 1.08); }
+}
+
+/*
+ * Motion. Everything inside .hz-svg is static: an opacity animation on a group inside it makes the
+ * browser re-run every feGaussianBlur each frame (measured at 1280 px: 41 ms -> 19 ms mean frame time
+ * once the moving parts moved out). So the whole composition breathes as one, and the shimmer, the
+ * stars and the reflection animate in their own filter-free layers.
+ */
+.hz-breathe {
+  animation: hz-breathe 9s ease-in-out infinite alternate;
+  will-change: opacity;
+}
+.hz-shimmer {
+  opacity: 0.3;
+  animation: hz-pulse 4.5s ease-in-out infinite;
+}
+.hz-stars {
+  opacity: 0.8;
+  animation: hz-twinkle 5.5s ease-in-out infinite alternate;
+}
+
+/* Glow reflected onto the panel below the horizon */
+.hz-reflect {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 26rem;
+  height: 11rem;
+  transform: translateX(-50%);
+  mix-blend-mode: screen;
+  opacity: var(--hz-reflect);
+  pointer-events: none;
+  overflow: hidden;
+  transform-origin: 50% 0;
+  animation: hz-reflect-swell 9s ease-in-out infinite alternate;
+}
+.hz-reflect > * {
+  position: absolute;
+  left: 50%;
+  border-radius: 9999px;
+}
+.hz-reflect-core {
+  top: -2rem;
+  width: 15rem;
+  height: 13rem;
+  margin-left: -7.5rem;
+  background: radial-gradient(closest-side, var(--hz-glow-3), transparent 72%);
+  filter: blur(26px);
+}
+.hz-reflect-ring {
+  top: -1.5rem;
+  width: 9rem;
+  height: 8rem;
+  margin-left: -4.5rem;
+  border: 2px solid var(--hz-glow-2);
+  opacity: 0.35;
+  filter: blur(10px);
+}
+
+/* Small screens: keep the composition, drop the most expensive layers */
+@media (max-width: 640px) {
+  .hz {
+    width: 190vw;
+  }
+  .hz-stars,
+  .hz-arcs {
+    display: none;
+  }
+  .hz-breathe {
+    will-change: auto;
+  }
+  .hz-reflect {
+    width: 16rem;
+    height: 7rem;
+  }
+}

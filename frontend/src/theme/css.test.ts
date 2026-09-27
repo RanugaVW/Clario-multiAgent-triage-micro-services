@@ -57,3 +57,24 @@ describe('chart variables', () => {
     expect(light).toContain(`--ch-blue:${theme.charts.light.series.blue}`);
   });
 });
+
+describe('horizon variables', () => {
+  it('emits the --hz-* palette in both mode rules', () => {
+    for (const rule of [dark, light]) {
+      for (const v of [
+        '--hz-core:', '--hz-glow-1:', '--hz-glow-2:', '--hz-glow-3:', '--hz-glow-4:',
+        '--hz-ring:', '--hz-ring-alt:', '--hz-flare:', '--hz-line:', '--hz-halo:', '--hz-disc:',
+        '--hz-disc-glow:', '--hz-void:', '--hz-star:', '--hz-reflect:',
+      ]) {
+        expect(rule).toContain(v);
+      }
+    }
+    expect(themeToCss(theme).split('\n')).toHaveLength(3);
+  });
+  it('takes each mode its own palette', () => {
+    expect(dark).toContain(`--hz-ring:${theme.horizon.dark.ring}`);
+    expect(light).toContain(`--hz-ring:${theme.horizon.light.ring}`);
+    expect(dark).toContain(`--hz-glow-2:${theme.horizon.dark.glow2}`);
+    expect(light).toContain(`--hz-disc-glow:${theme.horizon.light.discGlow}`);
+  });
+});

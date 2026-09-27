@@ -105,6 +105,47 @@ export const theme: Theme = {
     },
   },
 
+  horizon: {
+    // Dark: a violet-magenta lensed disc on the indigo canvas. core -> glow1..glow4 is one hot-to-cold ramp.
+    dark: {
+      core: '#FFFFFF',
+      glow1: '#FFC2F4',
+      glow2: '#E94FE0',
+      glow3: '#8B4DFF',
+      glow4: '#3D2BE0',
+      ring: '#FFE8FF',
+      ringAlt: '#7C7CFF',
+      flare: '#FF7BE8',
+      line: '#FFF0FD',
+      halo: 'rgba(124, 124, 255, 0.55)',
+      disc: '#1B0B38',
+      discGlow: '#C23BE8',
+      void: '#05060F',
+      star: 'rgba(206, 211, 255, 0.75)',
+      reflect: '0.45',
+    },
+    // Light: the same composition, painted with multiply (see globals.css) so the layers accumulate as
+    // pigment on the pale canvas. `core` stays near-white on purpose: under multiply it is a no-op, which
+    // is what gives the band a blown-out centre inside the saturated violet arch.
+    light: {
+      core: '#F2EFFF',
+      glow1: '#A99CFF',
+      glow2: '#7A62F0',
+      glow3: '#5B3FD8',
+      glow4: '#4B3FD6',
+      ring: '#8E7BFF',
+      ringAlt: '#4F46E5',
+      flare: '#8B5CF6',
+      line: '#3B24B8',
+      halo: 'rgba(124, 124, 255, 0.28)',
+      disc: '#3B2A8C',
+      discGlow: '#7C4DE8',
+      void: '#221765',
+      star: 'rgba(91, 91, 240, 0.3)',
+      reflect: '0',
+    },
+  },
+
   fontStacks: {
     sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',

@@ -77,3 +77,41 @@ describe('chart palettes', () => {
     for (const v of all) expect(v).toMatch(/^#[0-9a-fA-F]{6}$/);
   });
 });
+
+describe('horizon palettes', () => {
+  it.each(MODES)('%s mode horizon values are valid CSS colors (except reflect)', (mode) => {
+    const hexOrRgba = /^(#[0-9a-fA-F]{6}|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[0-9.]+\s*\))$/;
+    const colors = Object.entries(theme.horizon[mode]).filter(([name]) => name !== 'reflect');
+    expect(colors.length).toBeGreaterThanOrEqual(14);
+    for (const [name, value] of colors) {
+      expect(`${name}=${value}`).toMatch(new RegExp(`^${name}=${hexOrRgba.source.slice(1, -1)}$`));
+    }
+  });
+
+  it('the bloom ramp core -> glow1..glow4 is five distinct colours in both modes', () => {
+    for (const mode of MODES) {
+      const h = theme.horizon[mode];
+      expect(new Set([h.core, h.glow1, h.glow2, h.glow3, h.glow4]).size).toBe(5);
+    }
+  });
+
+  it('every horizon colour differs between light and dark', () => {
+    const dark = theme.horizon.dark;
+    const light = theme.horizon.light;
+    const keys = (Object.keys(dark) as (keyof typeof dark)[]).filter((k) => k !== 'reflect');
+    expect(keys.length).toBeGreaterThanOrEqual(14);
+    for (const key of keys) {
+      expect(`${key}:${dark[key]}`).not.toBe(`${key}:${light[key]}`);
+    }
+  });
+
+  it.each(MODES)('%s mode horizon reflect parses to a number in [0, 1]', (mode) => {
+    const reflect = Number(theme.horizon[mode].reflect);
+    expect(reflect).toBeGreaterThanOrEqual(0);
+    expect(reflect).toBeLessThanOrEqual(1);
+  });
+
+  it('light reflect is "0"', () => {
+    expect(theme.horizon.light.reflect).toBe('0');
+  });
+});

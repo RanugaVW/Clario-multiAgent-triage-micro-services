@@ -1,4 +1,4 @@
-import type { ChartPalette, ColorSet, Shadows, Theme } from './types';
+import type { ChartPalette, ColorSet, HorizonPalette, Shadows, Theme } from './types';
 
 type Entry = [name: string, value: string | number];
 
@@ -31,10 +31,31 @@ function chartEntries(c: ChartPalette): Entry[] {
   ];
 }
 
-function modeEntries(colors: ColorSet, shadows: Shadows, charts: ChartPalette, scheme: 'light' | 'dark'): Entry[] {
+function horizonEntries(h: HorizonPalette): Entry[] {
+  return [
+    ['--hz-core', h.core],
+    ['--hz-glow-1', h.glow1],
+    ['--hz-glow-2', h.glow2],
+    ['--hz-glow-3', h.glow3],
+    ['--hz-glow-4', h.glow4],
+    ['--hz-ring', h.ring],
+    ['--hz-ring-alt', h.ringAlt],
+    ['--hz-flare', h.flare],
+    ['--hz-line', h.line],
+    ['--hz-halo', h.halo],
+    ['--hz-disc', h.disc],
+    ['--hz-disc-glow', h.discGlow],
+    ['--hz-void', h.void],
+    ['--hz-star', h.star],
+    ['--hz-reflect', h.reflect],
+  ];
+}
+
+function modeEntries(colors: ColorSet, shadows: Shadows, charts: ChartPalette, horizon: HorizonPalette, scheme: 'light' | 'dark'): Entry[] {
   const out: Entry[] = Object.entries(colors).map(([k, v]) => [`--c-${k}`, v]);
   out.push(['--sh-card', shadows.card], ['--sh-raised', shadows.raised], ['color-scheme', scheme]);
   out.push(...chartEntries(charts));
+  out.push(...horizonEntries(horizon));
   return out;
 }
 
@@ -45,7 +66,7 @@ function modeEntries(colors: ColorSet, shadows: Shadows, charts: ChartPalette, s
 export function themeToCss(t: Theme): string {
   return [
     `:root{${join(sharedEntries(t))}}`,
-    `:root,:root[data-theme="dark"]{${join(modeEntries(t.colors.dark, t.shadows.dark, t.charts.dark, 'dark'))}}`,
-    `:root[data-theme="light"]{${join(modeEntries(t.colors.light, t.shadows.light, t.charts.light, 'light'))}}`,
+    `:root,:root[data-theme="dark"]{${join(modeEntries(t.colors.dark, t.shadows.dark, t.charts.dark, t.horizon.dark, 'dark'))}}`,
+    `:root[data-theme="light"]{${join(modeEntries(t.colors.light, t.shadows.light, t.charts.light, t.horizon.light, 'light'))}}`,
   ].join('\n');
 }
