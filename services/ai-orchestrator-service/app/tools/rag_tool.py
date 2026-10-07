@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import threading
 from pathlib import Path
 
 import chromadb
@@ -20,6 +21,9 @@ load_dotenv(_ROOT / ".env")
 _MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 _COLLECTION_NAME = "kb_support_docs"
 _embedder: SentenceTransformer | None = None
+# Specialists search from worker threads (both can run at once); one search at a
+# time keeps the shared embedder and Chroma client single-threaded.
+_search_lock = threading.Lock()
 
 # Label-aware retrieval: predicted categories re-rank the domain-filtered
 # candidates. They are a soft signal, never a filter - category exact-set
@@ -120,7 +124,12 @@ def rerank_by_categories(
     return ordered
 
 
-def retrieve_context(
+def retrieve_context(*args, **kwargs) -> list[dict]:
+    with _search_lock:
+        return _retrieve_context(*args, **kwargs)
+
+
+def _retrieve_context(
     query: str,
     domain: str,
     k: int = 4,
@@ -261,6 +270,55 @@ def add_precedent(ticket_id: str, redacted_text: str, final_response: str, domai
     except Exception as e:
         # We don't want precedent memory failures to crash the resolution flow
         print(f"Failed to add precedent to ChromaDB: {e}")
+
+def best_score(context: list[dict]) -> float:
+    return max((float(match.get("score", 0.0)) for match in context), default=0.0)
+
+
+def correct_retrieval(
+    query: str,
+    domain: str,
+    context: list[dict],
+    retrieve,
+    rewrite=None,
+    prior: dict | None = None,
+) -> tuple[list[dict], dict | None, int]:
+    """Corrective RAG (Yan et al., 2024): when the first search is weak, rewrite
+    the query once and search again, keeping whichever result set is stronger.
+
+    `retrieve` is the caller's own retrieve_context (so tests that patch it on
+    the agent module still apply). `prior` is this domain's record from an
+    earlier pass of the same ticket (a reflection redraft): its rewritten query
+    is reused instead of paying for a second rewrite. Returns
+    (context, record or None when not triggered, LLM calls made).
+    """
+    threshold = float(os.getenv("RAG_SCORE_THRESHOLD", "0.70"))
+    if os.getenv("CORRECTIVE_RAG_ENABLED", "true").lower() != "true" or best_score(context) >= threshold:
+        return context, None, 0
+
+    calls = 0
+    rewritten = (prior or {}).get("rewritten_query")
+    if not rewritten:
+        rewritten = (rewrite or rewrite_query)(query, domain)
+        calls = 1
+    record = {"rewritten_query": rewritten, "score_before": round(best_score(context), 3),
+              "score_after": None, "used_rewrite": False}
+    if not rewritten or rewritten.strip() == query.strip():
+        return context, record, calls
+
+    retried = retrieve(rewritten, domain)
+    record["score_after"] = round(best_score(retried), 3)
+    if best_score(retried) > best_score(context):
+        record["used_rewrite"] = True
+        return retried, record, calls
+    return context, record, calls
+
+
+def search_with_correction(query: str, domain: str, retrieve, rewrite, prior: dict | None = None):
+    """retrieve() then correct_retrieval(); one blocking call so specialists can
+    run it in a worker thread (both specialists then search and draft side by side)."""
+    return correct_retrieval(query, domain, retrieve(query, domain), retrieve, rewrite, prior)
+
 
 def rewrite_query(query: str, domain: str) -> str:
     """Corrective RAG: Rewrite a query to improve retrieval when initial context is irrelevant."""

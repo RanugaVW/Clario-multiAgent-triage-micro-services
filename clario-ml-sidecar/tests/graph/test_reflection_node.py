@@ -46,3 +46,16 @@ def test_second_reflection_does_not_overwrite_the_first_snapshot(monkeypatch) ->
     })
     assert result["pre_reflection_drafts"] == {"technical": "first draft"}
     assert result["reflection_count"] == 2
+
+
+def test_judge_driven_reflection_uses_the_judge_critique_and_clears_the_flag(monkeypatch) -> None:
+    monkeypatch.setenv("MAX_REFLECTION_ATTEMPTS", "2")
+    result = reflection_node({
+        "failure_type": "none", "reflection_count": 0, "reflection_critiques": [],
+        "judge_needs_revision": True,
+        "judge_feedback": {"billing": "The quality judge scored this reply overall 3/5. Fix: give a timeframe"},
+        "agent_drafts": {"billing": "first"},
+    })
+    assert result["reflection_critiques"] == ["billing: The quality judge scored this reply overall 3/5. Fix: give a timeframe"]
+    assert result["reflection_sources"] == ["judge"]
+    assert result["judge_needs_revision"] is False and result["reflection_count"] == 1

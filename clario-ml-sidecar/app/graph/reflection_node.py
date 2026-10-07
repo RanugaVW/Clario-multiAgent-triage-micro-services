@@ -12,20 +12,26 @@ load_dotenv()
 
 
 def reflection_node(state: TicketState) -> TicketState:
-    """Append a critique for quality/policy only; never call this for misroute/dependency failure."""
-    if state.get("failure_type") not in {"quality", "policy"}:
+    """Append a critique for a rule failure (quality/policy) or a weak LLM-judge
+    score; never call this for misroute/dependency failure. One shared cap
+    (MAX_REFLECTION_ATTEMPTS) bounds both kinds together."""
+    judge_driven = bool(state.get("judge_needs_revision"))
+    if not judge_driven and state.get("failure_type") not in {"quality", "policy"}:
         raise ValueError("reflection is only valid for quality or policy failures")
     max_attempts = int(os.getenv("MAX_REFLECTION_ATTEMPTS", "2"))
     if state.get("reflection_count", 0) >= max_attempts:
         raise ValueError("reflection attempt cap has been reached")
     critiques = []
-    for domain, result in state.get("validation_result", {}).items():
-        if result.get("passed", False):
-            continue
-        reasons = ", ".join(result.get("failed_rules", [])) or "judge rejected the draft"
-        judge_reasoning = result.get("reasoning")
-        detail = f"{domain}: failed {reasons}"
-        critiques.append(f"{detail}; judge: {judge_reasoning}" if judge_reasoning else detail)
+    if judge_driven:
+        critiques = [f"{domain}: {text}" for domain, text in state.get("judge_feedback", {}).items()]
+    else:
+        for domain, result in state.get("validation_result", {}).items():
+            if result.get("passed", False):
+                continue
+            reasons = ", ".join(result.get("failed_rules", [])) or "judge rejected the draft"
+            judge_reasoning = result.get("reasoning")
+            detail = f"{domain}: failed {reasons}"
+            critiques.append(f"{detail}; judge: {judge_reasoning}" if judge_reasoning else detail)
     critique = " | ".join(critiques) or "Revise the response to satisfy validation requirements."
 
     # Snapshot each domain's current draft the first time reflection sees it,
@@ -44,4 +50,9 @@ def reflection_node(state: TicketState) -> TicketState:
         "reflection_count": state.get("reflection_count", 0) + 1,
         "reflection_critiques": [*state.get("reflection_critiques", []), critique],
         "pre_reflection_drafts": pre_reflection_drafts,
+        "reflection_sources": [*state.get("reflection_sources", []), "judge" if judge_driven else "validation"],
+        # validation_node compares its next result against this (no-progress guard).
+        "last_reflected_failures": {} if judge_driven else state.get("failure_signature", {}),
+        # Consumed: the judge re-scores the redraft and sets this again if needed.
+        "judge_needs_revision": False,
     }

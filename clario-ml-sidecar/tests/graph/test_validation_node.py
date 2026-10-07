@@ -73,3 +73,24 @@ def test_judge_reasoning_when_all_checks_pass() -> None:
     result = asyncio.run(llm_judge_check(draft, "invoice billing account issue", context))
     assert result["on_topic"] and result["grounded_in_context"] and result["appropriate_tone"]
     assert result["reasoning"] == "local_heuristic_judge_passed"
+
+
+def test_no_progress_flag_is_set_only_when_a_rule_redraft_fails_the_same_rules_again(monkeypatch) -> None:
+    import asyncio
+    from app.graph.validation_node import validation_node
+    monkeypatch.setenv("RAG_SCORE_THRESHOLD", "0.70")
+    weak = {"redacted_text": "my recordings are missing", "routing_decision": "technical",
+            "agent_drafts": {"technical": "Please refresh the page and check again."},
+            "retrieved_context": {"technical": [{"text": "refresh the page", "score": 0.6}]},
+            "rag_top_score": {"technical": 0.95}, "low_relevance_flags": {"technical": False},
+            "pii_found": [], "pii_shadow_map": {}}
+    first = asyncio.run(validation_node(weak))
+    assert first["failure_signature"] == {"technical": ["missing_low_context_fallback"]}
+    assert first["rule_reflection_no_progress"] is False
+
+    after_rule_redraft = {**weak, "reflection_sources": ["validation"],
+                          "last_reflected_failures": first["failure_signature"]}
+    assert asyncio.run(validation_node(after_rule_redraft))["rule_reflection_no_progress"] is True
+
+    after_judge_redraft = {**after_rule_redraft, "reflection_sources": ["validation", "judge"]}
+    assert asyncio.run(validation_node(after_judge_redraft))["rule_reflection_no_progress"] is False

@@ -82,3 +82,90 @@ def test_quality_reflects_exactly_twice_then_sends_anyway(monkeypatch):
     result, _ = _run(monkeypatch, "quality technical error")
     assert result["reflection_count"] == 2 and result["escalation_reasons"] == []
     assert not result["escalation_triggered"] and result["final_response"] == "draft"
+
+
+def _judge_stub(monkeypatch, unhappy_passes: int):
+    """A judge that finds the draft weak for the first `unhappy_passes` scorings."""
+    seen = {"passes": 0}
+
+    async def judge(state):
+        seen["passes"] += 1
+        weak = seen["passes"] <= unhappy_passes
+        feedback = {"technical": "The quality judge scored this reply overall 2/5."} if weak else {}
+        return {**state, "judge_feedback": feedback, "judge_needs_revision": weak}
+    monkeypatch.setattr(graph_builder, "response_judge_node", judge)
+    return seen
+
+
+def test_weak_judge_score_triggers_one_redraft_then_sends(monkeypatch):
+    calls = {"routing": 0}; _install_stubs(monkeypatch, calls)
+    seen = _judge_stub(monkeypatch, unhappy_passes=1)
+    state = {"ticket_id": "T", "raw_text": "clean technical error", "reflection_count": 0,
+             "reflection_critiques": [], "reroute_attempted": False, "needs_reroute": False}
+    result = asyncio.run(graph_builder.build_graph().ainvoke(state))
+    assert seen["passes"] == 2 and result["reflection_count"] == 1
+    assert result["reflection_sources"] == ["judge"]
+    assert "overall 2/5" in result["reflection_critiques"][0]
+    assert not result["escalation_triggered"] and result["final_response"] == "draft"
+
+
+def test_judge_loop_is_capped_by_the_shared_reflection_limit(monkeypatch):
+    monkeypatch.setenv("MAX_REFLECTION_ATTEMPTS", "2")
+    calls = {"routing": 0}; _install_stubs(monkeypatch, calls)
+    seen = _judge_stub(monkeypatch, unhappy_passes=99)
+    state = {"ticket_id": "T", "raw_text": "clean technical error", "reflection_count": 0,
+             "reflection_critiques": [], "reroute_attempted": False, "needs_reroute": False}
+    result = asyncio.run(graph_builder.build_graph().ainvoke(state))
+    assert result["reflection_count"] == 2 and seen["passes"] == 3
+
+
+def test_both_route_runs_the_two_specialists_concurrently(monkeypatch):
+    calls = {"routing": 0}; _install_stubs(monkeypatch, calls)
+    running, peak = {"now": 0}, {"max": 0}
+
+    async def slow_specialist(state, domain):
+        running["now"] += 1; peak["max"] = max(peak["max"], running["now"])
+        await asyncio.sleep(0.05)
+        running["now"] -= 1
+        return {**state, "agent_drafts": {**state.get("agent_drafts", {}), domain: f"{domain} draft"},
+                "llm_call_count": state.get("llm_call_count", 0) + 1}
+    async def technical(state): return await slow_specialist(state, "technical")
+    async def billing(state): return await slow_specialist(state, "billing")
+    async def aggregator(state): return {**state, "aggregated_response": "merged reply"}
+    monkeypatch.setattr(graph_builder, "technical_agent_node", technical)
+    monkeypatch.setattr(graph_builder, "billing_agent_node", billing)
+    monkeypatch.setattr(graph_builder, "aggregator_node", aggregator)
+
+    result, _ = _run_installed(monkeypatch, "Payment failed but the money was taken from my bank account")
+    assert peak["max"] == 2
+    assert result["agent_drafts"] == {"technical": "technical draft", "billing": "billing draft"}
+    assert result["llm_call_count"] == 2
+    assert result["final_response"] == "merged reply"
+
+
+def _run_installed(monkeypatch, raw_text):
+    state = {"ticket_id": "T", "raw_text": raw_text, "reflection_count": 0, "reflection_critiques": [],
+             "reroute_attempted": False, "needs_reroute": False}
+    return asyncio.run(graph_builder.build_graph().ainvoke(state)), None
+
+
+def test_same_rule_failure_after_a_redraft_stops_rule_redrafts_and_leaves_budget_for_the_judge(monkeypatch):
+    from app.graph.validation_node import validation_node as real_validation
+    calls = {"routing": 0}; _install_stubs(monkeypatch, calls)
+    monkeypatch.setenv("MAX_REFLECTION_ATTEMPTS", "2")
+
+    async def always_same_rule(state):
+        # Same unfixable rule failure every pass (like the weak-context fallback rule).
+        result = {"technical": {"passed": False, "failed_rules": ["missing_low_context_fallback"], "judge_ran": False}}
+        signature = {"technical": ["missing_low_context_fallback"]}
+        no_progress = ((state.get("reflection_sources") or [None])[-1] == "validation"
+                       and signature == state.get("last_reflected_failures"))
+        return {**state, "validation_result": result, "failure_type": "policy", "needs_reroute": False,
+                "failure_signature": signature, "rule_reflection_no_progress": no_progress}
+    monkeypatch.setattr(graph_builder, "validation_node", always_same_rule)
+    seen = _judge_stub(monkeypatch, unhappy_passes=1)
+
+    result, _ = _run_installed(monkeypatch, "clean technical error")
+    assert result["reflection_sources"] == ["validation", "judge"]
+    assert seen["passes"] == 2
+    assert real_validation  # the real node computes the same flag; see test_validation_node

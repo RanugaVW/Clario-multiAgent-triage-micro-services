@@ -97,7 +97,7 @@ def llm_invoke(prompt: str, temperature: float = 0.3) -> str:
     load_dotenv()
     client = genai.Client()
     response = client.models.generate_content(
-        model=os.environ.get("GEMINI_DRAFT_MODEL", "gemini-2.0-flash-lite"),
+        model=os.environ.get("GEMINI_DRAFT_MODEL", "gemini-3.1-flash-lite"),
         contents=prompt,
         config=types.GenerateContentConfig(temperature=temperature),
     )
@@ -127,7 +127,7 @@ def generate_draft(prompt: str) -> str:
             load_dotenv()
             client = genai.Client()
             response = client.models.generate_content(
-                model=os.environ.get("GEMINI_DRAFT_MODEL", "gemini-2.0-flash"),
+                model=os.environ.get("GEMINI_DRAFT_MODEL", "gemini-3.1-flash-lite"),
                 contents=system_instruction + "\n\n" + user_instruction,
                 config=types.GenerateContentConfig(
                     temperature=0.3,
@@ -165,7 +165,7 @@ def classify_ticket_local(text: str) -> dict[str, Any]:
             load_dotenv()
             client = genai.Client()
             response = client.models.generate_content(
-                model=os.environ.get("GEMINI_DRAFT_MODEL", "gemini-2.0-flash"),
+                model=os.environ.get("GEMINI_DRAFT_MODEL", "gemini-3.1-flash-lite"),
                 contents=(
                     "Analyze the following support ticket and classify it. "
                     "Output ONLY a valid JSON object with keys 'category', 'priority', 'sentiment'.\n"

@@ -8,6 +8,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { AgentShell } from '../AgentShell';
 import { fetchStaffTickets, submitResolution } from '../../../lib/agentApi';
 import { draftFor, isAnswered, ticketCategories, type QueueTicket } from '../../../lib/agentQueue';
+import { formatTicketRef } from '../../../lib/ticketRef';
 import { formatDateTime } from '../../../lib/datetime';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
@@ -116,7 +117,7 @@ export default function AgentTicketReview() {
       <header>
         <h1 className="text-h2 text-fg">{ticket.subject?.trim() || 'Support ticket'}</h1>
         <p className="mt-1 text-app text-fg-muted">
-          <span className="font-mono">{ticket.id}</span> · opened {formatDateTime(ticket.created_at)}
+          <span className="font-mono" title={ticket.id}>{formatTicketRef(ticket)}</span> · opened {formatDateTime(ticket.created_at)}
           {ticket.customer_email ? ` · ${ticket.customer_email}` : ''}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">

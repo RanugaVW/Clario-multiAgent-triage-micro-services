@@ -189,6 +189,15 @@ async def validation_node(state: TicketState) -> TicketState:
             failure_type = "quality" if result["judge_ran"] else "policy"
     elif failed:
         failure_type = "quality" if any(result["judge_ran"] for result in results.values()) else "policy"
+    # No-progress guard: if the last redraft was asked for by these checks and the
+    # redraft fails exactly the same rules again, another redraft will not fix it
+    # (on the real tickets this was a weak-context fallback rule or an NER false
+    # positive, failing identically every pass). graph_builder stops rule-driven
+    # redrafts then, which also leaves the shared budget for the LLM judge.
+    signature = {domain: sorted(result["failed_rules"]) for domain, result in results.items() if not result["passed"]}
+    no_progress = (bool(signature) and (state.get("reflection_sources") or [None])[-1] == "validation"
+                   and signature == state.get("last_reflected_failures"))
     return {**state, "validation_result": results, "failure_type": failure_type,
             "needs_reroute": needs_reroute, "reroute_attempted": reroute_attempted,
-            "dual_domain_low_confidence": dual_low}
+            "dual_domain_low_confidence": dual_low,
+            "failure_signature": signature, "rule_reflection_no_progress": no_progress}

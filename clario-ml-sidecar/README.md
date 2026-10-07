@@ -23,6 +23,21 @@ Create a `.env` file from the root `.env.example`. Required keys:
 - `GEMINI_API_KEY` (or `ANTHROPIC_API_KEY`)
 - `CHROMA_HOST` and `CHROMA_PORT`
 
+### Live-feedback learning (optional, all off by default)
+
+Set to `true` to enable. See `MLOPS.md` section 8.
+
+| Flag | Job / effect |
+|---|---|
+| `CUSTOMER_FEEDBACK_LEARNING_ENABLED` | Daily: high customer ratings become exemplars; judge-vs-customer disagreements logged |
+| `AGENT_EDIT_LEARNING_ENABLED` | Daily: learns from human edits; specialists read `agent_edit_refs` |
+| `KB_GAP_DETECTION_ENABLED` | Weekly (sidecar only): proposes missing KB documents to `vector_store/kb_proposals/` |
+
+Tunables: `CUSTOMER_FEEDBACK_POSITIVE_MIN` (4), `CUSTOMER_FEEDBACK_NEGATIVE_MAX` (2),
+`CUSTOMER_FEEDBACK_JUDGE_HIGH` (4), `FEEDBACK_DISAGREEMENTS_PATH`, `AGENT_EDIT_MIN_SIMILARITY` (0.5),
+`KB_GAP_MIN_CLUSTER_SIZE` (3), `KB_GAP_DISTANCE_THRESHOLD` (0.45), `KB_GAP_GROUNDEDNESS_MAX` (3),
+`KB_GAP_CUSTOMER_MAX` (2), `KB_GAP_MAX_TICKETS` (1000), `KB_PROPOSALS_DIR`.
+
 ## Commands
 
 - Install dependencies: `pip install -r requirements.txt`

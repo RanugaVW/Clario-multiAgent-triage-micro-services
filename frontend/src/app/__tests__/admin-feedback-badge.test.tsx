@@ -8,7 +8,11 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock('../../lib/supabase', () => ({
-  supabase: { from: vi.fn(() => ({ select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) }) })) },
+  supabase: {
+    // TicketThread (inside every expanded row) opens a Realtime channel.
+    channel: () => ({ on() { return this; }, subscribe() { return this; } }),
+    removeChannel: () => {},
+    from: vi.fn(() => ({ select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) }) })) },
 }));
 
 import { TicketRow, type Ticket } from '../admin/page';

@@ -205,3 +205,28 @@ def test_failed_evaluation_still_adds_its_real_attempt_count_to_llm_call_count(m
     result = asyncio.run(rjn.response_judge_node(_state()))
     assert result["judge_evaluations"] == {}
     assert result["llm_call_count"] == 3
+
+
+def test_judge_feedback_bar():
+    from app.graph.response_judge_node import judge_feedback
+    good = {"overall_score": 4, "priority_tone_match_score": 4, "completeness_score": 3, "accuracy_score": 5,
+            "policy_compliance_score": 5, "groundedness_score": 4, "reasoning": "fine", "improvement_suggestions": []}
+    assert judge_feedback(good) is None
+    weak_overall = {**good, "overall_score": 3, "reasoning": "No timeframe.", "improvement_suggestions": ["Give a 24h update"]}
+    assert judge_feedback(weak_overall) == ("The quality judge scored this reply overall 3/5. "
+                                            "Why: No timeframe. Fix: Give a 24h update")
+    weak_part = {**good, "groundedness_score": 2}
+    assert "groundedness 2/5" in judge_feedback(weak_part)
+
+
+def test_failed_judging_never_requests_a_rewrite(monkeypatch) -> None:
+    from app.graph import response_judge_node as node
+
+    async def boom(*_a, **_k):
+        raise RuntimeError("judge down")
+    async def no_shots(*_a, **_k):
+        return []
+    monkeypatch.setattr(node, "evaluate_draft", boom)
+    monkeypatch.setattr(node, "select_few_shots", no_shots)
+    result = asyncio.run(node.response_judge_node({"agent_drafts": {"technical": "d"}, "redacted_text": "t"}))
+    assert result["judge_needs_revision"] is False

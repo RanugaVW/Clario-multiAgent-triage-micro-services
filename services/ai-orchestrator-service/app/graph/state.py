@@ -42,6 +42,9 @@ class TicketState(TypedDict):
     # runtime value returned by decide_routing() before this change - the
     # Literal here was already out of date; fixed alongside adding "hr".
     routing_decision: Literal["technical", "billing", "both", "escalation", "hr"] | None
+    # routing_node writes (see explain_routing); persisted in raw_graph_payload and
+    # shown in the admin console as the matched keywords and rule behind the route.
+    routing_explanation: dict
     # routing_node writes; specialist nodes read to skip retrieval for simple queries (Adaptive RAG).
     rag_required: bool
     # specialist nodes write; validation, reflection, escalation, and handoff nodes read.
@@ -52,6 +55,10 @@ class TicketState(TypedDict):
     rag_top_score: dict[str, float]
     # specialist nodes write; validation, escalation, and handoff nodes read.
     low_relevance_flags: dict[str, bool]
+    # specialist nodes write (rag_tool.correct_retrieval) when the first search
+    # was weak: the rewritten query, scores before/after, and whether it won.
+    # A reflection redraft reads its own domain's entry to reuse the rewrite.
+    corrective_rag: dict[str, dict]
     # validation_node writes; escalation_node and handoff_node read dual-domain failures.
     dual_domain_low_confidence: bool
     # validation_node writes; escalation_node and handoff_node read.
@@ -82,8 +89,19 @@ class TicketState(TypedDict):
     final_response: str | None
     # escalation_node writes for human review; handoff_node reads.
     human_review_notes: str | None
-    # response_judge_node writes (Gemini judge, record-only); API layer reads to persist to Supabase.
+    # response_judge_node writes (Gemini judge); API layer reads to persist to Supabase.
     judge_evaluations: dict[str, dict]
+    # response_judge_node writes: {domain: critique} for drafts below the revision
+    # bar, and the flag graph_builder._after_judge reads. reflection_node reads the
+    # critique and clears the flag.
+    judge_feedback: dict[str, str]
+    judge_needs_revision: bool
+    # reflection_node writes: what triggered each redraft ("validation" or "judge").
+    reflection_sources: list[str]
+    # aggregator_node writes for "both" tickets: one merged reply (escalation_node
+    # uses it as final_response) and whether the merge was used or fell back.
+    aggregated_response: str | None
+    aggregation: dict
     # classification_node, technical/billing agent nodes, and response_judge_node
     # each add their real model-call attempts (including failed retries) here;
     # main.py persists the running total into resolutions.total_llm_calls.

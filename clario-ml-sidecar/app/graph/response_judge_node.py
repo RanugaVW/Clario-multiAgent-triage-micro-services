@@ -1,8 +1,10 @@
-"""LLM judge scoring; record-only quality signal, does not affect failure_type."""
+"""LLM judge scoring. Also the gate of the evaluator-optimizer loop: a weak score sets
+judge_needs_revision (graph_builder sends it to reflection, bounded); never changes failure_type."""
 
 from __future__ import annotations
 
 import logging
+import os
 
 from app.graph.state import TicketState
 from app.tools.few_shot_selector import select_few_shots
@@ -10,6 +12,35 @@ from app.tools.redaction_tool import mask_pii
 from app.tools.response_judge import evaluate_draft
 
 logger = logging.getLogger(__name__)
+
+_DIMENSIONS = (
+    "priority_tone_match_score", "completeness_score", "accuracy_score",
+    "policy_compliance_score", "groundedness_score",
+)
+
+
+def judge_feedback(evaluation: dict) -> str | None:
+    """The judge's own critique if the draft is below the revision bar, else None.
+
+    Bar (rubric anchors in response_judge.py): overall below 4 means "has a real
+    gap a reviewer would want fixed first"; any single dimension below 3 means a
+    customer-visible problem (wrong info, missing part, tone mismatch).
+    """
+    min_overall = int(os.getenv("JUDGE_REVISION_MIN_OVERALL", "4"))
+    min_dimension = int(os.getenv("JUDGE_REVISION_MIN_DIMENSION", "3"))
+    overall = evaluation.get("overall_score")
+    weak = [f"{name.removesuffix('_score').replace('_', ' ')} {evaluation[name]}/5"
+            for name in _DIMENSIONS if isinstance(evaluation.get(name), int) and evaluation[name] < min_dimension]
+    if not (isinstance(overall, int) and overall < min_overall) and not weak:
+        return None
+    parts = [f"overall {overall}/5", *weak]
+    feedback = f"The quality judge scored this reply {', '.join(parts)}."
+    if evaluation.get("reasoning"):
+        feedback += f" Why: {evaluation['reasoning']}"
+    suggestions = [s for s in evaluation.get("improvement_suggestions") or [] if s]
+    if suggestions:
+        feedback += " Fix: " + "; ".join(suggestions)
+    return feedback
 
 
 async def response_judge_node(state: TicketState) -> TicketState:
@@ -102,4 +133,8 @@ async def response_judge_node(state: TicketState) -> TicketState:
             llm_call_count += getattr(e, "attempts", 0)
 
     updated_drafts = {**drafts, **final_drafts}
-    return {**state, "agent_drafts": updated_drafts, "judge_evaluations": evaluations, "llm_call_count": llm_call_count}
+    feedback = {domain: text for domain, evaluation in evaluations.items()
+                if (text := judge_feedback(evaluation))}
+    return {**state, "agent_drafts": updated_drafts, "judge_evaluations": evaluations,
+            "judge_feedback": feedback, "judge_needs_revision": bool(feedback),
+            "llm_call_count": llm_call_count}

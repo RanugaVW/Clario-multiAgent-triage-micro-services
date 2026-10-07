@@ -88,7 +88,7 @@ def escalation_node(state: TicketState) -> TicketState:
     notes = "Human review required: " + ", ".join(reasons) if escalated else None
     drafts = state.get("agent_drafts", {})
     if state.get("routing_decision") == "both":
-        response = "\n\n".join(draft for draft in drafts.values() if draft)
+        response = state.get("aggregated_response") or "\n\n".join(draft for draft in drafts.values() if draft)
     else:
         response = drafts.get(state.get("routing_decision"))
     return {**state, "escalation_triggered": escalated, "escalation_reasons": reasons,

@@ -87,7 +87,7 @@ describe('Dashboard Ticket Submission', () => {
       
       // Check success modal appears
       expect(screen.getByText('Ticket submitted successfully!')).toBeInTheDocument();
-      expect(screen.getByText('uuid-1234')).toBeInTheDocument();
+      expect(screen.getByTitle('uuid-1234')).toBeInTheDocument();
     });
   });
 

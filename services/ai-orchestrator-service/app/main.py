@@ -48,6 +48,8 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(sync_judge_references, "interval", hours=24, id="sync_judge_references")
     from app.jobs.delete_old_attachments import delete_old_attachments
     scheduler.add_job(delete_old_attachments, "interval", hours=6, id="delete_old_attachments")
+    from app.jobs.learning_schedule import register_learning_jobs
+    register_learning_jobs(scheduler, include_kb_gap=False)
     scheduler.start()
 
     yield

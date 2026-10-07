@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import DashboardPage from '../dashboard/page';
@@ -86,7 +86,7 @@ describe('User Workflow Scenarios', () => {
     });
 
     // User can copy their tracking ID
-    const trackingId = screen.getByText(/ticket-/);
+    const trackingId = screen.getByTitle(/ticket-/);
     expect(trackingId).toBeInTheDocument();
   });
 
@@ -128,7 +128,7 @@ describe('User Workflow Scenarios', () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('ticket-1')).toBeInTheDocument();
+      expect(screen.getByTitle('ticket-1')).toBeInTheDocument();
     });
 
     // Close success modal (lands on the history tab) and return to submit form
@@ -151,7 +151,7 @@ describe('User Workflow Scenarios', () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('ticket-2')).toBeInTheDocument();
+      expect(screen.getByTitle('ticket-2')).toBeInTheDocument();
     });
 
     expect(callCount).toBe(2);
@@ -508,7 +508,8 @@ describe('User Workflow Scenarios', () => {
       expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
     });
 
-    const trackingId = screen.getByText(/ticket-journey/);
+    // Scoped to the dialog: the history row behind it carries the same UUID title.
+    const trackingId = within(screen.getByRole('dialog')).getByTitle(/ticket-journey/);
     expect(trackingId).toBeInTheDocument();
 
     // Step 4: View tickets

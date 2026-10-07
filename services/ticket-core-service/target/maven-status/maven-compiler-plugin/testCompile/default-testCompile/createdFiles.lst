@@ -1,1 +1,17 @@
+com/clario/web/ApiExceptionHandlerTest.class
+com/clario/services/TicketServiceTransactionTest.class
+com/clario/OpenApiContractTest.class
 com/clario/tracing/TraceEventPublisherTest.class
+com/clario/config/FailedAuthTrackerTest$FakeClock.class
+com/clario/services/TicketDispatcherTest.class
+com/clario/controllers/TicketControllerSecurityTest.class
+com/clario/HealthEndpointTest.class
+com/clario/ShutdownConfigTest.class
+com/clario/config/SecurityAuditLoggingTest.class
+com/clario/services/TicketServiceCorrelationTest.class
+com/clario/controllers/ApiVersioningTest.class
+com/clario/config/FailedAuthTrackerTest.class
+com/clario/config/FailedAuthTrackerTest$1.class
+com/clario/testsupport/CapturingAppender.class
+com/clario/config/CorrelationIdFilterTest.class
+com/clario/config/SecurityAlertingTest.class
