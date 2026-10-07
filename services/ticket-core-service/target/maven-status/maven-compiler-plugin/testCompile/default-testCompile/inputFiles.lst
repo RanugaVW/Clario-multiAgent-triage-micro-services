@@ -1,1 +1,15 @@
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/config/FailedAuthTrackerTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/ShutdownConfigTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/services/TicketDispatcherTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/web/ApiExceptionHandlerTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/controllers/ApiVersioningTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/controllers/TicketControllerSecurityTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/testsupport/CapturingAppender.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/services/TicketServiceCorrelationTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/HealthEndpointTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/config/SecurityAuditLoggingTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/config/SecurityAlertingTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/OpenApiContractTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/services/TicketServiceTransactionTest.java
 /home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/tracing/TraceEventPublisherTest.java
+/home/ranuga-weerasekara/Desktop/clario/services/ticket-core-service/src/test/java/com/clario/config/CorrelationIdFilterTest.java

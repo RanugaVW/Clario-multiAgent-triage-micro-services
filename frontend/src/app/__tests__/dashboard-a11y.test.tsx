@@ -9,6 +9,10 @@ const router = { push: vi.fn(), refresh: vi.fn() };
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
 vi.mock('../../lib/supabase', () => ({
   supabase: {
+    // TicketThread (inside every expanded row) opens a Realtime channel.
+    channel: () => ({ on() { return this; }, subscribe() { return this; } }),
+    removeChannel: () => {},
+   
     auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'tok' } } }), signOut: vi.fn() },
     storage: { from: vi.fn() },
   },
@@ -71,7 +75,8 @@ describe('customer dashboard - accessible structure', () => {
     await user.type(screen.getByLabelText('Describe the issue'), 'help');
     await user.click(screen.getByRole('button', { name: /submit ticket/i }));
     const dialog = await screen.findByRole('dialog', { name: 'Ticket submitted successfully!' });
-    await waitFor(() => expect(dialog).toHaveTextContent('abc-123'));
+    // The dialog shows the readable reference; the UUID rides along as its title (and is what Copy ID copies).
+    await waitFor(() => expect(within(dialog).getByTitle('abc-123')).toBeInTheDocument());
   });
 
   it('closes the success dialog and refetches tickets from its View my tickets button', async () => {

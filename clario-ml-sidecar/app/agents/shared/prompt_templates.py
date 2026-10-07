@@ -29,6 +29,12 @@ def build_specialist_prompt(
         else ""
     )
     extra = f"{extra_instructions}\n\n" if extra_instructions else ""
+    # TODO(human): define the verification / next-action rule.
+    # Track C slide 35 claims replies "ask for verification (confirm email,
+    # provide details)", but a live cancellation ticket came back with good
+    # empathy, a correct next step and a 48h expectation - and no ask at all,
+    # because no instruction here ever requested one. Write that instruction.
+    verification = ""
     classification = (
         f"Ticket priority: {priority}\nCustomer sentiment: {sentiment}\n\n"
         if priority or sentiment
@@ -41,5 +47,5 @@ def build_specialist_prompt(
         "resolve this. Never invent or guess the customer's name - only use a name if it "
         "appears verbatim in the ticket text below; otherwise use a neutral greeting such "
         "as \"Hello,\" or no greeting at all.\n\n"
-        f"{classification}Ticket:\n{ticket_text}\n\nRetrieved context:\n{context}"
+        f"{verification}{classification}Ticket:\n{ticket_text}\n\nRetrieved context:\n{context}"
     )

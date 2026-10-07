@@ -14,7 +14,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/tickets")
+// /api/v1/tickets is the versioned contract the frontend calls; /api/tickets is
+// kept as the original alias (same mapping as the ticket-core-service).
+@RequestMapping({"/api/v1/tickets", "/api/tickets"})
 @RequiredArgsConstructor
 public class TicketController {
 

@@ -73,10 +73,10 @@ async function submitTicketConcurrently(page: Page, marker: string): Promise<str
   await page.locator('#ticket-text').fill(`${marker} My screen went blank after the last update, please help.`);
   await page.getByRole('button', { name: /submit ticket/i }).click();
   await expect(page.getByText('Ticket submitted successfully!')).toBeVisible({ timeout: 30_000 });
-  const bodyText = await page.locator('body').innerText();
-  const match = bodyText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-  expect(match, `a tracking id should be shown for ${marker}`).not.toBeNull();
-  return match![0];
+  // The success modal shows a TKT- reference; the UUID is its title.
+  const ref = page.getByRole('dialog').getByTitle(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  await expect(ref, `a ticket reference should be shown for ${marker}`).toBeVisible();
+  return (await ref.getAttribute('title'))!;
 }
 
 test('two different real customers submitting a ticket at the exact same instant never cross-contaminate data', async ({ browser }) => {

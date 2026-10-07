@@ -93,6 +93,7 @@ test.describe.serial('customer submits, and admin reviews, one real ticket', () 
   // it, since that's the only honest way to test a real, non-mocked model.
   const ticketText = `${marker} Hi I'm Warusha, I cannot login to my account. I need this to be fixed immediately because I have a submission to do today`;
   let trackingId = '';
+  let ticketRef = '';
   let outcome: Outcome | null = null;
 
   test('customer submits a real ticket through the dashboard form', async ({ page }) => {
@@ -102,10 +103,12 @@ test.describe.serial('customer submits, and admin reviews, one real ticket', () 
     await page.getByRole('button', { name: /submit ticket/i }).click();
 
     await expect(page.getByText('Ticket submitted successfully!')).toBeVisible({ timeout: 30_000 });
-    const bodyText = await page.locator('body').innerText();
-    const match = bodyText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-    expect(match, 'a tracking id (UUID) should be shown in the success modal').not.toBeNull();
-    trackingId = match![0];
+    // The modal shows the readable reference (TKT-0042); the UUID rides along
+    // as its title and is still what "Copy ID" copies.
+    const ref = page.getByRole('dialog').getByTitle(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    await expect(ref, 'the success modal should show a TKT- reference').toHaveText(/^TKT-\d{4,}$/);
+    trackingId = (await ref.getAttribute('title'))!;
+    ticketRef = (await ref.innerText()).trim();
 
     await page.getByRole('button', { name: /view my tickets/i }).click();
     await expect(ticketRow(page, marker)).toBeVisible();
@@ -154,14 +157,16 @@ test.describe.serial('customer submits, and admin reviews, one real ticket', () 
     expect(await filledStarCount(page)).toBe(2);
   });
 
-  test('admin console shows the real requester email, pipeline time, and LLM-call data for this ticket', async ({ page }) => {
+  test('admin console shows the real requester email, pipeline time, and why the ticket was routed', async ({ page }) => {
     await loginViaUi(page, fixtures.admin.email, fixtures.admin.password, /\/admin/);
 
     await page.getByRole('button', { name: /all tickets/i }).click();
-    await page.getByPlaceholder('Search by ticket ID…').fill(trackingId);
+    await page.getByPlaceholder(/search by reference/i).fill(ticketRef);
 
-    const row = page.getByRole('button', { name: new RegExp(trackingId.split('-')[0], 'i') });
+    const row = page.getByRole('button', { name: new RegExp(ticketRef, 'i') });
     await expect(row).toBeVisible({ timeout: 15_000 });
+    // The readable reference must still point at the same UUID underneath.
+    await expect(row.getByTitle(trackingId)).toBeVisible();
     await row.click();
 
     // Regression check: this session, "Requester" showed the literal string
@@ -174,10 +179,11 @@ test.describe.serial('customer submits, and admin reviews, one real ticket', () 
     await expect(pipelineTimeValue).not.toHaveText('—');
     await expect(pipelineTimeValue).not.toHaveText('');
 
-    // Real LLM-call-count telemetry (added this session) - must be a real
-    // number, not the old always-zero placeholder.
-    const llmCalls = page.getByText('LLM calls').locator('..').locator('span').last();
-    await expect(llmCalls).not.toHaveText('—');
+    // Routing transparency: the console explains which category and keywords
+    // decided the specialist domain (or that the cache answered it).
+    await expect(page.getByText(/^Why it was routed/)).toBeVisible();
+    await expect(page.getByText('LLM calls')).toHaveCount(0);
+    await expect(page.getByText('Internal technical details')).toHaveCount(0);
 
     if (outcome === 'resolved') {
       // The rating this same ticket was just given by the customer, visible

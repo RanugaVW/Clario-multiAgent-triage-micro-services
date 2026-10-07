@@ -19,6 +19,7 @@ def test_build_graph_wraps_every_node_with_trace_node(monkeypatch) -> None:
         "cache_check", "surrogate", "analyzer", "classification", "routing",
         "technical_agent", "billing_agent", "both_specialists", "hr_agent", "validation",
         "reflection", "response_judge", "escalation", "handoff", "resolve",
+        "supervisor", "aggregator",
     }
     assert expected.issubset(set(wrapped_names))
 

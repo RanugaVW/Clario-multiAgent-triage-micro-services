@@ -178,7 +178,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/ticket-uuid-123/)).toBeInTheDocument();
+      expect(screen.getByTitle(/ticket-uuid-123/)).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 
@@ -353,7 +353,7 @@ describe('Ticket Submission Pipeline - Simplified E2E', () => {
     // Step 4: See success
     await waitFor(() => {
       expect(screen.getByText(/Ticket Submitted Successfully/i)).toBeInTheDocument();
-      expect(screen.getByText(/ticket-uuid-123/)).toBeInTheDocument();
+      expect(screen.getByTitle(/ticket-uuid-123/)).toBeInTheDocument();
     }, { timeout: 3000 });
 
     console.log('✅ Complete ticket submission workflow test passed!');

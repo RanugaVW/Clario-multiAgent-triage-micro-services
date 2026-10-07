@@ -104,7 +104,7 @@ export async function GET(request: Request) {
   const { data: ticketData, error: ticketError } = await supabase
     .from('tickets')
     .select(`
-      id, raw_text, subject, customer_email, status, created_at, updated_at, raw_graph_payload,
+      id, ticket_number, raw_text, subject, customer_email, status, created_at, updated_at, raw_graph_payload,
       ticket_drafts ( domain, draft_text, rag_top_score, low_relevance, reflection_attempt ),
       ticket_classifications ( category, priority, sentiment, confidence, source ),
       resolutions ( id, escalated, resolved_at, ticket_id, resolved_by, total_reflection_count, total_llm_calls, total_latency_ms )

@@ -186,3 +186,51 @@ def test_a_missing_confidence_is_treated_as_trusted() -> None:
 def test_routing_node_prefers_the_structured_category_list_over_the_joined_string() -> None:
     state = _state(category="General", categories=["Authentication"], redacted_text="Cannot get in.")
     assert routing_node(state)["routing_decision"] == "technical"
+
+
+@pytest.mark.parametrize(("text", "expected"), [
+    ("Clicking 'Continue Learning' just refreshes the page instead of opening the course.", "technical"),
+    ("The two-factor authentication code is always rejected as invalid.", "technical"),
+    ("I need to cancel my subscription for the Python course.", "billing"),
+    ("The invoice has the wrong course name and needs correcting.", "billing"),
+    ("I have a family emergency and must stop attending, can someone review my case?", "hr"),
+])
+def test_kb_wording_routes_on_text_alone_when_the_category_is_untrusted(text: str, expected: str) -> None:
+    assert decide_routing("Billing & Invoicing", 0.1, text) == expected
+
+
+def test_incidental_symptom_words_in_a_billing_story_do_not_make_it_dual_domain() -> None:
+    # "slow" stays out of TECHNICAL_KEYWORDS: it turned billing tickets like this into "both".
+    text = "I was charged twice for the same course because of a slow page."
+    assert decide_routing("Billing & Invoicing", 0.1, text) == "billing"
+
+
+def test_lessons_does_not_trigger_an_sso_match() -> None:
+    assert decide_routing("Refunds", 0.1, "I want a refund, the lessons were not useful.") == "billing"
+
+
+def test_explanation_names_the_hr_phrase_that_overrode_a_billing_category() -> None:
+    from app.graph.routing_node import explain_routing
+    text = "I'm not able to participate in the robotics course because I'm not happy with the instructor."
+    explanation = explain_routing(["Billing & Invoicing", "Subscription Management"], 0.58, text)
+    assert explanation["decision"] == "hr"
+    assert explanation["rule"] == "hr_trigger"
+    assert explanation["matched_keywords"]["hr"] == [{"phrase": "instructor", "weight": 3}]
+    assert explanation["category_domains"] == {"Billing & Invoicing": "billing", "Subscription Management": "billing"}
+
+
+def test_explanation_records_why_an_untrusted_category_was_ignored() -> None:
+    from app.graph.routing_node import explain_routing
+    explanation = explain_routing("Billing & Invoicing", 0.3, "The app crashed with an error")
+    assert explanation["decision"] == "technical"
+    assert explanation["category_trusted"] is False
+    assert "below 50%" in explanation["reason"]
+
+
+def test_routing_node_stores_the_explanation_and_the_reroute_keeps_it() -> None:
+    first = routing_node(_state(category="Technical Support", redacted_text="The app crashed with an error"))
+    assert first["routing_explanation"]["decision"] == first["routing_decision"] == "technical"
+    flipped = routing_node({**first, "needs_reroute": True})
+    assert flipped["routing_explanation"]["decision"] == "billing"
+    assert flipped["routing_explanation"]["rerouted_from"] == "technical"
+    assert flipped["routing_explanation"]["matched_keywords"]["technical"]

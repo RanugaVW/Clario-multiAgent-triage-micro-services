@@ -1,0 +1,148 @@
+{
+  "tickets_compared": 34,
+  "retrieval": {
+    "control": {
+      "n": 34,
+      "hit@1": 0.588,
+      "hit@4": 0.824,
+      "mrr": 0.684
+    },
+    "new": {
+      "n": 34,
+      "hit@1": 0.647,
+      "hit@4": 0.853,
+      "mrr": 0.728
+    }
+  },
+  "corrective_rag": {
+    "tickets_triggered": 15,
+    "rewrite_used": 10,
+    "retrieval_on_triggered_tickets": {
+      "control": {
+        "n": 15,
+        "hit@1": 0.467,
+        "hit@4": 0.867,
+        "mrr": 0.628
+      },
+      "new": {
+        "n": 15,
+        "hit@1": 0.6,
+        "hit@4": 0.867,
+        "mrr": 0.706
+      }
+    },
+    "mean_best_score_before": 0.664,
+    "mean_best_score_after": 0.702
+  },
+  "rewrites": {
+    "control": {
+      "mean_rewrites_per_ticket": 1.38,
+      "rule_driven": 47,
+      "judge_driven": 0,
+      "mean_llm_calls_per_ticket": 5.53,
+      "mean_seconds_per_ticket": 19.6
+    },
+    "new": {
+      "mean_rewrites_per_ticket": 1.21,
+      "rule_driven": 27,
+      "judge_driven": 14,
+      "mean_llm_calls_per_ticket": 6.56,
+      "mean_seconds_per_ticket": 25.1,
+      "judge_rewrite_kept_original_instead": 0
+    }
+  },
+  "fresh_judge_quality": {
+    "paired_drafts": 34,
+    "overall_score": {
+      "control": 4.06,
+      "new": 4,
+      "better": 5,
+      "worse": 7,
+      "same": 22,
+      "wilcoxon_p": 0.564
+    },
+    "priority_tone_match_score": {
+      "control": 4.21,
+      "new": 4.21,
+      "better": 5,
+      "worse": 5,
+      "same": 24,
+      "wilcoxon_p": 1.0
+    },
+    "completeness_score": {
+      "control": 4.56,
+      "new": 4.68,
+      "better": 7,
+      "worse": 3,
+      "same": 24,
+      "wilcoxon_p": 0.206
+    },
+    "accuracy_score": {
+      "control": 5,
+      "new": 5,
+      "better": 0,
+      "worse": 0,
+      "same": 34,
+      "wilcoxon_p": 1.0
+    },
+    "policy_compliance_score": {
+      "control": 4.94,
+      "new": 4.88,
+      "better": 0,
+      "worse": 2,
+      "same": 32,
+      "wilcoxon_p": 0.157
+    },
+    "groundedness_score": {
+      "control": 4.97,
+      "new": 4.97,
+      "better": 1,
+      "worse": 1,
+      "same": 32,
+      "wilcoxon_p": 1.0
+    },
+    "share_overall_below_4": {
+      "control": 0.324,
+      "new": 0.324
+    }
+  },
+  "pairwise_new_vs_control": {
+    "tie": 3,
+    "new": 2,
+    "control": 2
+  },
+  "routing_and_escalation": {
+    "control": {
+      "n": 27,
+      "routing_accuracy": 0.963,
+      "escalation": {
+        "precision": 0.8,
+        "recall": 0.8,
+        "f1": 0.8
+      }
+    },
+    "new": {
+      "n": 27,
+      "routing_accuracy": 1,
+      "escalation": {
+        "precision": 1.0,
+        "recall": 0.8,
+        "f1": 0.889
+      }
+    }
+  },
+  "supervisor": {
+    "fired": 1,
+    "rules_seen": {
+      "category": 28,
+      "text_keywords": 1,
+      "hr_trigger": 4,
+      "low_confidence_no_signal": 1
+    }
+  },
+  "aggregator": {
+    "both_tickets": 0,
+    "merged": 0,
+    "fallback_reasons": {}
+  }
+}

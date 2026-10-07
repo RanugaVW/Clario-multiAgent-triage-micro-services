@@ -78,6 +78,7 @@ type TicketResponse = {
 
 type TicketWithResolution = {
   id: string;
+  ticket_number?: number | null;
   raw_text: string;
   created_at: string;
   updated_at?: string | null;
@@ -111,6 +112,7 @@ import ShakeButton from '../../components/ShakeButton';
 import RotateButton from '../../components/RotateButton';
 import VoiceRecorder from '../../components/VoiceRecorder';
 import { fetchJson } from '../../lib/fetchJson';
+import { formatTicketRef, matchesTicketQuery } from '../../lib/ticketRef';
 
 export default function Home() {
   const [ticketText, setTicketText] = useState('');
@@ -122,7 +124,8 @@ export default function Home() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [successModal, setSuccessModal] = useState<{show: boolean, trackingId: string}>({show: false, trackingId: ''});
+  // trackingId stays the UUID ("Copy ID" copies it); ticketRef is what the modal shows.
+  const [successModal, setSuccessModal] = useState<{show: boolean, trackingId: string, ticketRef: string}>({show: false, trackingId: '', ticketRef: ''});
   const [dataLoading, setDataLoading] = useState(false);
   const [ticketPendingDelete, setTicketPendingDelete] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -292,8 +295,19 @@ export default function Home() {
         throw new Error("You need to be logged in to submit a ticket. Please sign in and try again.");
       }
 
+        // The gateway only returns the UUID; read the DB-assigned ticket_number
+        // back (customers can read their own tickets under RLS). Any failure
+        // just leaves formatTicketRef on its short-UUID fallback.
+        let ticketNumber: number | null = null;
+        try {
+          const { data: numbered } = await supabase.from('tickets').select('ticket_number').eq('id', ticketUuid).maybeSingle();
+          ticketNumber = (numbered as { ticket_number?: number | null } | null)?.ticket_number ?? null;
+        } catch {
+          /* fall back to the short form */
+        }
+
         // Success!
-        setSuccessModal({ show: true, trackingId: ticketUuid });
+        setSuccessModal({ show: true, trackingId: ticketUuid, ticketRef: formatTicketRef({ id: ticketUuid, ticket_number: ticketNumber }) });
         setTicketText('');
         setImageFile(null);
         setImagePreviewUrl(null);
@@ -325,7 +339,7 @@ export default function Home() {
     ? pastTickets.filter(t =>
         t.raw_text.toLowerCase().includes(historySearchLower) ||
         (t.subject ?? '').toLowerCase().includes(historySearchLower) ||
-        t.id.toLowerCase().includes(historySearchLower))
+        matchesTicketQuery(t, historySearchLower))
     : pastTickets;
 
   const dashboardNavItems: { id: 'new' | 'history'; icon: React.ReactNode; label: string }[] = [
@@ -346,7 +360,7 @@ export default function Home() {
   ];
 
   const closeSuccess = () => {
-    setSuccessModal({ show: false, trackingId: '' });
+    setSuccessModal({ show: false, trackingId: '', ticketRef: '' });
     setActiveTab('history');
     if (user) fetchHistory();
   };
@@ -372,9 +386,9 @@ export default function Home() {
           <p className="mb-6 text-app text-fg-muted">Your issue has been securely logged and is being routed by our LangGraph orchestration.</p>
 
           <div className="flex w-full flex-col items-center rounded-lg border border-border bg-surface p-4">
-            <span className="mb-2 text-caption font-semibold text-fg-muted">Tracking ID</span>
+            <span className="mb-2 text-caption font-semibold text-fg-muted">Ticket reference</span>
             <div className="flex w-full flex-wrap items-center justify-center gap-3">
-              <span className="break-all font-mono text-mono text-accent">{successModal.trackingId}</span>
+              <span className="break-all font-mono text-mono text-accent" title={successModal.trackingId}>{successModal.ticketRef}</span>
               <MorphButton textToCopy={successModal.trackingId} label="Copy ID" />
             </div>
           </div>
@@ -541,11 +555,17 @@ export default function Home() {
 
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
+import { TicketThread } from '../../components/tickets/TicketThread';
+import { REOPENED_STATUS } from '../../lib/ticketThread';
 
 export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWithResolution; onDelete: (id: string) => void; userId: string }) {
   const [expanded, setExpanded] = useState(false);
   const detailsId = useId();
   const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
+  // A reply can move the ticket's status (e.g. reopen it) without the history
+  // list refetching, so the latest status a reply reported wins over the prop.
+  const [statusFromReply, setStatusFromReply] = useState<string | null>(null);
+  const liveStatus = statusFromReply ?? ticket.status;
 
   useEffect(() => {
     if (!expanded || signedImageUrl || !ticket.image_storage_path) return;
@@ -555,19 +575,24 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
   }, [expanded, signedImageUrl, ticket.image_storage_path]);
 
   const finalResolution = ticket.resolutions?.find(r => r.escalated === false);
-  const isFullyResolved = ticket.status === 'resolved' || !!finalResolution;
-  const isEscalated = !isFullyResolved && (ticket.status === 'escalated' || ticket.resolutions?.some(r => r.escalated));
+  // 'reopened' outranks an existing resolution row: the customer has replied
+  // after the answer, so it is back with the support team.
+  const isReopened = liveStatus === REOPENED_STATUS;
+  const isFullyResolved = !isReopened && (liveStatus === 'resolved' || !!finalResolution);
+  const isEscalated = !isFullyResolved && (isReopened || liveStatus === 'escalated' || ticket.resolutions?.some(r => r.escalated));
 
   let statusLabel = 'In progress';
   let statusTone: BadgeTone = 'neutral';
   let statusText = 'text-fg-muted';
   let statusDot = 'bg-fg-subtle';
-  if (isEscalated) { statusLabel = 'Needs review'; statusTone = 'warning'; statusText = 'text-warning'; statusDot = 'bg-warning'; }
+  if (isReopened) { statusLabel = 'Awaiting support'; statusTone = 'warning'; statusText = 'text-warning'; statusDot = 'bg-warning'; }
+  else if (isEscalated) { statusLabel = 'Needs review'; statusTone = 'warning'; statusText = 'text-warning'; statusDot = 'bg-warning'; }
   else if (isFullyResolved) { statusLabel = 'Resolved'; statusTone = 'success'; statusText = 'text-success'; statusDot = 'bg-success'; }
 
   const issueSnippet = ticket.raw_text.substring(0, 80) + (ticket.raw_text.length > 80 ? '...' : '');
   const classification = ticket.ticket_classifications?.[0];
-  const resolvedAt = finalResolution?.resolved_at || ticket.resolutions?.find(r => r.resolved_at)?.resolved_at || null;
+  // A reopened ticket isn't resolved any more, even though its old resolution row still carries a timestamp.
+  const resolvedAt = isReopened ? null : (finalResolution?.resolved_at || ticket.resolutions?.find(r => r.resolved_at)?.resolved_at || null);
   // The pipeline never stamps resolved_by, so an escalation that later closed is the
   // reliable sign a person took the ticket over.
   const wasEscalatedAtSomePoint = !!ticket.resolutions?.some(r => r.escalated);
@@ -588,7 +613,7 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
           {expanded ? <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden="true" />}
           <span className="flex w-24 shrink-0 items-center gap-3">
             <span className={cx('h-1.5 w-1.5 rounded-full', statusDot)} aria-hidden="true" />
-            <span className="truncate font-mono text-caption text-fg-muted">{ticket.id.split('-')[0]}</span>
+            <span className="truncate font-mono text-caption text-fg-muted" title={ticket.id}>{formatTicketRef(ticket)}</span>
           </span>
           <span className="hidden w-28 shrink-0 leading-tight md:block" title={'Submitted ' + formatDateTime(ticket.created_at)}>
             <span className="block font-mono text-caption text-fg">{formatDate(ticket.created_at)}</span>
@@ -608,7 +633,7 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
           <div className="rounded-lg border border-border bg-surface-raised p-4">
             <span className="mb-3 block text-caption text-fg-muted">Ticket details</span>
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3 xl:grid-cols-4">
-              <UserMetaItem label="Reference" value={ticket.id.split('-')[0].toUpperCase()} mono title={ticket.id} />
+              <UserMetaItem label="Reference" value={formatTicketRef(ticket)} mono title={ticket.id} />
               <UserMetaItem label="Status" value={statusLabel} toneClass={statusText} />
               <UserMetaItem label="Subject" value={ticket.subject || 'No subject'} />
               <UserMetaItem label="Submitted" value={formatDateTime(ticket.created_at)} hint={formatRelative(ticket.created_at)} />
@@ -649,7 +674,8 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
           <div className="border-t border-border pt-4">
             <span className={cx('mb-2 block text-caption', statusText)}>Resolution</span>
             <div className="min-h-[100px] rounded-lg border border-border bg-surface-raised p-4 text-app text-fg">
-              {(isFullyResolved && finalResolution?.final_response)
+              {/* Not gated on isFullyResolved: a reopened ticket still shows the answer it was given. */}
+              {finalResolution?.final_response
                 ? parseCustomerResponse(finalResolution.final_response)
                 : (isEscalated
                     ? 'A human agent has taken over this ticket and is currently drafting a resolution.'
@@ -660,6 +686,12 @@ export function UserTicketRow({ ticket, onDelete, userId }: { ticket: TicketWith
               <FeedbackStars ticketId={ticket.id} userId={userId} existingScore={ticket.customer_feedback?.score ?? null} />
             )}
           </div>
+
+          <TicketThread
+            ticketId={ticket.id}
+            viewer={{ id: userId || null, role: 'user' }}
+            onTicketStatusChange={setStatusFromReply}
+          />
         </div>
       )}
     </Card>

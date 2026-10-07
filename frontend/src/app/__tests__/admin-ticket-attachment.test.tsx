@@ -17,6 +17,10 @@ const fromTable = vi.fn(() => ({
 
 vi.mock('../../lib/supabase', () => ({
   supabase: {
+    // TicketThread (inside every expanded row) opens a Realtime channel.
+    channel: () => ({ on() { return this; }, subscribe() { return this; } }),
+    removeChannel: () => {},
+   
     from: (...args: unknown[]) => fromTable(...args),
     storage: { from: () => ({ createSignedUrl }) },
   },

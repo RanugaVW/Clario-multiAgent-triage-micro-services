@@ -1,7 +1,7 @@
 """First-pass routing and the v3 one-time explicit reroute flip."""
 
 from app.graph.state import TicketState
-from app.tools.taxonomy import domains_for, split_category
+from app.tools.taxonomy import CATEGORY_DOMAIN, domains_for, split_category
 
 TECHNICAL_KEYWORDS = {
     "error": 2, "failed": 1, "crash": 3, "not working": 1, "bug": 2,
@@ -18,6 +18,24 @@ TECHNICAL_KEYWORDS = {
     "recording": 2, "zoom": 3, "buffering": 2, "certificate": 2, "cannot submit": 2,
     "account is blocked": 3, "account was blocked": 3, "account got blocked": 3,
     "account has been blocked": 3,
+    # From the technical KB docs' own wording. A phrase is only added if it
+    # appears in technical docs and no billing/HR doc: any word one domain
+    # shares with another trips the "both" rule in decide_routing() and
+    # overrides a trusted category. 3 = specific to one fault; 2 = clearly
+    # technical but broad; 1 = weak. Bare "locked", "otp", "upload", "access"
+    # and "sso" are left out (shared with billing/HR, or "sso" in "lessons").
+    # "slow", "freez" and "outage" are left out too: customers use them inside
+    # billing stories ("charged twice due to a slow page"), which turned 3
+    # pilot billing tickets into "both" while fixing none.
+    "two-factor": 3, "reset link": 3, "screen reader": 3, "server error": 3,
+    "site is down": 3, "compiler": 3, "out of sync": 3, "upload fail": 3,
+    "won't upload": 3, "video player": 3, "single sign-on": 3,
+    "can't get into": 2, "cannot get into": 2,
+    "not loading": 2, "won't load": 2, "blank": 2, "refreshes the page": 2,
+    "continue learning": 2, "lagging": 2, "takes forever": 2,
+    "syncing": 2, "notification": 2, "keyboard": 2, "browser": 2, "chrome": 2,
+    "safari": 2, "firefox": 2, "download": 2, "integration": 2,
+    "notebook": 2, "playback": 2, "quiz": 1,
 }
 BILLING_KEYWORDS = {
     "payment": 3, "charged": 3, "bank": 2, "refund": 3, "billed": 3, "buying": 2, "billing": 3,
@@ -26,6 +44,16 @@ BILLING_KEYWORDS = {
     # already covers, but real customers rarely say "wrong course" outright.
     "paid": 2, "discount code": 2, "picked the wrong": 2, "clicked the wrong": 2,
     "accidentally selected": 2, "ended up enrolled": 2,
+    # From the billing KB docs, same selection rule as TECHNICAL_KEYWORDS.
+    # "webxpay" belongs here (not in the HR dicts below). Bare "cancel" stays
+    # out: on the 70 real tickets it appears in 11 HR tickets vs 4 billing.
+    "chargeback": 3, "unauthorized charge": 3, "invoice": 3, "receipt": 3,
+    "taxed": 3, "tax amount": 3, "sales tax": 3, "subscription": 3,
+    "auto-renew": 3, "unsubscribe": 3, "downgrade": 3, "prorated": 3,
+    "promo code": 3, "webxpay": 3, "declined": 3, "bank statement": 3,
+    "exchange rate": 3, "currency": 3,
+    "dispute": 2, "renewal": 2, "upgrade": 2, "price": 2, "checkout": 2,
+    "transaction": 2, "course fee": 2, "fees": 2,
 }
 # Specific enough that a single hit justifies HR routing even against
 # ordinary billing wording - see decide_routing()'s comment for why these
@@ -57,6 +85,9 @@ HR_HARD_TRIGGER_KEYWORDS = {
     # also a routine, non-HR billing request - see subscription_cancel.md).
     "changed my mind": 3, "schedule clashes": 3, "isn't for me": 3,
     "no longer have time": 3, "decided to focus": 2,
+    # From the HR KB docs (circumstances a policy can't decide in advance).
+    "awaiting approval": 3, "no access was given": 3, "minor child": 3,
+    "emergency": 3, "abroad": 3, "teaching style": 3, "switch batch": 3,
 }
 
 # Ambiguous enough that they keep the original strict-maximum-over-
@@ -143,20 +174,49 @@ def _route_by_category(category: str | list[str], tech_score: int, billing_score
     return None
 
 
+def _matched_keywords(text: str, weighted_keywords: dict[str, int]) -> list[dict]:
+    lower_text = text.lower()
+    return [{"phrase": k, "weight": w} for k, w in weighted_keywords.items() if k in lower_text]
+
+
 def decide_routing(category: str | list[str] | None, confidence: float | None, text: str) -> str:
-    """Choose the initial specialist domain without modifying state. Routes to
-    "both" (send to both specialists, not a guess) whenever the ticket text
-    carries a genuine dual-domain signal, or when neither the category (too
-    uncertain) nor the text says anything; "escalation" is reserved for when
-    there's no usable signal at all."""
+    """Choose the initial specialist domain without modifying state."""
+    return explain_routing(category, confidence, text)["decision"]
+
+
+def explain_routing(category: str | list[str] | None, confidence: float | None, text: str) -> dict:
+    """The routing decision plus the evidence it rested on, for the admin console.
+
+    Routes to "both" (send to both specialists, not a guess) whenever the
+    ticket text carries a genuine dual-domain signal, or when neither the
+    category (too uncertain) nor the text says anything; "escalation" is
+    reserved for when there's no usable signal at all.
+    """
+    matched = {
+        "technical": _matched_keywords(text, TECHNICAL_KEYWORDS),
+        "billing": _matched_keywords(text, BILLING_KEYWORDS),
+        "hr": _matched_keywords(text, HR_HARD_TRIGGER_KEYWORDS),
+        "hr_weak": _matched_keywords(text, HR_WEAK_SIGNAL_KEYWORDS),
+    }
+    scores = {domain: sum(m["weight"] for m in hits) for domain, hits in matched.items()}
+    tech_score, billing_score = scores["technical"], scores["billing"]
+    hr_hard_score, hr_weak_score = scores["hr"], scores["hr_weak"]
+    labels = category if isinstance(category, list) else split_category(category) if category else []
+    category_trusted = confidence is None or confidence >= LOW_CATEGORY_CONFIDENCE
+
+    def result(decision: str, rule: str, reason: str) -> dict:
+        return {
+            "decision": decision, "rule": rule, "reason": reason,
+            "matched_keywords": matched, "scores": scores,
+            "category_domains": {label: CATEGORY_DOMAIN.get(label) for label in labels},
+            "confidence": confidence, "confidence_threshold": LOW_CATEGORY_CONFIDENCE,
+            "category_trusted": category_trusted,
+        }
+
     # No category at all: give both specialists a shot.
     if not category:
-        return "both"
-
-    tech_score = _calculate_score(text, TECHNICAL_KEYWORDS)
-    billing_score = _calculate_score(text, BILLING_KEYWORDS)
-    hr_hard_score = _calculate_score(text, HR_HARD_TRIGGER_KEYWORDS)
-    hr_weak_score = _calculate_score(text, HR_WEAK_SIGNAL_KEYWORDS)
+        return result("both", "no_category",
+                      "The classifier gave no category, so both specialists drafted a reply.")
 
     # Hard-trigger HR phrases (medical emergency, parental consent, a bank
     # slip, an instructor change) are specific enough that a single hit
@@ -170,7 +230,9 @@ def decide_routing(category: str | list[str] | None, confidence: float | None, t
     # ticket that is overwhelmingly technical with one incidental
     # hard-trigger word isn't misrouted.
     if hr_hard_score > 0 and hr_hard_score >= tech_score:
-        return "hr"
+        return result("hr", "hr_trigger",
+                      f"The ticket contains HR phrases (score {hr_hard_score}) that need human judgement, "
+                      f"and technical wording (score {tech_score}) did not outweigh them.")
 
     # Weak-signal HR phrases (sponsorship, account-linkage wording) are
     # genuinely ambiguous and DO appear in ordinary billing tickets (e.g.
@@ -180,32 +242,52 @@ def decide_routing(category: str | list[str] | None, confidence: float | None, t
     # both other scores, so an ordinary billing ticket that merely mentions
     # one of these words isn't misrouted to HR.
     if hr_weak_score > 0 and hr_weak_score > tech_score and hr_weak_score > billing_score:
-        return "hr"
+        return result("hr", "hr_weak_signal",
+                      f"HR-related wording (score {hr_weak_score}) outweighed both technical "
+                      f"({tech_score}) and billing ({billing_score}) wording.")
 
     # The ticket text itself carries real signal for both domains (e.g. "payment
     # failed" - technical failure wording plus billing wording) - this overrides
     # a category label that may not reflect the whole ticket.
     if tech_score > 0 and billing_score > 0:
-        return "both"
+        return result("both", "text_both_domains",
+                      f"The ticket has both technical (score {tech_score}) and billing (score {billing_score}) "
+                      "wording, so both specialists drafted a reply.")
 
-    category_trusted = confidence is None or confidence >= LOW_CATEGORY_CONFIDENCE
     if category_trusted:
         domain = _route_by_category(category, tech_score, billing_score)
         if domain:
-            return domain
+            label_text = ", ".join(labels) or str(category)
+            if len(domains_for(labels)) == 2:
+                reason = (f"The categories ({label_text}) point at both technical and billing; "
+                          + ("the wording was tied, so both specialists drafted a reply." if domain == "both"
+                             else f"the {domain} wording scored higher, so it went to {domain}."))
+                return result(domain, "category_tiebreak", reason)
+            return result(domain, "category",
+                          f"The classifier's category ({label_text}) belongs to the {domain} domain.")
 
+    trust_note = "" if category_trusted else (
+        f" The classifier's category was not used because its confidence was below "
+        f"{LOW_CATEGORY_CONFIDENCE:.0%}.")
     if tech_score > 0 or billing_score > 0:
         if billing_score > tech_score:
-            return "billing"
+            return result("billing", "text_keywords",
+                          f"Billing wording (score {billing_score}) decided the route.{trust_note}")
         if tech_score > billing_score:
-            return "technical"
+            return result("technical", "text_keywords",
+                          f"Technical wording (score {tech_score}) decided the route.{trust_note}")
         # If scores are exactly tied and > 0, we can't decide confidently
-        return "escalation"
+        return result("escalation", "text_tie", "Technical and billing wording were tied, so a human decides.")
 
     # Nothing to go on. With an untrusted category that is uncertainty, so
     # both specialists get a look; with a trusted one that names no domain,
     # it is the "no usable routing signal" case for a human.
-    return "escalation" if category_trusted else "both"
+    if category_trusted:
+        return result("escalation", "no_signal",
+                      "The category does not belong to a specialist domain and the ticket has no routing "
+                      "keywords, so it was sent to a human.")
+    return result("both", "low_confidence_no_signal",
+                  f"The ticket has no routing keywords.{trust_note} Both specialists drafted a reply.")
 
 
 def routing_node(state: TicketState) -> TicketState:
@@ -218,16 +300,25 @@ def routing_node(state: TicketState) -> TicketState:
         if current_decision not in {"technical", "billing"}:
             raise ValueError("Cannot reroute a ticket without exactly one specialist domain")
         flipped = "billing" if current_decision == "technical" else "technical"
-        return {**state, "routing_decision": flipped, "reroute_attempted": True}
+        explanation = {
+            **state.get("routing_explanation", {}),
+            "decision": flipped,
+            "rerouted_from": current_decision,
+            "reroute_reason": (f"The {current_decision} draft was off-topic and its knowledge-base matches were "
+                               f"weak, so the ticket was retried once with the {flipped} specialist."),
+        }
+        return {**state, "routing_decision": flipped, "reroute_attempted": True,
+                "routing_explanation": explanation}
 
     if not needs_reroute and not reroute_attempted:
         text = state.get("redacted_text", "")
-        decision = decide_routing(
+        explanation = explain_routing(
             state.get("categories") or state.get("category"),
             state.get("classification_confidence"),
             text,
         )
         rag_required = check_rag_required(text)
-        return {**state, "routing_decision": decision, "rag_required": rag_required}
+        return {**state, "routing_decision": explanation["decision"], "rag_required": rag_required,
+                "routing_explanation": explanation}
 
     raise ValueError("Routing node received an invalid reroute state")

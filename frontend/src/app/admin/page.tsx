@@ -21,7 +21,11 @@ import type { ShellNavItem } from '../../components/AppShell';
 import { supabase } from '../../lib/supabase';
 import { WavePhysicsLoader } from '../../components/WavePhysicsLoader';
 import ShakeButton from '../../components/ShakeButton';
-import { formatDate, formatDateTime, formatElapsed, formatDuration, formatRelative, formatTime } from '../../lib/datetime';
+import { formatDate, formatDateTime, formatDuration, formatRelative, formatTime } from '../../lib/datetime';
+import { RoutingExplanation } from '../../components/RoutingExplanation';
+import { TicketThread } from '../../components/tickets/TicketThread';
+import { REOPENED_STATUS } from '../../lib/ticketThread';
+import { formatTicketRef, matchesTicketQuery } from '../../lib/ticketRef';
 import { fetchJson } from '../../lib/fetchJson';
 import { categoryDomain, priorityClass, sentimentClass, splitCategories } from '../../lib/classification';
 import { cx } from '../../lib/cx';
@@ -38,27 +42,22 @@ async function authHeaders(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// Drafts carry an internal engineering report before the customer reply; the
+// console only ever shows (and pre-fills replies with) the customer part.
+function customerFacingText(text: string | null | undefined): string {
+  if (!text) return '';
+  const marker = '**[CUSTOMER RESPONSE]**';
+  return text.includes(marker) ? text.split(marker)[1].trim() : text;
+}
+
 function parseAdminResponse(text: string | null | undefined): React.ReactNode {
   if (!text) return 'No final response was produced.';
-  if (text.includes('**[INTERNAL TECHNICAL REPORT]**') && text.includes('**[CUSTOMER RESPONSE]**')) {
-    const parts = text.split('**[CUSTOMER RESPONSE]**');
-    const techReport = parts[0].replace('**[INTERNAL TECHNICAL REPORT]**', '').trim();
-    const custResponse = parts[1].trim();
-
-    return (
-      <div className="space-y-4">
-        <div className="bg-surface border border-accent/40 p-3 rounded-lg">
-          <span className="text-caption uppercase tracking-wider text-accent block mb-1 font-bold">Internal technical details</span>
-          <p className="text-fg text-app">{techReport}</p>
-        </div>
-        <div className="bg-surface border border-brand/40 p-3 rounded-lg">
-          <span className="text-caption uppercase tracking-wider text-brand block mb-1 font-bold">Customer-facing output</span>
-          <p className="text-fg text-app">{custResponse}</p>
-        </div>
-      </div>
-    );
-  }
-  return <p>{text}</p>;
+  return (
+    <div className="bg-surface border border-brand/40 p-3 rounded-lg">
+      <span className="text-caption uppercase tracking-wider text-brand block mb-1 font-bold">Customer-facing output</span>
+      <p className="whitespace-pre-wrap text-fg text-app">{customerFacingText(text)}</p>
+    </div>
+  );
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -137,6 +136,7 @@ type ResponseEvaluation = {
 
 export type Ticket = {
   id: string;
+  ticket_number?: number | null;
   raw_text: string;
   subject: string | null;
   customer_email: string | null;
@@ -301,11 +301,14 @@ export default function AdminDashboard() {
     });
   };
 
+  // A reopened ticket (customer replied after the answer) keeps its resolution
+  // row, so its status has to win over that row in both queues.
   const resolvedTickets = allTickets.filter(t =>
-    t.resolutions?.length > 0 && t.resolutions.some(r => !r.escalated)
+    t.status !== REOPENED_STATUS && t.resolutions?.length > 0 && t.resolutions.some(r => !r.escalated)
   );
 
   const humanReviewTickets = allTickets.filter(t => {
+    if (t.status === REOPENED_STATUS) return true;
     const isResolved = t.resolutions?.some(r => !r.escalated);
     if (isResolved) return false;
     return t.resolutions?.some(r => r.escalated) || (!t.resolutions?.length && t.status === 'escalated');
@@ -323,7 +326,7 @@ export default function AdminDashboard() {
   const ticketCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
 
   const filteredAllTickets = allTickets
-    .filter(t => !searchQuery || t.id.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(t => matchesTicketQuery(t, searchQuery))
     .filter(t => categoryFilter === 'all' || splitCategories(t.ticket_classifications?.[0]?.category).includes(categoryFilter))
     .filter(t => priorityFilter === 'all' || t.ticket_classifications?.[0]?.priority?.toLowerCase() === priorityFilter);
 
@@ -563,7 +566,7 @@ export default function AdminDashboard() {
               <div className="flex items-center space-x-3">
                 <Input
                   type="text"
-                  placeholder="Search by ticket ID…"
+                  placeholder="Search by reference (TKT-0042) or ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-64"
@@ -678,7 +681,7 @@ function HumanReviewTabs({ humanReviewTickets, onDelete }: { humanReviewTickets:
 // ─── TicketRow (Unified Admin View) ──────────────────────────────────────────────────────────
 
 export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'agent' | 'human' | 'all', onDelete?: (id: string) => void }) {
-  const { user: adminUser } = useAuth();
+  const { user: adminUser, role: adminRole } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const detailsId = useId();
   const [fullData, setFullData] = useState<Ticket | null>(null);
@@ -708,30 +711,18 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
   const effectiveJudgeScore = latestOverride?.overall_score ?? evaluation?.overall_score ?? null;
   const customerFeedback = fullData?.customer_feedback || ticket.customer_feedback || null;
+  const currentStatus = fullData?.status ?? ticket.status;
+  const isReopened = currentStatus === REOPENED_STATUS;
   const hasResolvedResolution = allResolutions.some(r => !r.escalated);
-  const isEscalated = !hasResolvedResolution && (allResolutions.some(r => r.escalated) || ticket.status === 'escalated');
+  const isEscalated = isReopened || (!hasResolvedResolution && (allResolutions.some(r => r.escalated) || currentStatus === 'escalated'));
   const resolutionMetadata = allResolutions.find(r => !r.escalated) || allResolutions[0];
-  const isResolved = hasResolvedResolution || ticket.status === 'resolved';
+  const isResolved = !isReopened && (hasResolvedResolution || currentStatus === 'resolved');
   const resolution = resolutionMetadata;
   const updatedAt = fullData?.updated_at || ticket.updated_at || null;
-  const retrievedSources = Array.isArray(draft?.retrieved_sources) ? draft.retrieved_sources : [];
   const escalationReasons: string[] = allResolutions
     .flatMap(r => (Array.isArray(r.escalation_reasons) ? r.escalation_reasons : []))
     .map(r => String(r));
   const humanReviewNotes = (fullData?.human_reviews || ticket.human_reviews || [])[0]?.notes || null;
-
-  // Lazy initializer (not a synchronous setState-in-effect) so the "open
-  // for" clock shows a correct value immediately on the client, while still
-  // rendering null during any actual SSR pass (typeof window is undefined
-  // there) to avoid a hydration mismatch.
-  const [nowIso, setNowIso] = useState<string | null>(
-    () => (typeof window === 'undefined' ? null : new Date().toISOString())
-  );
-  useEffect(() => {
-    if (!expanded) return;
-    const timer = setInterval(() => setNowIso(new Date().toISOString()), 30000);
-    return () => clearInterval(timer);
-  }, [expanded]);
 
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -762,7 +753,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
       setIsLoading(false);
       const fetchedDraft = data?.ticket_drafts?.[0];
       const fetchedRes = data?.resolutions?.find((r) => !r.escalated);
-      setReplyText(fetchedDraft?.draft_text || fetchedRes?.final_response || "");
+      setReplyText(customerFacingText(fetchedDraft?.draft_text || fetchedRes?.final_response));
     });
   }, [expanded, fullData, fetchFullData]);
 
@@ -771,7 +762,8 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
   let statusDot = 'bg-fg-subtle';
   let statusLabel = 'Pending';
   let statusTone: 'neutral' | 'warning' | 'success' = 'neutral';
-  if (isEscalated) { statusText = 'text-warning'; statusDot = 'bg-warning'; statusLabel = 'Needs review'; statusTone = 'warning'; }
+  if (isReopened) { statusText = 'text-warning'; statusDot = 'bg-warning'; statusLabel = 'Customer replied'; statusTone = 'warning'; }
+  else if (isEscalated) { statusText = 'text-warning'; statusDot = 'bg-warning'; statusLabel = 'Needs review'; statusTone = 'warning'; }
   else if (isResolved) { statusText = 'text-success'; statusDot = 'bg-success'; statusLabel = 'Resolved'; statusTone = 'success'; }
 
   // Extract snippet
@@ -876,7 +868,7 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
           {expanded ? <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden="true" />}
           <span className="flex w-28 shrink-0 items-center gap-3">
             <span className={cx('h-1.5 w-1.5 rounded-full', statusDot)} aria-hidden="true" />
-            <span className="truncate font-mono text-caption text-fg-muted">{ticket.id.split('-')[0]}</span>
+            <span className="truncate font-mono text-caption text-fg-muted" title={ticket.id}>{formatTicketRef(ticket)}</span>
           </span>
           <span className="hidden w-28 shrink-0 leading-tight md:block" title={"Submitted " + formatDateTime(ticket.created_at)}>
             <span className="block font-mono text-caption text-fg">{formatDate(ticket.created_at)}</span>
@@ -906,7 +898,8 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
           <div className="rounded-lg border border-border bg-surface-raised p-4 lg:col-span-2">
             <span className="mb-3 block text-caption text-fg-muted">Ticket details</span>
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
-              <MetaItem label="Ticket ID" value={ticket.id} mono title={ticket.id} />
+              <MetaItem label="Reference" value={formatTicketRef(ticket)} mono title={ticket.id} />
+              <MetaItem label="UUID" value={ticket.id} mono title={ticket.id} />
               <MetaItem label="Subject" value={ticket.subject || fullData?.subject || 'No subject'} />
               <MetaItem
                 label="Requester"
@@ -922,10 +915,6 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                 toneClass={resolution?.resolved_at ? 'text-success' : statusText}
               />
               <MetaItem
-                label={resolution?.resolved_at ? 'Turnaround' : 'Open for'}
-                value={resolution?.resolved_at ? formatElapsed(ticket.created_at, resolution.resolved_at) : formatElapsed(ticket.created_at, nowIso)}
-              />
-              <MetaItem
                 label="Pipeline time"
                 value={
                   // fullData is fetched fresh on expand; ticket is the list
@@ -938,7 +927,6 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                 toneClass="text-accent"
               />
               <MetaItem label="Reflections" value={String(resolution?.total_reflection_count ?? draft?.reflection_attempt ?? 0)} />
-              <MetaItem label="LLM calls" value={resolution?.total_llm_calls != null ? String(resolution.total_llm_calls) : '—'} />
               <MetaItem label="Routed domain" value={(draft?.domain || classification?.category || 'unrouted')} mono />
             </div>
 
@@ -1004,15 +992,11 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                   {draft?.rag_top_score != null && (
                     <Badge className="font-mono">RAG score: {draft.rag_top_score.toFixed(3)}</Badge>
                   )}
-                  {draft?.low_relevance && (
-                    <Badge tone="danger" className="font-mono">Low relevance</Badge>
-                  )}
-                  {retrievedSources.length > 0 && (
-                    <Badge className="font-mono">Sources: {retrievedSources.length}</Badge>
-                  )}
                 </div>
               </div>
             )}
+
+            {fullData && <RoutingExplanation payload={fullData.raw_graph_payload} />}
 
             {fullData?.raw_graph_payload && (
               <div className="mt-4 rounded-lg border border-border bg-surface-raised p-3">
@@ -1134,13 +1118,14 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
             </div>
 
             {/* Human Review Override Actions */}
-            {(role === 'human' || (role === 'all' && isEscalated)) && !isReplying && (
+            {/* A reopened ticket already has its resolution (PUT /api/tickets would 409) - it's answered in the thread below. */}
+            {!isReopened && (role === 'human' || (role === 'all' && isEscalated)) && !isReplying && (
               <Button variant="secondary" onClick={() => setIsReplying(true)} className="w-full">
                 Claim this ticket
               </Button>
             )}
 
-            {(role === 'human' || (role === 'all' && isEscalated)) && isReplying && (
+            {!isReopened && (role === 'human' || (role === 'all' && isEscalated)) && isReplying && (
               <div className="space-y-3">
                 <Textarea
                   className="border-warning/50 hover:border-warning focus-visible:border-warning resize-none"
@@ -1158,6 +1143,13 @@ export function TicketRow({ ticket, role, onDelete }: { ticket: Ticket; role: 'a
                 </div>
               </div>
             )}
+
+            <TicketThread
+              ticketId={ticket.id}
+              viewer={{ id: adminUser?.id ?? null, role: adminRole === 'admin' ? 'admin' : 'agent' }}
+              canResolve={isReopened}
+              onTicketStatusChange={() => { fetchFullData(); }}
+            />
 
           </div>
         </div>

@@ -12,6 +12,7 @@ export type QueueResolution = {
 
 export type QueueTicket = {
   id: string;
+  ticket_number?: number | null;
   raw_text: string;
   subject?: string | null;
   customer_email?: string | null;

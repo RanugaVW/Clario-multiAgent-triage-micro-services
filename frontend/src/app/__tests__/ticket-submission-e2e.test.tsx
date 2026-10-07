@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DashboardPage from '../dashboard/page';
@@ -169,7 +169,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     });
 
     // Verify tracking ID is displayed
-    expect(screen.getByText('ticket-uuid-001')).toBeInTheDocument();
+    expect(screen.getByTitle('ticket-uuid-001')).toBeInTheDocument();
 
     // Verify copy button exists
     const copyButton = screen.getByRole('button', { name: /copy id/i });
@@ -197,7 +197,7 @@ describe('E2E Ticket Submission Pipeline', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('ticket-uuid-001')).toBeInTheDocument();
+      expect(screen.getByTitle('ticket-uuid-001')).toBeInTheDocument();
     });
 
     const copyButton = screen.getByRole('button', { name: /copy id/i });
@@ -645,7 +645,8 @@ describe('E2E Ticket Submission Pipeline', () => {
     // Step 4: Success modal appears
     await waitFor(() => {
       expect(screen.getByText(/Ticket submitted successfully/i)).toBeInTheDocument();
-      expect(screen.getByText('ticket-uuid-001')).toBeInTheDocument();
+      // Scoped to the dialog: the history row behind it carries the same UUID title.
+      expect(within(screen.getByRole('dialog')).getByTitle('ticket-uuid-001')).toBeInTheDocument();
     });
 
     // Step 5: View tickets

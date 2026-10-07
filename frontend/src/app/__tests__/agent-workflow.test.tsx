@@ -33,7 +33,7 @@ const ticket = (over: Record<string, unknown>) => ({
 const TICKETS = [
   ticket({ id: 'ticket-low-0001', subject: 'Low one', ticket_classifications: [{ category: 'Refunds', priority: 'Low' }] }),
   ticket({
-    id: 'ticket-aaaa-1111', subject: 'Charged twice', raw_text: 'I was charged twice\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\nreceipt noise',
+    id: 'ticket-aaaa-1111', ticket_number: 42, subject: 'Charged twice', raw_text: 'I was charged twice\n[OCR EXTRACTED TEXT FROM ATTACHMENT]\nreceipt noise',
     customer_email: 'c@example.com',
     ticket_classifications: [{ category: 'Billing & Invoicing, Refunds', priority: 'Urgent', sentiment: 'Frustrated' }],
     ticket_drafts: [{ domain: 'billing', draft_text: 'Draft: we will refund you.' }],
@@ -102,7 +102,7 @@ describe('Agent dashboard (UR-008 / FR-035)', () => {
     const user = userEvent.setup();
     render(<AgentDashboard />);
 
-    await user.click(await screen.findByRole('button', { name: 'Review ticket ticket-a' }));
+    await user.click(await screen.findByRole('button', { name: 'Review ticket TKT-0042' }));
     expect(push).toHaveBeenCalledWith('/agent/ticket-aaaa-1111');
   });
 
@@ -145,7 +145,7 @@ describe('Agent queue - token markup and semantics', () => {
     const items = await screen.findAllByRole('listitem');
     const list = items[0].closest('ul') as HTMLElement;
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Review ticket ticket-a' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Review ticket TKT-0042' })).toBeInTheDocument();
   });
 
   it('shows the priority as a badge with the tone rule urgent->danger, high->warning, else brand', async () => {

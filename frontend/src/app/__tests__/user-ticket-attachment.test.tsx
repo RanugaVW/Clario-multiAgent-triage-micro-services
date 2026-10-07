@@ -5,7 +5,11 @@ const createSignedUrl = vi.fn(() =>
   Promise.resolve({ data: { signedUrl: 'https://signed.example.com/img.png' }, error: null })
 );
 vi.mock('../../lib/supabase', () => ({
-  supabase: { storage: { from: () => ({ createSignedUrl }) } },
+  supabase: {
+    // TicketThread (inside every expanded row) opens a Realtime channel.
+    channel: () => ({ on() { return this; }, subscribe() { return this; } }),
+    removeChannel: () => {},
+    storage: { from: () => ({ createSignedUrl }) } },
 }));
 
 import { UserTicketRow } from '../dashboard/page';

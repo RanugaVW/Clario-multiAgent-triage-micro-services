@@ -7,6 +7,7 @@ import { Clock, CheckCircle2, AlertTriangle, ArrowRight, Loader2, RefreshCw } fr
 import { AgentShell } from './AgentShell';
 import { fetchStaffTickets } from '../../lib/agentApi';
 import { reviewQueue, queueStats, ticketHeadline, ticketCategories, type QueueTicket } from '../../lib/agentQueue';
+import { formatTicketRef } from '../../lib/ticketRef';
 import { formatRelative } from '../../lib/datetime';
 import { Badge, type BadgeTone } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -120,7 +121,7 @@ export default function AgentDashboard() {
                   <div className="min-w-0">
                     <h3 className="truncate text-body font-semibold text-fg">{ticketHeadline(ticket)}</h3>
                     <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-app text-fg-muted">
-                      <span className="font-mono text-caption">{ticket.id.slice(0, 8)}</span>
+                      <span className="font-mono text-caption" title={ticket.id}>{formatTicketRef(ticket)}</span>
                       {ticketCategories(ticket).map((c) => (
                         <Badge key={c}>{c}</Badge>
                       ))}
@@ -133,7 +134,7 @@ export default function AgentDashboard() {
                 <Button
                   variant="secondary"
                   onClick={() => router.push(`/agent/${ticket.id}`)}
-                  aria-label={`Review ticket ${ticket.id.slice(0, 8)}`}
+                  aria-label={`Review ticket ${formatTicketRef(ticket)}`}
                   className="shrink-0"
                 >
                   <span>Review</span>

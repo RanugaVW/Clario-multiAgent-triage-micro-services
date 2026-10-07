@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 import logging
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 from pathlib import Path
 
 import chromadb
@@ -260,6 +260,8 @@ def upsert_reference(
     priority: str = "Unknown",
     category: str = "Unknown",
     doc_id: Optional[str] = None,
+    source: str = "admin_override",
+    extra_metadata: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Add or update a ground-truth reference in validation_refs.
 
@@ -273,6 +275,9 @@ def upsert_reference(
     Embeds `issue_text` un-canonicalized to match how `select_few_shots`
     embeds its query text - mismatched preprocessing between write and read
     would silently degrade retrieval quality.
+
+    `source` and `extra_metadata` let other feedback jobs (customer ratings)
+    reuse this pool; extra keys never override the core fields.
     """
     if not issue_text or not resolution_text:
         return
@@ -288,12 +293,13 @@ def upsert_reference(
         embeddings=[embedding],
         documents=[content],
         metadatas=[{
+            **(extra_metadata or {}),
             "domain": domain,
             "priority": priority,
             "category": category,
             "product": "Unknown",
             "ticket_id": ticket_id,
-            "source": "admin_override",
+            "source": source,
         }],
     )
 
