@@ -49,6 +49,9 @@ BATCH_SIZE = 20
 STYLE_EXAMPLES = 6
 MAX_BATCH_MULTIPLIER = 4  # give up on a label after 4x the batches it should need
 GENERATOR_TEMPERATURE = 0.9
+RARE_LABEL_FLOOR = 0.25  # aim every label at >= 25% of the majority label, not full balance
+MAX_SYNTHETIC_RATIO = 3  # never add more than 3x a label's own real tickets
+AUGMENTATION_BUDGET = 0.25  # total synthetic tickets per field stay under 25% of the split
 SEED = 42
 
 DEFINITIONS = {"priority": PRIORITY_DEFINITIONS, "sentiment": SENTIMENT_DEFINITIONS,
@@ -81,8 +84,29 @@ def compute_augmentation_targets(counts: dict[str, int], n_rows: int) -> dict[st
     n_rows: number of original training tickets.
     Returns {label: tickets_to_add} for every label; 0 where nothing is needed.
     """
-    # TODO(human)
-    raise NotImplementedError
+    if not counts:
+        return {}
+
+    majority = max(counts, key=counts.get)
+    ceiling = counts[majority]
+    floor = math.floor(RARE_LABEL_FLOOR * ceiling)
+
+    targets = {}
+    for label, count in counts.items():
+        if label == majority:
+            targets[label] = 0  # the majority label is what everything else is measured against
+            continue
+        # Lift towards the floor, but never outgrow the label's own real tickets
+        # (the student would learn the generator's habits) nor pass the majority.
+        targets[label] = min(max(floor - count, 0), MAX_SYNTHETIC_RATIO * count, ceiling - count)
+
+    # A skewed field can ask for more synthetic tickets than the split can absorb;
+    # scale the whole field down proportionally rather than dropping labels.
+    budget = math.floor(AUGMENTATION_BUDGET * n_rows)
+    total = sum(targets.values())
+    if total > budget:
+        targets = {label: math.floor(n * budget / total) for label, n in targets.items()}
+    return targets
 
 
 def build_generator_prompt(field: str, label: str, style_rows: list[dict[str, Any]], count: int) -> str:
